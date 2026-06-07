@@ -8,6 +8,7 @@
 //   client.chargingStations.get(identifier)
 
 import { RequestEngine, type EngineOptions } from "./engine.js";
+import { AutobahnError } from "./errors.js";
 import type {
   RoadsResult,
   AutobahnServiceItem,
@@ -16,6 +17,19 @@ import type {
 
 const API_ROOT = "/o/autobahn";
 const enc = encodeURIComponent;
+
+/**
+ * Validate a required path segment (motorway id / item identifier) client-side.
+ * Rejects empty or whitespace-only values up front with a clear message rather
+ * than building a malformed URL (`//services/...`) and leaking the upstream
+ * "Cannot GET" 404 text back to the caller.
+ */
+function requireSegment(name: string, value: string): string {
+  if (typeof value !== "string" || value.trim() === "") {
+    throw new AutobahnError(`Invalid ${name}: must be a non-empty string`);
+  }
+  return value;
+}
 
 /**
  * One Autobahn service (roadworks, webcam, ...). `list(roadId)` returns the
@@ -34,8 +48,12 @@ class ServiceResource<K extends string> {
 
   /** List the service's items along a motorway, e.g. roadId "A1". */
   async list(roadId: string): Promise<AutobahnServiceItem[]> {
+    // Trim surrounding whitespace: the upstream API itself emits a few ids with a
+    // trailing space (e.g. "A60 "), and copying such an id straight back in would
+    // otherwise URL-encode the space and miss the road. Validate after trimming.
+    const id = requireSegment("roadId", roadId).trim();
     const res = await this.engine.getJson<Record<K, AutobahnServiceItem[]>>(
-      `${API_ROOT}/${enc(roadId)}/services/${this.service}`,
+      `${API_ROOT}/${enc(id)}/services/${this.service}`,
     );
     const items = res[this.key];
     return Array.isArray(items) ? items : [];
@@ -43,6 +61,7 @@ class ServiceResource<K extends string> {
 
   /** Fetch one item's details by its (base64) identifier. */
   get(identifier: string): Promise<JsonObject> {
+    requireSegment("identifier", identifier);
     return this.engine.getJson(`${API_ROOT}/details/${this.service}/${enc(identifier)}`);
   }
 }

@@ -24,12 +24,12 @@ export function buildProgram(deps: CliDeps = defaultDeps): Command {
   program
     .name("autobahn")
     .description(
-      "CLI for the open Autobahn App API (https://verkehr.autobahn.de) — roadworks, " +
-        "traffic warnings, closures, lorry parking, webcams and charging stations.",
+      "CLI for the open Autobahn App API - roadworks, traffic warnings, " +
+        "closures, lorry parking, webcams and charging stations.",
     )
-    .version(VERSION)
+    .version(VERSION, "-v, --version", "output the version number")
     .option("--base-url <url>", "API base URL", "https://verkehr.autobahn.de")
-    .option("--timeout <ms>", "per-request timeout in milliseconds", parseIntArg)
+    .option("--timeout <ms>", "per-request timeout in milliseconds (0 disables)", parseIntArg)
     .option("--user-agent <ua>", "User-Agent header value")
     .option("--max-retries <n>", "retries for transient 429/503 responses", parseIntArg)
     .option(

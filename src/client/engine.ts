@@ -75,9 +75,12 @@ export class RequestEngine {
   private readonly sleep: (ms: number) => Promise<void>;
 
   constructor(options: EngineOptions = {}) {
-    this.baseUrl = (options.baseUrl ?? DEFAULT_BASE_URL).replace(/\/+$/, "");
+    // Use `||` (not `??`) for the string options so that an empty string — which
+    // commander can hand us from `--base-url ""` / `--user-agent ""` — falls back
+    // to the default rather than producing an invalid URL or a blank UA header.
+    this.baseUrl = (options.baseUrl || DEFAULT_BASE_URL).replace(/\/+$/, "");
     this.transport = options.transport ?? nodeHttpTransport;
-    this.userAgent = options.userAgent ?? DEFAULT_USER_AGENT;
+    this.userAgent = options.userAgent || DEFAULT_USER_AGENT;
     this.timeoutMs = options.timeoutMs ?? 30_000;
     this.maxRetries = options.maxRetries ?? 2;
     this.retryDelayMs = options.retryDelayMs ?? 200;
@@ -137,6 +140,19 @@ export class RequestEngine {
   async getJson<T>(path: string, query?: QueryParams): Promise<T> {
     const res = await this.request("GET", path, { query, accept: "application/json" });
     const text = res.data.toString("utf8");
+    // The Autobahn detail endpoint answers an unknown identifier with HTTP 200
+    // and an *empty* body rather than a 404. Treat an empty (or whitespace-only)
+    // body as "not found" so it surfaces as a 404 AutobahnApiError (exit 4)
+    // instead of a misleading JSON parse error.
+    if (text.trim() === "") {
+      throw new AutobahnApiError({
+        status: 404,
+        url: this.buildUrl(path, query),
+        method: "GET",
+        body: text,
+        detail: "Not found (empty response body)",
+      });
+    }
     try {
       return JSON.parse(text) as T;
     } catch (cause) {

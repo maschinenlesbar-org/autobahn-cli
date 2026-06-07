@@ -41,7 +41,7 @@ Every command prints pretty JSON to stdout (`--compact` for a single line).
 | Option | Description |
 | --- | --- |
 | `--base-url <url>` | API base URL (default `https://verkehr.autobahn.de`) |
-| `--timeout <ms>` | Per-request timeout (default `30000`) |
+| `--timeout <ms>` | Per-request timeout in ms (default `30000`; `0` disables the timeout) |
 | `--user-agent <ua>` | `User-Agent` header value |
 | `--max-retries <n>` | Retries for transient `429`/`503` responses (default `2`) |
 | `--max-response-bytes <n>` | Cap response body size in bytes (`0` = unlimited; default 100 MiB) |
@@ -86,9 +86,13 @@ Exit codes:
 | Code | Meaning |
 | --- | --- |
 | `0` | Success (also `--help` / `--version`) |
-| `4` | The API returned `404` (item or motorway not found) |
+| `4` | Not found — the API returned `404`, or a `get <id>` matched no item (the detail endpoint answers an unknown id with an empty body, which is mapped to a not-found error) |
 | `1` | Any other API, network, or parse error |
 | `1` | Usage error (unknown command, invalid option value) |
+
+A `list <roadId>` that matches no items is **not** an error: it prints an empty
+array `[]` and exits `0`. Only a `get <id>` with no matching item (or a `404`
+from the API) is treated as not-found (exit `4`).
 
 `--base-url` is trusted input: the CLI fetches whatever host you point it at and
 prints the JSON. No credentials are ever attached, and only `http:`/`https:` URLs
@@ -148,7 +152,7 @@ src/
     errors.ts    # AutobahnError / AutobahnApiError / AutobahnNetworkError / AutobahnParseError
     client.ts    # AutobahnClient — a generic ServiceResource per service group
   cli/
-    io.ts        # injectable I/O seam (stdout/stderr/file)
+    io.ts        # injectable I/O seam (stdout/stderr)
     shared.ts    # option parsers, global-option resolver, JSON renderer
     commands/    # roads + the six service command groups
     program.ts   # assembles the commander program from injectable deps

@@ -14,6 +14,9 @@ import { AutobahnApiError, AutobahnError } from "../client/errors.js";
  */
 function configureTree(command: Command, deps: CliDeps): void {
   command.exitOverride();
+  // Propagate showHelpAfterError to every subcommand so parse errors render the
+  // same depth of help everywhere, not just at the root.
+  command.showHelpAfterError();
   command.configureOutput({
     writeOut: (str) => deps.io.out(str.replace(/\n$/, "")),
     writeErr: (str) => deps.io.err(str.replace(/\n$/, "")),
@@ -24,6 +27,13 @@ function configureTree(command: Command, deps: CliDeps): void {
 export async function run(argv: string[], deps: CliDeps = defaultDeps): Promise<number> {
   const program = buildProgram(deps);
   configureTree(program, deps);
+
+  // No arguments at all is a discovery request, not an error: print help to
+  // stdout and exit 0 (commander would otherwise dump help to stderr / exit 1).
+  if (argv.length === 0) {
+    deps.io.out(program.helpInformation());
+    return 0;
+  }
 
   try {
     await program.parseAsync(argv, { from: "user" });
