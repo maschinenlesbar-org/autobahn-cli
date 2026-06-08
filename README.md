@@ -11,6 +11,11 @@ Autobahn GmbH — live **roadworks**, **traffic warnings**, **closures**, **lorr
 - **Well tested** — unit tests on Node's built-in test runner (`node --test`), every HTTP response mocked.
 - **Read-only, no auth** — the Autobahn API needs no key; this client only reads.
 
+New to the Autobahn API, or terms like *roadId*, the base64 *identifier*, or the
+six service resources (roadworks, webcams, parking, warnings, closures,
+charging)? See **[GLOSSARY.md](GLOSSARY.md)** for the domain concepts and the
+project's own vocabulary.
+
 ## Requirements
 
 - Node.js **>= 20** (uses the stable built-in test runner, ESM and top-level `await`).
@@ -104,7 +109,7 @@ error rather than being chased to another host.
 ## Library usage
 
 ```ts
-import { AutobahnClient, AutobahnApiError } from "autobahn-cli";
+import { AutobahnClient, AutobahnApiError } from "@maschinenlesbar.org/autobahn-cli";
 
 const client = new AutobahnClient(); // defaults to https://verkehr.autobahn.de
 
