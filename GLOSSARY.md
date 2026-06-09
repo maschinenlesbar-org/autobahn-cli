@@ -163,43 +163,6 @@ or an unmatched `get`); `1` any other API/network/parse error and usage errors.
 
 ---
 
-## Project / technical terms
-
-**API client.** [`AutobahnClient`](src/client/client.ts) — the typed,
-service-grouped wrapper over the API. Usable as a library independently of the
-CLI; defaults to `https://verkehr.autobahn.de`.
-
-**Service resource.** A `ServiceResource` exposing `.list(roadId)` and
-`.get(identifier)` for one service. The client exposes six:
-`client.roadworks`, `.webcams`, `.parkingLorries`, `.warnings`, `.closures`,
-`.chargingStations`, plus the standalone `client.roads()`.
-
-**Transport.** A single function `(HttpRequest) => Promise<HttpResponse>`
-([`http.ts`](src/client/http.ts)). The default uses Node's built-in
-`http`/`https`; tests inject a mock. This is the only HTTP seam.
-
-**Request engine.** [`RequestEngine`](src/client/engine.ts) — builds URLs,
-serialises queries, applies retry/backoff, decodes JSON responses and maps
-errors. Sits between the client's resource methods and the transport.
-
-**RawResponse.** The low-level result of a request: `{ data: Buffer,
-contentType, status }` — raw bytes plus metadata, before JSON decoding.
-
-**Query-string builder.** [`query.ts`](src/client/query.ts) — a dependency-free
-serialiser: omits `undefined`/`null`, repeats keys for arrays (`?id=a&id=b`),
-renders booleans as `"true"`/`"false"`, dates as ISO-8601, and encodes spaces as
-`%20`.
-
-**CliDeps / CliIO.** The dependency-injection seam for the CLI
-([`io.ts`](src/cli/io.ts)): a client factory plus an I/O object (`out`/`err`).
-Lets the whole CLI run in tests with a mocked client and captured output — no
-subprocess.
-
-**Error types.** [`errors.ts`](src/client/errors.ts): `AutobahnApiError`
-(non-2xx, carries `status`/`detail`/`url`/`body`), `AutobahnNetworkError`
-(transport failure/timeout), `AutobahnParseError` (bad JSON), all extending
-`AutobahnError`.
-
-**`--base-url` is trusted input.** The CLI fetches whatever host you point it at
-and prints the JSON; no credentials are ever attached, and only `http:`/`https:`
-URLs are accepted.
+> **Library & internals.** Terms for the TypeScript client and its internals —
+> `AutobahnClient`, the request engine, transport, retry/backoff, error types,
+> query builder, DI seams — now live in **[DEVELOPING.md](DEVELOPING.md)**.
