@@ -1,5 +1,10 @@
 # autobahn-cli
 
+[![CI](https://github.com/maschinenlesbar-org/autobahn-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/maschinenlesbar-org/autobahn-cli/actions/workflows/ci.yml)
+[![Release](https://github.com/maschinenlesbar-org/autobahn-cli/actions/workflows/release.yml/badge.svg)](https://github.com/maschinenlesbar-org/autobahn-cli/actions/workflows/release.yml)
+[![GitHub release](https://img.shields.io/github/v/release/maschinenlesbar-org/autobahn-cli)](https://github.com/maschinenlesbar-org/autobahn-cli/releases/latest)
+[![npm](https://img.shields.io/npm/v/@maschinenlesbar.org/autobahn-cli)](https://www.npmjs.com/package/@maschinenlesbar.org/autobahn-cli)
+
 Query live traffic data — roadworks, warnings, closures, parking, webcams and
 charging stations — along Germany's motorway network, straight from your
 terminal. `autobahn` is a command-line tool over the open
