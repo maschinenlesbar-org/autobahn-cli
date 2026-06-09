@@ -178,6 +178,8 @@ These apply to every command and go **before** it:
 - **[Usage.md](Usage.md)** — full use-case-driven cookbook.
 - **[GLOSSARY.md](GLOSSARY.md)** — every command, resource, and domain term explained.
 - **[DEVELOPING.md](DEVELOPING.md)** — TypeScript library usage, architecture, testing, CI.
+- **[SKILLS.md](SKILLS.md)** — Claude Code Agent Skills bundled with this repo (route
+  check, EV charging planner, GeoJSON export), installable as a plugin.
 
 ## License
 

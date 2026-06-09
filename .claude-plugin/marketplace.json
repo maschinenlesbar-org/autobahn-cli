@@ -1,0 +1,37 @@
+{
+  "name": "autobahn-skills",
+  "owner": {
+    "name": "Sebastian Schürmann",
+    "email": "sebs@2xs.org"
+  },
+  "metadata": {
+    "description": "Live German motorway intelligence skills powered by the autobahn-cli (Autobahn App API)"
+  },
+  "plugins": [
+    {
+      "name": "autobahn",
+      "source": "./",
+      "description": "Brief motorway disruptions before a drive, plan EV charging stops along a route, and export any Autobahn service as GeoJSON — all over the open, key-free Autobahn App API via the autobahn-cli.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Sebastian Schürmann",
+        "email": "sebs@2xs.org"
+      },
+      "license": "AGPL-3.0-or-later",
+      "repository": "https://github.com/maschinenlesbar-org/autobahn-cli",
+      "homepage": "https://github.com/maschinenlesbar-org/autobahn-cli#readme",
+      "category": "traffic",
+      "keywords": [
+        "autobahn",
+        "verkehr",
+        "traffic",
+        "roadworks",
+        "closures",
+        "ev-charging",
+        "geojson",
+        "germany",
+        "bund.dev"
+      ]
+    }
+  ]
+}

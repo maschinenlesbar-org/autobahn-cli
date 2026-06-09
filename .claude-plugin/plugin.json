@@ -1,0 +1,23 @@
+{
+  "name": "autobahn",
+  "version": "0.1.0",
+  "description": "Live German motorway intelligence skills powered by the autobahn-cli (Autobahn App API).",
+  "author": {
+    "name": "Sebastian Schürmann",
+    "email": "sebs@2xs.org"
+  },
+  "license": "AGPL-3.0-or-later",
+  "repository": "https://github.com/maschinenlesbar-org/autobahn-cli",
+  "homepage": "https://github.com/maschinenlesbar-org/autobahn-cli#readme",
+  "keywords": [
+    "autobahn",
+    "verkehr",
+    "traffic",
+    "roadworks",
+    "closures",
+    "ev-charging",
+    "geojson",
+    "germany",
+    "bund.dev"
+  ]
+}
