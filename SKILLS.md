@@ -22,11 +22,9 @@ coordinate ordering across services) so Claude doesn't have to rediscover them e
 
 - **[Claude Code](https://code.claude.com/docs/en/overview)** (or any harness that loads
   Agent Skills).
-- **The `autobahn` CLI** reachable, via any of:
+- **The `autobahn` CLI** installed globally:
   ```bash
   npm i -g @maschinenlesbar.org/autobahn-cli   # installs the `autobahn` bin
-  # or run ad-hoc with: npx @maschinenlesbar.org/autobahn-cli …
-  # or from this repo:   node dist/src/cli/index.js …   (after `npm run build`)
   ```
   No API key is required — the Autobahn App API is free, open, and read-only.
 

@@ -19,15 +19,10 @@ export wrong.
 
 ## Tooling
 
+This skill drives the `autobahn` command. **Before anything else, validate it is available** — run `command -v autobahn` (or `autobahn --version`). If it is not on your PATH, STOP and inform the user that the `autobahn` CLI (`@maschinenlesbar.org/autobahn-cli`) is not installed — installing it is their responsibility; never install it yourself, and do not fall back to `npx` or a local `node dist/...` build.
+
 Data comes from the `autobahn` CLI (`@maschinenlesbar.org/autobahn-cli`) — read-only, no
-key, **one motorway + one service per call**. Use whichever entrypoint exists:
-
-- `autobahn …` (on `PATH`), else
-- `npx @maschinenlesbar.org/autobahn-cli …`, else
-- `node dist/src/cli/index.js …` from the `autobahn-cli` repo (`npm run build` first if
-  `dist/` is missing).
-
-Always `--compact`. Services: `roadworks`, `closures`, `warnings`, `parking`, `charging`,
+key, **one motorway + one service per call**. Always `--compact`. Services: `roadworks`, `closures`, `warnings`, `parking`, `charging`,
 `webcams`. An empty `[]` is a valid result (no items of that type on that road).
 
 ## Step 1 — Fetch

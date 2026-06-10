@@ -18,15 +18,10 @@ with the power and connector detail a driver actually picks a station on.
 
 ## Tooling
 
+This skill drives the `autobahn` command. **Before anything else, validate it is available** — run `command -v autobahn` (or `autobahn --version`). If it is not on your PATH, STOP and inform the user that the `autobahn` CLI (`@maschinenlesbar.org/autobahn-cli`) is not installed — installing it is their responsibility; never install it yourself, and do not fall back to `npx` or a local `node dist/...` build.
+
 Data comes from the `autobahn` CLI (`@maschinenlesbar.org/autobahn-cli`) — read-only, no
-key, **one motorway per call**. Use whichever entrypoint exists, in order:
-
-- `autobahn …` (on `PATH`), else
-- `npx @maschinenlesbar.org/autobahn-cli …`, else
-- `node dist/src/cli/index.js …` from the `autobahn-cli` repo (`npm run build` first if
-  `dist/` is missing).
-
-Pass `--compact`. An empty `[]` (exit `0`) means no chargers on that road — a valid
+key, **one motorway per call**. Pass `--compact`. An empty `[]` (exit `0`) means no chargers on that road — a valid
 answer, not an error.
 
 ## Step 1 — Resolve the road(s)

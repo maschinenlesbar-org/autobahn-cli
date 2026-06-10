@@ -19,16 +19,11 @@ more roads, instead of three separate JSON blobs per road.
 
 ## Tooling
 
+This skill drives the `autobahn` command. **Before anything else, validate it is available** — run `command -v autobahn` (or `autobahn --version`). If it is not on your PATH, STOP and inform the user that the `autobahn` CLI (`@maschinenlesbar.org/autobahn-cli`) is not installed — installing it is their responsibility; never install it yourself, and do not fall back to `npx` or a local `node dist/...` build.
+
 All data comes from the `autobahn` CLI (the `@maschinenlesbar.org/autobahn-cli` package).
 It is read-only, needs no API key, and queries **one motorway at a time**. The whole job
 of this skill is the cross-road / cross-service merge the CLI deliberately doesn't do.
-
-Invoke it with whichever entrypoint is available, in this order:
-
-- `autobahn …` if it's on `PATH` (globally installed), else
-- `npx @maschinenlesbar.org/autobahn-cli …`, else
-- `node dist/src/cli/index.js …` from inside the `autobahn-cli` repo (run `npm run build`
-  first if `dist/` is missing).
 
 Always pass `--compact` so each result is one line, easy to pipe into `jq`. Bump
 `--timeout 60000` if a call times out. A `list` that matches nothing prints `[]` and
