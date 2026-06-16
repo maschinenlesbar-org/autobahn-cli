@@ -181,6 +181,16 @@ These apply to every command and go **before** it:
 - **[SKILLS.md](SKILLS.md)** — Claude Code Agent Skills bundled with this repo (route
   check, EV charging planner, GeoJSON export), installable as a plugin.
 
+## Data license
+
+This CLI is a **client** — it accesses data it does not own or redistribute. The
+upstream data is © its provider and licensed **separately from this tool's code**.
+See **[DATA_LICENSE.md](DATA_LICENSE.md)**.
+
+> **Die Autobahn GmbH des Bundes** — Datenlizenz Deutschland Namensnennung 2.0
+> (`dl-de/by-2-0`, by analogy; not declared on the App API itself). Attribution
+> required; commercial use and modification allowed.
+
 ## License
 
 **Dual-licensed** — use it under **either**:
