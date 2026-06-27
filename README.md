@@ -69,6 +69,10 @@ The `<roadId>` is a motorway designation from `autobahn roads` (e.g. `A1`).
 The `<identifier>` for a `get` command is the `identifier` field of an item
 returned by the matching `list`.
 
+> On the rare occasion an identifier begins with `-`, it would be read as an
+> option; pass it after a `--` separator:
+> `autobahn roadworks get -- -odd.identifier`.
+
 ### Service commands — subcommand reference
 
 Each of the six service groups (`roadworks`, `webcams`, `parking`, `warnings`,
@@ -160,7 +164,7 @@ A `list` returning zero items is not an error — it exits `0` with `[]`.
 
 ## Global options
 
-These apply to every command and go **before** it:
+These apply to every command and may be given **before or after** it:
 
 | Option | Description |
 | --- | --- |

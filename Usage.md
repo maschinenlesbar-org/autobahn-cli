@@ -142,7 +142,8 @@ autobahn --base-url https://verkehr.autobahn.de roads
 
 ## Global options
 
-All global options go **before** the command (e.g. `autobahn --compact roads`).
+Global options may be given **before or after** the command — both
+`autobahn --compact roads` and `autobahn roads --compact` work.
 
 | Option | Description |
 | --- | --- |

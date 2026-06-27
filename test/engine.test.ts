@@ -1,7 +1,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { RequestEngine, parseRetryAfter } from "../src/client/engine.js";
-import { AutobahnApiError, AutobahnParseError } from "../src/client/errors.js";
+import {
+  AutobahnApiError,
+  AutobahnNetworkError,
+  AutobahnParseError,
+} from "../src/client/errors.js";
 import type { HttpResponse } from "../src/client/http.js";
 import { makeMockTransport, jsonResponse, rawResponse } from "./helpers.js";
 
@@ -11,6 +15,18 @@ test("buildUrl normalises the path and appends the query", () => {
   assert.equal(
     e.buildUrl("/x", { a: "1", b: ["2", "3"] }),
     "https://example.test/x?a=1&b=2&b=3",
+  );
+});
+
+test("buildUrl rejects a malformed base URL with a clear, base-only message", () => {
+  const e = new RequestEngine({ baseUrl: "notaurl" });
+  assert.throws(
+    () => e.buildUrl("/o/autobahn/"),
+    (err: unknown) =>
+      err instanceof AutobahnNetworkError &&
+      /Invalid base URL: "notaurl"/.test(err.message) &&
+      // the diagnostic must NOT carry the request path (which read as if at fault)
+      !/o\/autobahn/.test(err.message),
   );
 });
 

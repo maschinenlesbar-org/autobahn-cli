@@ -113,6 +113,39 @@ test("--version exits 0", async () => {
   assert.equal(cli.mt.calls.length, 0);
 });
 
+test("a bare invocation prints help to stdout (not stderr), exit 0", async () => {
+  const cli = makeCli(() => jsonResponse({}));
+  const code = await run([], cli.deps);
+  assert.equal(code, 0);
+  assert.equal(cli.mt.calls.length, 0);
+  assert.equal(cli.err.length, 0); // help on stdout, not stderr
+  assert.match(cli.out.join("\n"), /Usage: autobahn/);
+});
+
+test("a global flag with no command prints help to stdout, exit 0", async () => {
+  const cli = makeCli(() => jsonResponse({}));
+  const code = await run(["--compact"], cli.deps);
+  assert.equal(code, 0);
+  assert.equal(cli.err.length, 0);
+  assert.match(cli.out.join("\n"), /Usage: autobahn/);
+});
+
+test("a bare command group prints its help to stdout, exit 0", async () => {
+  const cli = makeCli(() => jsonResponse({}));
+  const code = await run(["roadworks"], cli.deps);
+  assert.equal(code, 0);
+  assert.equal(cli.err.length, 0);
+  assert.match(cli.out.join("\n"), /list|get/);
+});
+
+test("an unknown command still errors on stderr with exit 1", async () => {
+  const cli = makeCli(() => jsonResponse({}));
+  const code = await run(["bogus"], cli.deps);
+  assert.equal(code, 1);
+  assert.equal(cli.out.length, 0);
+  assert.match(cli.err.join("\n"), /unknown command 'bogus'/);
+});
+
 test("an invalid --timeout is a usage error (non-zero, no request)", async () => {
   const cli = makeCli(() => jsonResponse({}));
   const code = await run(["--timeout", "1e3", "roads"], cli.deps);
