@@ -85,7 +85,9 @@ Notes:
 
 Write the FeatureCollection to a file the user can open (default
 `./autobahn-<road>-<service>.geojson`, or a combined name for multi-service exports) and
-report the feature count. Offer to:
+report **the path you wrote and the feature count**. If a name the user supplied already
+exists, confirm before overwriting it (re-running with the default name to refresh is fine).
+Offer to:
 - open it at https://geojson.io (paste / drag the file), or
 - pretty-print vs compact (large roads can be 200+ features).
 
