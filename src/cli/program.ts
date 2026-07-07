@@ -46,6 +46,12 @@ export function buildProgram(deps: CliDeps = defaultDeps): Command {
         "closures, lorry parking, webcams and charging stations.",
     )
     .version(VERSION, "-v, --version", "output the version number")
+    // `--base-url` deliberately has no commander value-parser: unlike sibling
+    // repos that reject a bad scheme at parse time (exit 2), this repo validates it
+    // downstream — a malformed URL in buildUrl and a non-http(s) scheme in the
+    // transport, both surfacing as AutobahnNetworkError -> exit 1, before any
+    // protocol driver is reached. So file:/ftp: can never be dispatched, and the
+    // exit code stays 1 as documented in Usage.md ("usage error" -> 1).
     .option("--base-url <url>", "API base URL", "https://verkehr.autobahn.de")
     .option("--timeout <ms>", "per-request timeout in milliseconds (0 disables)", parseIntArg)
     .option("--user-agent <ua>", "User-Agent header value")
