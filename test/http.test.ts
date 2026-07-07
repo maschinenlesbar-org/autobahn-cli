@@ -53,3 +53,31 @@ test("enforces maxResponseBytes", async () => {
     },
   );
 });
+
+test("an overall deadline bounds a slow-drip response (AUT-02)", async () => {
+  // A server that keeps the connection open and drips one byte at a time slower
+  // than any single idle-timeout window would reset the socket-inactivity timer
+  // forever. The wall-clock deadline must still abort the exchange.
+  const timers: NodeJS.Timeout[] = [];
+  await withServer(
+    (_req, res) => {
+      res.writeHead(200, { "content-type": "application/json" });
+      // Drip a byte periodically; never call res.end(). Interval > 0 so each write
+      // resets the idle timer, but the total duration exceeds the deadline.
+      const iv = setInterval(() => res.write("x"), 20);
+      timers.push(iv);
+      res.on("close", () => clearInterval(iv));
+    },
+    async (baseUrl) => {
+      const start = Date.now();
+      await assert.rejects(
+        () => nodeHttpTransport({ method: "GET", url: baseUrl, timeoutMs: 100 }),
+        (err: unknown) =>
+          err instanceof AutobahnNetworkError && /deadline|timed out/.test(err.message),
+      );
+      // It aborted promptly (well under a second), not hung indefinitely.
+      assert.ok(Date.now() - start < 2000);
+    },
+  );
+  for (const iv of timers) clearInterval(iv);
+});

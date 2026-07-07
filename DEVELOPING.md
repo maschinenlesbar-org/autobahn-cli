@@ -153,6 +153,11 @@ value cannot hang the CLI; otherwise using linear backoff.
 `0` disables) that defends against memory exhaustion from a hostile or buggy
 endpoint.
 
+**`timeoutMs`.** Bounds a request two ways (default 30s; `0` disables): a
+socket-inactivity timeout *and* an overall wall-clock deadline armed at request
+start. The deadline stops a slow-drip endpoint that resets the inactivity timer
+forever (one byte at a time) from holding the CLI open under the size cap.
+
 **Empty-body 404.** The detail endpoint answers an unknown identifier with
 HTTP 200 and an empty body rather than a true `404`. The engine treats an
 empty (or whitespace-only) body as not-found and raises a synthetic

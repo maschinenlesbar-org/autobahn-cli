@@ -57,6 +57,28 @@ export const nodeHttpTransport: Transport = (request) =>
     const isHttps = url.protocol === "https:";
     const driver = isHttps ? https : http;
     const maxBytes = request.maxResponseBytes;
+    const timeoutMs = request.timeoutMs && request.timeoutMs > 0 ? request.timeoutMs : 0;
+
+    // Wall-clock deadline. `req.setTimeout` below is only a *socket-inactivity*
+    // timeout: a hostile server that drips one byte every few seconds resets it
+    // forever, so total request duration would otherwise be unbounded even with the
+    // size cap intact. This timer, armed once at request start, caps the whole
+    // exchange and is cleared on every settle path so it never leaks.
+    let deadline: NodeJS.Timeout | undefined;
+    const clearDeadline = (): void => {
+      if (deadline !== undefined) {
+        clearTimeout(deadline);
+        deadline = undefined;
+      }
+    };
+    const settleResolve = (value: HttpResponse): void => {
+      clearDeadline();
+      resolve(value);
+    };
+    const settleReject = (err: Error): void => {
+      clearDeadline();
+      reject(err);
+    };
 
     const req = driver.request(
       url,
@@ -75,14 +97,14 @@ export const nodeHttpTransport: Transport = (request) =>
           if (maxBytes !== undefined && received > maxBytes) {
             aborted = true;
             res.destroy();
-            reject(new AutobahnNetworkError(`Response exceeded maxResponseBytes (${maxBytes})`));
+            settleReject(new AutobahnNetworkError(`Response exceeded maxResponseBytes (${maxBytes})`));
             return;
           }
           chunks.push(chunk);
         });
         res.on("end", () => {
           if (aborted) return;
-          resolve({
+          settleResolve({
             status: res.statusCode ?? 0,
             headers: res.headers,
             body: Buffer.concat(chunks),
@@ -90,20 +112,27 @@ export const nodeHttpTransport: Transport = (request) =>
         });
         res.on("error", (err) => {
           if (aborted) return; // we already rejected with the size-cap error
-          reject(new AutobahnNetworkError(`Response stream error: ${err.message}`, { cause: err }));
+          settleReject(new AutobahnNetworkError(`Response stream error: ${err.message}`, { cause: err }));
         });
       },
     );
 
-    if (request.timeoutMs && request.timeoutMs > 0) {
-      req.setTimeout(request.timeoutMs, () => {
-        req.destroy(new AutobahnNetworkError(`Request timed out after ${request.timeoutMs}ms`));
+    if (timeoutMs > 0) {
+      req.setTimeout(timeoutMs, () => {
+        req.destroy(new AutobahnNetworkError(`Request timed out after ${timeoutMs}ms`));
       });
+      deadline = setTimeout(() => {
+        req.destroy(
+          new AutobahnNetworkError(`Request exceeded overall deadline of ${timeoutMs}ms`),
+        );
+      }, timeoutMs);
+      // Don't let the deadline timer keep the event loop alive on its own.
+      deadline.unref?.();
     }
 
     req.on("error", (err) => {
-      // A timeout destroy already passes an AutobahnNetworkError; don't double-wrap.
-      reject(err instanceof AutobahnNetworkError ? err : new AutobahnNetworkError(err.message, { cause: err }));
+      // A timeout/deadline destroy already passes an AutobahnNetworkError; don't double-wrap.
+      settleReject(err instanceof AutobahnNetworkError ? err : new AutobahnNetworkError(err.message, { cause: err }));
     });
 
     if (request.body !== undefined) req.write(request.body);
