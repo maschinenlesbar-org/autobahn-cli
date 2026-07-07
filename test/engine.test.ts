@@ -110,6 +110,34 @@ test("a 429 with Retry-After (seconds) waits for that delay", async () => {
   assert.deepEqual(slept, [2000]); // Retry-After wins over the linear default (200)
 });
 
+test("a pathological Retry-After is clamped to the ceiling (AUT-01)", async () => {
+  // A hostile/misconfigured endpoint answers with an enormous Retry-After; the
+  // sleep must be clamped rather than hanging the CLI for hours.
+  let calls = 0;
+  const mt = makeMockTransport((): HttpResponse => {
+    calls += 1;
+    if (calls === 1) {
+      return {
+        status: 503,
+        headers: { "content-type": "application/json", "retry-after": "99999999" },
+        body: Buffer.from("{}"),
+      };
+    }
+    return jsonResponse({ ok: 1 });
+  });
+  const slept: number[] = [];
+  const e = new RequestEngine({
+    transport: mt.transport,
+    retryDelayMs: 200,
+    sleep: async (ms) => {
+      slept.push(ms);
+    },
+  });
+  await e.getJson("/x");
+  // 99999999s (~27h) is clamped down to the 30s ceiling, not honoured verbatim.
+  assert.deepEqual(slept, [30_000]);
+});
+
 test("falls back to linear backoff when Retry-After is absent", async () => {
   let calls = 0;
   const mt = makeMockTransport(() => {

@@ -42,6 +42,11 @@ export interface EngineOptions {
 
 const DEFAULT_MAX_RESPONSE_BYTES = 100 * 1024 * 1024;
 
+// Upper bound on how long a Retry-After header may make us wait, so a pathological
+// or hostile value (e.g. "Retry-After: 99999999") cannot hang the CLI for hours.
+// The retry *count* is bounded by maxRetries, but each individual sleep was not.
+const MAX_RETRY_AFTER_MS = 30_000;
+
 const realSleep = (ms: number): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -156,8 +161,15 @@ export class RequestEngine {
       const retryable = status === 429 || status === 503;
       if (retryable && attempt < this.maxRetries) {
         attempt += 1;
+        // Honour a Retry-After header when present, clamped to MAX_RETRY_AFTER_MS
+        // so a pathological/hostile value can't hang the CLI; otherwise fall back
+        // to linear backoff.
         const retryAfter = parseRetryAfter(response.headers["retry-after"]);
-        await this.sleep(retryAfter ?? this.retryDelayMs * attempt);
+        const delay =
+          retryAfter !== undefined
+            ? Math.min(retryAfter, MAX_RETRY_AFTER_MS)
+            : this.retryDelayMs * attempt;
+        await this.sleep(delay);
         continue;
       }
 

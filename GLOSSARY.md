@@ -148,7 +148,8 @@ reflects this.
 **`Retry-After`.** A response header the engine parses for both the
 delta-seconds form (`Retry-After: 120`) and the HTTP-date form
 (`Retry-After: Wed, 21 Oct 2025 07:28:00 GMT`) to decide how long to wait before
-a retry.
+a retry. The resulting delay is clamped to a 30s ceiling so a pathological or
+hostile value cannot hang the CLI for hours.
 
 **Redirects not followed.** A `3xx` response surfaces as an error rather than
 being chased to another host (a deliberate safety choice, since `--base-url` is

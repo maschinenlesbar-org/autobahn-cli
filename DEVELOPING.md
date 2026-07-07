@@ -145,7 +145,8 @@ subprocess.
 **Retry / backoff.** Transient `429` (rate-limited) and `503` (service
 unavailable) are retried automatically with backoff, up to `maxRetries`
 (default `2`), honouring a `Retry-After` header when present (both
-delta-seconds and HTTP-date forms), otherwise using linear backoff.
+delta-seconds and HTTP-date forms), clamped to a 30s ceiling so a pathological
+value cannot hang the CLI; otherwise using linear backoff.
 `AutobahnApiError.isRetryable` reflects this.
 
 **`maxResponseBytes`.** A hard cap on response body size (default 100 MiB;
