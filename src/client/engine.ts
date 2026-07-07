@@ -46,6 +46,31 @@ const realSleep = (ms: number): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
+ * Strip control characters out of a string that originates in an
+ * attacker-controlled response — here the API error `detail` extracted from the
+ * response body. `JSON.parse` decodes a JSON-escaped ESC (a backslash-u-001b
+ * sequence) in an error body into a real ESC byte, so without this a hostile or
+ * MITM'd endpoint could drive ANSI/OSC escape sequences into the user's terminal
+ * when the message is printed raw to stderr (display spoofing, title changes).
+ * Removes all C0/C1 controls except tab and newline, plus DEL. The success path is
+ * already safe (`JSON.stringify` escapes these), so this only needs to cover text
+ * that flows into an error message.
+ *
+ * Implemented as a char-code filter (not a regex with control-char literals) so no
+ * raw control byte ever appears in this source file.
+ */
+function sanitizeServerText(text: string): string {
+  let out = "";
+  for (const ch of text) {
+    const n = ch.codePointAt(0) ?? 0;
+    // strip C0 (except tab 0x09 / newline 0x0a), plus DEL and C1 (0x7f-0x9f)
+    if (n <= 8 || (n >= 0x0b && n <= 0x1f) || (n >= 0x7f && n <= 0x9f)) continue;
+    out += ch;
+  }
+  return out;
+}
+
+/**
  * Parse a `Retry-After` header into a delay in milliseconds, supporting both
  * the delta-seconds form (`Retry-After: 120`) and the HTTP-date form
  * (`Retry-After: Wed, 21 Oct 2025 07:28:00 GMT`). Returns `undefined` when the
@@ -179,6 +204,9 @@ export class RequestEngine {
     } catch {
       // Non-JSON error body; leave detail undefined.
     }
+    // `detail` came from the response body; strip control characters so a hostile
+    // endpoint cannot inject terminal escape sequences via the stderr error message.
+    if (detail !== undefined) detail = sanitizeServerText(detail);
     return new AutobahnApiError({ status, url, method, body: text, detail });
   }
 }
