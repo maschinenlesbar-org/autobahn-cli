@@ -32,16 +32,19 @@ coordinate ordering across services) so Claude doesn't have to rediscover them e
 
 ### Plugin marketplace (recommended)
 
-This repo is a Claude Code **plugin marketplace**, so installation is two commands inside
-Claude Code:
+The skills are published as the `autobahn` plugin in the
+[maschinenlesbar.org plugin marketplace](https://github.com/maschinenlesbar-org/plugins),
+which lists the plugins for all maschinenlesbar.org CLIs. Installation is two commands
+inside Claude Code:
 
 ```
-/plugin marketplace add maschinenlesbar-org/autobahn-cli
-/plugin install autobahn@autobahn-skills
+/plugin marketplace add maschinenlesbar-org/plugins
+/plugin install autobahn@maschinenlesbar
 ```
 
-The first command registers the marketplace; the second installs the `autobahn` plugin,
-which bundles all three skills. Update later with `/plugin marketplace update`.
+The first command registers the marketplace (once, for all maschinenlesbar.org
+plugins); the second installs the `autobahn` plugin, which bundles all three skills.
+Update later with `/plugin marketplace update maschinenlesbar`.
 
 ### Manual (copy the skill folders)
 
