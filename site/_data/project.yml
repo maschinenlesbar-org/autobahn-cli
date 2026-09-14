@@ -1,0 +1,15 @@
+# The only repo-specific texts of the website. Everything else comes from the
+# repository: the English intro from README.md, the commands from the built CLI.
+
+# How the API is accessed: open | key (env: VAR) | account (token, user, password: VARs)
+access:
+  type: open
+
+de:
+  # German version of the README's intro paragraph. Keep it in step with README.md.
+  intro: >-
+    Aktuelle Verkehrsdaten – Baustellen, Warnungen, Sperrungen, Parkplätze, Webcams und
+    Ladesäulen – entlang des deutschen Autobahnnetzes direkt im Terminal abfragen. `autobahn`
+    ist ein Kommandozeilen-Tool für die offene
+    [Autobahn-App-API](https://autobahn.api.bund.dev/) (`verkehr.autobahn.de`) der Autobahn
+    GmbH des Bundes.
