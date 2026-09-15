@@ -83,7 +83,7 @@ Each of the six service groups (`roadworks`, `webcams`, `parking`, `warnings`,
 | Subcommand | Argument | Description |
 | --- | --- | --- |
 | `list` | `<roadId>` | All items for that service along the motorway |
-| `get` | `<identifier>` | Full detail for one item by its base64 identifier |
+| `get` | `<identifier>` | Full detail for one item by its identifier |
 
 A `list` that matches no items is **not** an error — it prints `[]` and exits
 `0`. A `get` with an unknown or mistyped identifier exits `4`.
@@ -154,8 +154,8 @@ A `list` returning zero items is not an error — it exits `0` with `[]`.
   your `PATH`. Run `npm bin -g` to find it and add it, or run via
   `npx @maschinenlesbar.org/autobahn-cli …`.
 - **Exit `4` / "not found"** from `get` — the identifier doesn't exist or has
-  changed. Re-fetch it from a fresh `list` result; identifiers are base64-encoded
-  and can change as the live data updates.
+  changed. Re-fetch it from a fresh `list` result; identifiers are opaque strings
+  whose format varies by service, and they can change as the live data updates.
 - **Empty `[]` from `list`** — there are currently no items of that type on
   that motorway. This is normal and exits `0`.
 - **Exit `1` / network error** — connectivity, DNS, or a timeout. Try again, or

@@ -61,18 +61,23 @@ entlang einer Autobahn, mit Metadaten zu Steckern und Betreiber. CLI: `charging`
 ## Kennungen & Aufbau der Anfragen
 
 **`roadId`.** Die Bezeichnung der Autobahn als Pfadsegment, z. B. `A1`. Sie stammt aus
-dem Befehl `roads`. Der Client entfernt vor der Verwendung umgebende Leerzeichen, weil
-die Upstream-API selbst einige IDs mit nachgestelltem Leerzeichen liefert (z. B.
-`"A60 "`).
+dem Befehl `roads`. Die Upstream-API selbst liefert einige IDs mit nachgestelltem
+Leerzeichen neben ihrem bereinigten Gegenstück (z. B. `"A60"` und `"A60 "`). Deshalb
+entfernt der Client vor der Verwendung umgebende Leerzeichen, und der Befehl `roads`
+bereinigt die ausgegebene Liste und entfernt die Duplikate.
 
-**`identifier`.** Die opake, **Base64-codierte** ID eines einzelnen Dienst-Eintrags, die
-in jedem gelisteten Eintrag als Feld `identifier` steht. Diesen Wert übergeben Sie einem
+**`identifier`.** Die opake ID eines einzelnen Dienst-Eintrags, die in jedem gelisteten
+Eintrag als Feld `identifier` steht. Diesen Wert übergeben Sie einem
 `get <identifier>`-Befehl (oder `resource.get(...)`), um die vollständigen Details genau
-dieses Eintrags abzurufen.
+dieses Eintrags abzurufen. Das Format hängt vom Dienst ab: Baustellen, Warnungen und
+Sperrungen nutzen einfache Zeichenketten (`2026-006680--vi-fbm.…`), Parkplätze IDs wie
+`DE-SL-000031`, Ladestationen eine numerische ID bei Standorten des Deutschlandnetzes
+(`30388`) und eine Base64-ID bei allen anderen
+(`RUxFQ1RSSUNfQ0hBUkdJTkdfU1RBVElPTl9fMTkyMzE=`).
 
 **Dienstliste.** Das zweistufige Zugriffsmuster der API: `list(roadId)` liefert das Array
 der Einträge eines Dienstes entlang einer Autobahn; `get(identifier)` ruft dann die
-vollständigen Details eines Eintrags über seine Base64-Kennung ab.
+vollständigen Details eines Eintrags über seine Kennung ab.
 
 **Listenhülle.** Die Antwort einer Dienstliste ist ein JSON-Objekt, das sein Array unter
 einem einzigen, nach dem Dienst benannten Schlüssel ablegt –
@@ -88,18 +93,26 @@ liefert das reine Array (ein leeres Array, wenn der Schlüssel fehlt).
 Alle gelisteten Einträge teilen eine lose spezifizierte Form (`AutobahnServiceItem`);
 die API befüllt je Diensttyp eine andere Teilmenge der Felder.
 
-**`identifier`.** Base64-ID des Eintrags (siehe oben).
+**`identifier`.** Opake ID des Eintrags (siehe oben).
 
-**`title` / `subtitle`.** Kurze, menschenlesbare Bezeichnungen des Eintrags.
+**`title` / `subtitle`.** Kurze, menschenlesbare Bezeichnungen des Eintrags. Bei den
+Lkw-Parkplätzen ist `title` upstream fehlerhaft (`A8 | undefined`); der Name des
+Parkplatzes steht in `subtitle`.
 
 **`description`.** Ein Array beschreibender Textzeilen.
 
-**`point`.** Eine einzelne geografische Position, serialisiert als Zeichenkette
-`"lat,long"`; bei den meisten Einträgen vorhanden.
+**`point`.** Eine einzelne geografische Position, serialisiert als Zeichenkette. Die
+Reihenfolge hängt vom Dienst ab: `"lat,long"` bei Baustellen, Warnungen und Sperrungen,
+`"long,lat"` bei Ladestationen. Lkw-Parkplätze haben `point: null`.
 
-**`coordinate`.** Ein geografischer Punkt als strukturiertes Objekt `{ lat, long }`,
-wobei `lat` und `long` beide **als Zeichenketten codierte Dezimalzahlen** sind (die API
-serialisiert Koordinaten als Strings, nicht als Zahlen).
+**`coordinate`.** Ein geografischer Punkt als strukturiertes Objekt. Seine Form hängt vom
+Dienst ab: `{ lat, long }` mit JSON-Zahlen bei Baustellen, Warnungen und Sperrungen;
+dieselben Schlüssel als Zeichenketten codierte Dezimalzahlen bei Ladestationen; und bei
+Lkw-Parkplätzen ein GeoJSON-Point `{ "type": "Point", "coordinates": [long, lat] }` ohne
+die Schlüssel `lat`/`long`.
+
+**`geometry`.** Ein GeoJSON-`LineString` des betroffenen Abschnitts, bereits in der
+Reihenfolge `[long, lat]`, bei Baustellen, Warnungen und Sperrungen.
 
 **`extent`.** Eine räumliche Ausdehnung des Eintrags (z. B. der Abschnitt, den eine
 Baustelle umfasst).

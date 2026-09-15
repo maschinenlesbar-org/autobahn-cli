@@ -63,18 +63,22 @@ CLI: `charging`.
 ## Identifiers & request shape
 
 **`roadId`.** The motorway designation used as a path segment, e.g. `A1`. Taken
-from the `roads` command. The client trims surrounding whitespace before use,
-because the upstream API itself emits a few ids with a trailing space (e.g.
-`"A60 "`).
+from the `roads` command. The upstream API itself emits a few ids with a
+trailing space next to their trimmed twin (e.g. `"A60"` and `"A60 "`), so the
+client trims surrounding whitespace before use, and the `roads` command trims
+and de-duplicates the list it prints.
 
-**`identifier`.** The opaque, **base64-encoded** id of a single service item,
-present as the `identifier` field on every listed item. It is the value you pass
-to a `get <identifier>` command (or `resource.get(...)`) to fetch that one item's
-full detail payload.
+**`identifier`.** The opaque id of a single service item, present as the
+`identifier` field on every listed item. It is the value you pass to a
+`get <identifier>` command (or `resource.get(...)`) to fetch that one item's full
+detail payload. Its format varies by service: roadworks, warnings and closures use
+plain strings (`2026-006680--vi-fbm.…`), parking uses ids like `DE-SL-000031`, and
+charging uses a numeric id for Deutschlandnetz sites (`30388`) and a base64 id for
+all others (`RUxFQ1RSSUNfQ0hBUkdJTkdfU1RBVElPTl9fMTkyMzE=`).
 
 **Service listing.** The two-step access pattern of the API: `list(roadId)`
 returns the array of items for a service along a motorway; `get(identifier)` then
-fetches one item's full details by its base64 identifier.
+fetches one item's full details by its identifier.
 
 **Listing envelope.** A service-listing response is a JSON object that wraps its
 array under a single key named after the service —
@@ -90,18 +94,26 @@ the bare array (an empty array when the key is missing).
 Every listed item shares one loosely specified shape (`AutobahnServiceItem`);
 the API populates a different subset of fields per service type.
 
-**`identifier`.** Base64 id of the item (see above).
+**`identifier`.** Opaque id of the item (see above).
 
-**`title` / `subtitle`.** Short human-readable labels for the item.
+**`title` / `subtitle`.** Short human-readable labels for the item. On lorry
+parking the upstream `title` is broken (`A8 | undefined`); the area name is in
+`subtitle`.
 
 **`description`.** An array of descriptive text lines.
 
-**`point`.** A single geographic position serialised as a `"lat,long"` string,
-present on most items.
+**`point`.** A single geographic position serialised as a string. The order
+varies by service: `"lat,long"` for roadworks, warnings and closures,
+`"long,lat"` for charging. Lorry parking has `point: null`.
 
-**`coordinate`.** A geographic point as a structured object `{ lat, long }`,
-where both `lat` and `long` are **stringified decimals** (the API serialises
-coordinates as strings, not numbers).
+**`coordinate`.** A geographic point as a structured object. Its shape varies by
+service: `{ lat, long }` with JSON numbers for roadworks, warnings and closures;
+the same keys as stringified decimals for charging; and a GeoJSON Point
+`{ "type": "Point", "coordinates": [long, lat] }` with no `lat`/`long` keys for
+lorry parking.
+
+**`geometry`.** A GeoJSON `LineString` of the affected stretch, already in
+`[long, lat]` order, on roadworks, warnings and closures.
 
 **`extent`.** A bounding extent for the item (e.g. the span a roadworks covers).
 

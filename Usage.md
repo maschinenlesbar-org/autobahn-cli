@@ -42,7 +42,7 @@ Check what construction sites are active before a trip down the A1.
 autobahn roadworks list A1
 ```
 
-Each item includes an `identifier` (base64) you can feed to `roadworks get`.
+Each item includes an `identifier` you can feed to `roadworks get`.
 Pull just the human-readable titles:
 
 ```bash
