@@ -57,9 +57,9 @@ const realSleep = (ms: number): Promise<void> =>
  * sequence) in an error body into a real ESC byte, so without this a hostile or
  * MITM'd endpoint could drive ANSI/OSC escape sequences into the user's terminal
  * when the message is printed raw to stderr (display spoofing, title changes).
- * Removes all C0/C1 controls except tab and newline, plus DEL. The success path is
- * already safe (`JSON.stringify` escapes these), so this only needs to cover text
- * that flows into an error message.
+ * Removes all C0/C1 controls except tab and newline, plus DEL. The CLI's JSON output
+ * is escaped separately (`escapeControlChars` in cli/shared.ts): `JSON.stringify`
+ * alone leaves DEL and the C1 range raw.
  *
  * Implemented as a char-code filter (not a regex with control-char literals) so no
  * raw control byte ever appears in this source file.
