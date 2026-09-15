@@ -40,24 +40,42 @@ Validate road ids against `autobahn roads` first.
 
 For every item, emit one GeoJSON `Feature`.
 
-> **The critical quirk: do NOT split the `point` string.** Its order is *inconsistent
-> across services* — `roadworks` and `warnings` give `point: "lat,long"`, but `parking`
-> and `charging` give `point: "long,lat"`. Splitting `point` will silently drop pins into
-> the wrong hemisphere for half the services.
+> **The critical quirk: the position is stored differently per service.** Seen live on
+> 2026-09-15:
 >
-> **Always use the `coordinate` object**, which has explicit keys and is present on every
-> item: `coordinate.lat` and `coordinate.long` (note `long`, not the RFC-7946 `lon`).
-> Both are **strings** — `Number()` them.
+> | Service | `coordinate` | `point` string | `geometry` |
+> |---|---|---|---|
+> | `roadworks`, `warnings`, `closures` | `{ lat, long }`, JSON **numbers** | `"lat,long"` | GeoJSON `LineString` of the affected stretch |
+> | `charging` | `{ lat, long }`, **strings** | `"long,lat"` | none |
+> | `parking` | a GeoJSON **Point**: `{ "type": "Point", "coordinates": [lon, lat] }`, no `lat`/`long` keys | `null` (`extent` too) | none |
+>
+> **Never split the `point` string** — its order flips between services, and parking has
+> none. **Never read `coordinate.lat`/`.long` blindly either** — on parking they are
+> `undefined`, and `Number(undefined)` writes `[null, null]` into the file. Handle both
+> `coordinate` shapes (note the key is `long`, not the RFC-7946 `lon`) and check the
+> result is a pair of finite numbers.
 
 GeoJSON requires `[longitude, latitude]` order (x, y). So:
 
 ```js
+// Returns [lon, lat] as numbers, or null when the item has no usable position.
+const num = (v) => (v === null || v === undefined || v === "" ? NaN : Number(v));
+function lonLat(item) {
+  const c = item.coordinate;
+  if (!c) return null;
+  const xy = c.type === "Point" && Array.isArray(c.coordinates)
+    ? [num(c.coordinates[0]), num(c.coordinates[1])]   // parking: already [lon, lat]
+    : [num(c.long), num(c.lat)];                        // other services: numbers or strings
+  return xy.every(Number.isFinite) ? xy : null;
+}
+
 // per item
-const lon = Number(item.coordinate.long);
-const lat = Number(item.coordinate.lat);
+const line = item.geometry?.type === "LineString" ? item.geometry : null;
+const xy = lonLat(item);
+if (!line && !xy) { skipped++; continue; }
 const feature = {
   type: "Feature",
-  geometry: { type: "Point", coordinates: [lon, lat] },   // [lon, lat], NOT [lat, lon]
+  geometry: line ?? { type: "Point", coordinates: xy },   // [lon, lat], NOT [lat, lon]
   properties: {
     road, service,
     title: item.title,
@@ -74,11 +92,15 @@ const feature = {
 ```
 
 Notes:
-- **Warnings carry a richer `geometry`** (a GeoJSON `LineString` of the affected stretch,
-  already in `[lon, lat]` order). When present, prefer it over the point so the affected
-  segment is drawn as a line; fall back to the `Point` from `coordinate` otherwise.
+- **Roadworks, warnings and closures carry a `geometry`** (a GeoJSON `LineString` of the
+  affected stretch, already in `[lon, lat]` order). Prefer it over the point so the
+  affected segment is drawn as a line; fall back to the `Point` from `coordinate`
+  otherwise.
+- **Parking titles are broken upstream**: `title` reads `A8 | undefined` and `footer`
+  `Koordinaten: undefined`. The area name is in `subtitle` (e.g. `RA Moseltal N`), so
+  label parking features from `subtitle` and drop the broken `title`/`footer`.
 - Drop properties that are `undefined`/empty so the output stays clean.
-- Skip any item missing `coordinate` (rare) and report how many were skipped.
+- Skip any item without a usable position and report how many were skipped.
 - Wrap all features: `{ "type": "FeatureCollection", "features": [ … ] }`.
 
 ## Step 3 — Output
@@ -92,8 +114,8 @@ Offer to:
 - pretty-print vs compact (large roads can be 200+ features).
 
 Validity checklist before you hand it over:
-- coordinates are `[lon, lat]`, numbers not strings;
-- `long` was used for x and `lat` for y (don't trust `point` order);
+- coordinates are `[lon, lat]`, finite numbers — no strings, no `null`;
+- x is `long` (or `coordinates[0]` on parking) and y is `lat` (don't trust `point` order);
 - it parses as JSON and is a single `FeatureCollection`.
 
 ## Known data gaps
