@@ -87,11 +87,13 @@ encode the non-obvious parts of this API, for example:
   `description[]` (see **autobahn-route-check**);
 - a busy motorway returns 40–60 closures and 200+ roadworks, most planned or
   non-blocking — summarise counts, enumerate only what a driver acts on;
-- the `point` string's coordinate order is **inconsistent across services** (`lat,long`
-  for roadworks/warnings, `long,lat` for parking/charging) — always read the explicit
-  `coordinate` object instead, and note its key is `long`, not the RFC-7946 `lon`
-  (see **autobahn-map**);
-- charging identifiers are plain integers, unlike the base64 ids of other services.
+- positions are **stored differently per service**: the `point` string is `lat,long` for
+  roadworks/warnings/closures and `long,lat` for charging; `coordinate` is `{ lat, long }`
+  (numbers, or strings on charging — note `long`, not the RFC-7946 `lon`) except on
+  parking, where it is a GeoJSON Point and `point` is `null` (see **autobahn-map**);
+- `display_type` `STRONG_ELECTRIC_CHARGING_STATION` is on nearly every charging site, 50 kW
+  ones included, so speed comes from the kW lines in `description[]`; charging ids are
+  numeric for Deutschlandnetz sites and base64 for the rest (see **autobahn-ev-planner**).
 
 ## Contributing
 

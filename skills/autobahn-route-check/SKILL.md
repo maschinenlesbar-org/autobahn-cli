@@ -71,8 +71,9 @@ Each returns an array of items. The fields that matter for a briefing:
 
 > **Quirks to respect.** Coordinates use the non-standard key `long` (not `lon`).
 > Warnings disappear from the response within ~24h of expiry, so what you fetch *is*
-> the current picture — don't cache stale items. Some road ids come back with a trailing
-> space upstream; the CLI already trims them. **Volume is large** — a busy motorway
+> the current picture — don't cache stale items. The upstream road list carries an id with
+> a trailing space next to its trimmed twin (`"A60"` and `"A60 "`); `autobahn roads` trims
+> and de-duplicates the list, and `list` trims the id you pass. **Volume is large** — a busy motorway
 > routinely returns 40–60 closures and 200+ roadworks, the vast majority planned or
 > non-blocking. Never enumerate all of them (see Step 5); summarise and surface only what
 > a driver acts on.
