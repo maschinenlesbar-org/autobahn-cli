@@ -40,21 +40,30 @@ Each item is a charging site. The fields that matter:
 
 | Field | Meaning |
 |---|---|
-| `title` | `A9 \| <rest area / town> \| <site name>` |
-| `display_type` | `STRONG_ELECTRIC_CHARGING_STATION` = **fast / HPC**; `ELECTRIC_CHARGING_STATION` = normal. The single best speed signal. |
-| `subtitle` | e.g. `Schnellladeeinrichtung` |
-| `description[]` | German detail: number of `Ladepunkte`, connector (`DC Kupplung Combo (CCS)`), power (`200+kW`), `Ladesäulenbetreiber:` (operator), features, and `Deutschlandnetz` membership |
-| `coordinate` | `{ lat, long }` (strings) — **the reliable position** (see quirk below) |
-| `identifier` | Plain numeric id (e.g. `29963`) — **not** base64. Pass to `charging get <id>` for full detail |
+| `title` | `A7 \| <direction or junction> \| <site name>`. The middle part is usually the next destination in the **direction of travel**, i.e. it tells which carriageway the site serves (`A7 \| Hannover \| Brunautal West` vs `A7 \| Hamburg \| Brunautal Ost`; Deutschlandnetz sites name the motorway's end points, e.g. `Reutte` / `Appenrade` on the A7). A junction (`AS Bispingen`, `AK Kassel-Mitte`) marks a site just off the motorway. Some titles have only two parts (`A7 \| Brokenlande Ost`). |
+| `display_type` | `STRONG_ELECTRIC_CHARGING_STATION` or `ELECTRIC_CHARGING_STATION`. **Not a speed signal**: nearly every site carries `STRONG_*`, including sites whose best point is 43–50 kW. Judge speed from the kW lines in `description[]`. |
+| `subtitle` | `Schnellladeeinrichtung` / `Normalladeeinrichtung` (mirrors `display_type`) |
+| `description[]` | German detail in one of **two layouts** (see below) |
+| `coordinate` | `{ lat, long }`, **strings** here — `Number()` them (see quirk below) |
+| `identifier` | Deutschlandnetz sites have a plain numeric id (`30388`); all other sites a base64 id (`RUxFQ1RSSUNfQ0hBUkdJTkdfU1RBVElPTl9fMTkyMzE=`, which decodes to `ELECTRIC_CHARGING_STATION__19231`). `charging get <id>` accepts both. |
 | `isBlocked` | `"true"` = out of service |
 
-Parse the `description[]` lines to extract power (kW), connector type, point count, and
-operator — they're not separate fields.
+Power, connector, point count and operator are not separate fields — parse them from
+`description[]`, which comes in two layouts:
+
+- **Deutschlandnetz sites** (numeric `identifier`): the title, a point count
+  (`4 Ladepunkte`), one connector line (`DC Kupplung Combo (CCS)`), one power line
+  (`200+kW`), `Ladesäulenbetreiber: <operator>`, an `Ausstattungsmerkmale:` list, and
+  `Dieser Standort ist Teil des Deutschlandnetzes.`
+- **All other sites** (base64 `identifier`, the large majority): the site name, postcode
+  and town, then one block per point — `Ladepunkt 1:`, its connectors
+  (`DC Kupplung Combo, DC CHAdeMO` or `AC Kupplung Typ 2`) and its power (`50 kW`).
+  Count the `Ladepunkt N:` blocks for the point count and take the highest kW as the
+  site's best speed. **There is no operator line** — say "operator not stated".
 
 > **Quirks.** Use `coordinate.lat` / `coordinate.long`, **not** `point`: for charging the
-> `point` string is in `long,lat` order (it varies by service), while `coordinate` always
-> has explicit keys. Note `long` (not `lon`). Charging identifiers are plain integers,
-> unlike the base64 ids of other services.
+> `point` string is in `long,lat` order (it varies by service), while `coordinate` has
+> explicit keys. Note `long` (not `lon`).
 
 ## Step 3 — Order along the corridor
 
@@ -66,24 +75,35 @@ Sort the stations so they read in travel order, not API order:
   results; that's the road's main direction.
 - If the user gave a start → end, orient the sort that way (north-to-south, etc.) and, if
   you have the endpoints' coords, drop stations outside that stretch.
+- **Pick the carriageway.** Most service-area sites serve one direction only. The `title`
+  middle part names the next destination *ahead of that site* — on the A9,
+  `A9 | Nürnberg | Köschinger Forst Ost` is northbound and
+  `A9 | München | Köschinger Forst West` southbound — and the site-name suffix
+  (`Ost`/`West`, `O`/`W`, `Nord`/`Süd`) usually tells a pair apart. For a one-way trip keep
+  your side and list the opposite side separately, or say you did not split by side.
 - Multi-road route: order within each road, then chain the roads in travel order.
 
 ## Step 4 — Present the plan
 
-Ordered list, fast chargers called out, with power/connector/operator and a map link:
+Ordered list, fast chargers called out, with power/connector/operator and a map link
+(sample output from 2026-09-15 data):
 
 ```
-EV charging on the A9 (München → Berlin) — 22 sites, 18 fast (HPC)
+EV charging on the A9, München → Berlin (northbound side) — 22 sites on the road,
+9 on your side, 2 with ≥150 kW
 
- 1. ⚡ Sophienberg West (München)      200+kW · CCS · 4 pts · Autostrom plus · Deutschlandnetz
-    48.8935, 11.5989  → https://www.google.com/maps?q=49.8935,11.5989
- 2. ⚡ Greding Ost                     150kW  · CCS · 6 pts · EnBW
- 3. 🔌 Holledau (normal)              ≤50kW  · CCS/Typ2 · 2 pts · …
+ 1. ⚡ Köschinger Forst Ost (3)          4× 350 kW · CCS · operator not stated
+       48.8366, 11.4722  → https://www.google.com/maps?q=48.8366,11.4722
+ 2. 🔌 Nürnberg-Feucht Ost              50 kW CCS/CHAdeMO + 43 kW Typ 2 · operator not stated
+ 3. ⚡ Sophienberg O                     4 pts · 200+kW · CCS · Autostrom plus GmbH · Deutschlandnetz
+       49.8942, 11.6008  → https://www.google.com/maps?q=49.8942,11.6008
  …
+Southbound side (… West / W sites): 13 more for the way back.
 ```
 
 Rules:
-- Lead with totals and how many are **fast** (`STRONG_*`) — that's the planning number.
+- Lead with totals and how many are **fast** — count sites by their best kW line (e.g.
+  ≥150 kW), not by `STRONG_*`, which nearly every site carries.
 - Show **power, connector, point count, operator** per stop; flag `Deutschlandnetz` sites.
 - Mark `isBlocked === "true"` stations as out of service (or omit, but say you did).
 - Give a tappable map link from `coordinate` (format `?q=lat,long`).
