@@ -19,17 +19,35 @@ export interface RoadsResult {
   roads: string[];
 }
 
-/** A geographic point as the API serialises it (stringified decimals). */
-export interface Coordinate {
-  lat: string;
-  long: string;
+/**
+ * A geographic point with explicit `lat`/`long` keys (note `long`, not `lon`).
+ * Roadworks, warnings and closures serialise the values as JSON numbers;
+ * charging stations serialise them as decimal strings.
+ */
+export interface LatLongCoordinate {
+  lat: number | string;
+  long: number | string;
 }
+
+/** A GeoJSON Point: `coordinates` is `[longitude, latitude]`. */
+export interface GeoJsonPoint {
+  type: "Point";
+  coordinates: number[];
+}
+
+/**
+ * The `coordinate` field as the API serialises it. Its shape varies by service:
+ * lorry parking returns a {@link GeoJsonPoint} with no `lat`/`long` keys, the
+ * other services a {@link LatLongCoordinate}.
+ */
+export type Coordinate = LatLongCoordinate | GeoJsonPoint;
 
 /**
  * The shared item shape across the service listings. Every field is optional
  * because the API populates a different subset per service type (a webcam has an
  * `imageurl`, a charging station has connector metadata, and so on). The
- * `identifier` is the base64 id you pass to the corresponding `get` endpoint.
+ * `identifier` is the opaque id you pass to the corresponding `get` endpoint;
+ * its format varies by service.
  */
 export interface AutobahnServiceItem {
   identifier?: string;
@@ -37,10 +55,16 @@ export interface AutobahnServiceItem {
   subtitle?: string;
   icon?: string;
   description?: string[];
-  /** "lat,long" pair, present on most items. */
-  point?: string;
+  /**
+   * Position as a string pair. The order varies by service: "lat,long" for
+   * roadworks, warnings and closures, "long,lat" for charging stations; `null`
+   * for lorry parking.
+   */
+  point?: string | null;
   coordinate?: Coordinate;
-  extent?: string;
+  extent?: string | null;
+  /** GeoJSON geometry of the affected stretch (roadworks, warnings, closures). */
+  geometry?: JsonObject | null;
   isBlocked?: string;
   future?: boolean;
   display_type?: string;

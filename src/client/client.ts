@@ -2,7 +2,7 @@
 // Autobahn App API (https://verkehr.autobahn.de/o/autobahn).
 //
 // Every service has the same two-call shape: list the items along a motorway,
-// then fetch one item's details by its (base64) identifier. That symmetry is
+// then fetch one item's details by its identifier. That symmetry is
 // captured by a single generic `ServiceResource`, so the surface reads naturally:
 //   client.roadworks.list("A1")
 //   client.chargingStations.get(identifier)
@@ -59,7 +59,7 @@ class ServiceResource<K extends string> {
     return Array.isArray(items) ? items : [];
   }
 
-  /** Fetch one item's details by its (base64) identifier. */
+  /** Fetch one item's details by its identifier (an opaque string; the format varies by service). */
   get(identifier: string): Promise<JsonObject> {
     requireSegment("identifier", identifier);
     return this.engine.getJson(`${API_ROOT}/details/${this.service}/${enc(identifier)}`);

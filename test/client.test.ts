@@ -42,6 +42,36 @@ test("warnings.get builds the details path and url-encodes the identifier", asyn
   );
 });
 
+test("list() items type each coordinate shape the API returns", async () => {
+  // Shapes seen live on 2026-09-15: parking gives a GeoJSON Point and no point
+  // string, warnings give numbers, charging gives strings.
+  const parking = await clientWith(
+    constantJson({
+      parking_lorry: [
+        { identifier: "DE-SL-000031", point: null, coordinate: { type: "Point", coordinates: [6.373376, 49.483848] } },
+      ],
+    }),
+  ).parkingLorries.list("A8");
+  const p = parking[0]?.coordinate;
+  assert.ok(p && "coordinates" in p);
+  assert.deepEqual(p.coordinates, [6.373376, 49.483848]);
+  assert.equal(parking[0]?.point, null);
+
+  const warnings = await clientWith(
+    constantJson({ warning: [{ coordinate: { lat: 49.45, long: 6.51 } }] }),
+  ).warnings.list("A8");
+  const w = warnings[0]?.coordinate;
+  assert.ok(w && "lat" in w);
+  assert.equal(w.lat, 49.45);
+
+  const charging = await clientWith(
+    constantJson({ electric_charging_station: [{ coordinate: { lat: "54.6", long: "9.44" } }] }),
+  ).chargingStations.list("A7");
+  const c = charging[0]?.coordinate;
+  assert.ok(c && "long" in c);
+  assert.equal(Number(c.long), 9.44);
+});
+
 test("list() tolerates a missing envelope key", async () => {
   const mt = constantJson({});
   const items = await clientWith(mt).closures.list("A2");
