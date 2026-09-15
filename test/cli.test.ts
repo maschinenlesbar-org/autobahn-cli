@@ -31,6 +31,14 @@ test("roads prints the unwrapped array", async () => {
   assert.equal(new URL(cli.mt.last().url).pathname, "/o/autobahn/");
 });
 
+test("roads trims ids and drops the duplicates that trimming creates", async () => {
+  // Live on 2026-09-15 the API listed both "A60" and "A60 ".
+  const cli = makeCli(() => jsonResponse({ roads: ["A6", "A60", "A60 ", " A61", "A61"] }));
+  const code = await run(["--compact", "roads"], cli.deps);
+  assert.equal(code, 0);
+  assert.equal(cli.out.join("\n"), '["A6","A60","A61"]');
+});
+
 test("roadworks list hits the right path", async () => {
   const cli = makeCli(() => jsonResponse({ roadworks: [{ identifier: "a" }] }));
   const code = await run(["roadworks", "list", "A3"], cli.deps);

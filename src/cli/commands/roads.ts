@@ -8,7 +8,16 @@ export function registerRoadsCommand(program: Command, deps: CliDeps): void {
     .description("List all motorways the API knows about (e.g. A1, A2, ...)")
     .action(
       action(deps, async ({ client, global }) => {
-        renderJson(deps, global, await client.roads());
+        renderJson(deps, global, tidyRoadIds(await client.roads()));
       }),
     );
+}
+
+/**
+ * Trim each id and drop duplicates, keeping the first occurrence. The upstream
+ * list carries both "A60" and "A60 "; `list` trims its argument, so both name
+ * the same road and a list built from `roads` would otherwise repeat it.
+ */
+function tidyRoadIds(roads: string[]): string[] {
+  return [...new Set(roads.map((id) => id.trim()).filter((id) => id !== ""))];
 }
