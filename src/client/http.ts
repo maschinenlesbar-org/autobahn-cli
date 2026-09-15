@@ -32,6 +32,12 @@ export interface HttpResponse {
 export type Transport = (request: HttpRequest) => Promise<HttpResponse>;
 
 /**
+ * The longest delay Node's timers support (2^31 - 1 ms, about 24.8 days). A longer one
+ * prints a TimeoutOverflowWarning and fires after 1 ms, so timeouts are capped here.
+ */
+export const MAX_TIMEOUT_MS = 2_147_483_647;
+
+/**
  * Default transport. Resolves with the raw response (including non-2xx) — status
  * interpretation is the client's job. Rejects only on transport-level failures
  * (connection errors, timeouts, malformed URLs).
@@ -118,14 +124,15 @@ export const nodeHttpTransport: Transport = (request) =>
     );
 
     if (timeoutMs > 0) {
-      req.setTimeout(timeoutMs, () => {
+      const timerMs = Math.min(timeoutMs, MAX_TIMEOUT_MS);
+      req.setTimeout(timerMs, () => {
         req.destroy(new AutobahnNetworkError(`Request timed out after ${timeoutMs}ms`));
       });
       deadline = setTimeout(() => {
         req.destroy(
           new AutobahnNetworkError(`Request exceeded overall deadline of ${timeoutMs}ms`),
         );
-      }, timeoutMs);
+      }, timerMs);
       // Don't let the deadline timer keep the event loop alive on its own.
       deadline.unref?.();
     }

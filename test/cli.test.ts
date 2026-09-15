@@ -167,6 +167,18 @@ test("an invalid --timeout is a usage error (non-zero, no request)", async () =>
   assert.equal(cli.mt.calls.length, 0);
 });
 
+test("--timeout accepts up to the largest timer Node supports", async () => {
+  const cli = makeCli(() => jsonResponse({ roads: [] }));
+  assert.equal(await run(["--timeout", "2147483647", "roads"], cli.deps), 0);
+  assert.equal(cli.mt.last().timeoutMs, 2_147_483_647);
+
+  // Commander parse errors exit 1 in this CLI.
+  const over = makeCli(() => jsonResponse({ roads: [] }));
+  assert.equal(await run(["--timeout", "2147483648", "roads"], over.deps), 1);
+  assert.equal(over.mt.calls.length, 0);
+  assert.match(over.err.join("\n"), /from 0 to 2147483647/);
+});
+
 test("global options flow through to the client engine", async () => {
   const seen: EngineOptions[] = [];
   const mt = makeMockTransport(() => jsonResponse({ roads: [] }));

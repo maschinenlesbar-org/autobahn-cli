@@ -8,7 +8,8 @@ import { Command } from "commander";
 import type { CliDeps } from "./io.js";
 import { defaultIO } from "./io.js";
 import { AutobahnClient } from "../client/client.js";
-import { parseIntArg } from "./shared.js";
+import { MAX_TIMEOUT_MS } from "../client/http.js";
+import { parseBoundedInt, parseIntArg } from "./shared.js";
 import { registerRoadsCommand } from "./commands/roads.js";
 import { registerServiceCommands } from "./commands/services.js";
 
@@ -53,7 +54,11 @@ export function buildProgram(deps: CliDeps = defaultDeps): Command {
     // protocol driver is reached. So file:/ftp: can never be dispatched, and the
     // exit code stays 1 as documented in Usage.md ("usage error" -> 1).
     .option("--base-url <url>", "API base URL", "https://verkehr.autobahn.de")
-    .option("--timeout <ms>", "per-request timeout in milliseconds (0 disables)", parseIntArg)
+    .option(
+      "--timeout <ms>",
+      `per-request timeout in milliseconds (0 disables; at most ${MAX_TIMEOUT_MS})`,
+      parseBoundedInt(0, MAX_TIMEOUT_MS),
+    )
     .option("--user-agent <ua>", "User-Agent header value")
     .option("--max-retries <n>", "retries for transient 429/503 responses", parseIntArg)
     .option(
