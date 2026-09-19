@@ -7,8 +7,10 @@ description: >
   on the A99?", or wants a trip/commute check across German Autobahnen. Merges
   warnings + closures + roadworks across roads, ranks by severity, drops expired
   noise, and can geo-filter to the stretch between two places.
-version: 1.0.0
-userInvocable: true
+compatibility: >
+  Requires the `autobahn` CLI (npm package @maschinenlesbar.org/autobahn-cli) on
+  PATH, installed by the user; the skill never installs it. Uses jq for JSON
+  filtering. Network access to verkehr.autobahn.de.
 ---
 
 # Autobahn Route Check
@@ -20,6 +22,8 @@ more roads, instead of three separate JSON blobs per road.
 ## Tooling
 
 This skill drives the `autobahn` command. **Before anything else, validate it is available** — run `command -v autobahn` (or `autobahn --version`). If it is not on your PATH, STOP and inform the user that the `autobahn` CLI (`@maschinenlesbar.org/autobahn-cli`) is not installed — installing it is their responsibility; never install it yourself, and do not fall back to `npx` or a local `node dist/...` build.
+
+This skill also filters JSON with `jq`. **Validate it too** — run `command -v jq`. If it is missing, inform the user that `jq` is not installed — installing it is their responsibility; never install it yourself — and carry on without it: filter the CLI output with `node -e` instead (Node is already on your PATH, since the CLI runs on it).
 
 All data comes from the `autobahn` CLI (the `@maschinenlesbar.org/autobahn-cli` package).
 It is read-only, needs no API key, and queries **one motorway at a time**. The whole job

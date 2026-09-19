@@ -7,8 +7,10 @@ description: >
   wants any motorway service as geodata for Leaflet / geojson.io / QGIS / Kibana.
   Fetches one or many services across one or many roads and emits a clean
   FeatureCollection — fixing the API's coordinate quirks.
-version: 1.0.0
-userInvocable: true
+compatibility: >
+  Requires the `autobahn` CLI (npm package @maschinenlesbar.org/autobahn-cli) on
+  PATH, installed by the user; the skill never installs it. Network access to
+  verkehr.autobahn.de.
 ---
 
 # Autobahn → GeoJSON Export

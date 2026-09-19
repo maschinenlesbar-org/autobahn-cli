@@ -7,8 +7,10 @@ description: >
   route", or wants charging infrastructure along an Autobahn. Lists stations
   across one or more roads, orders them along the corridor, and surfaces power /
   connector / operator detail — not the raw per-road JSON the CLI returns.
-version: 1.0.0
-userInvocable: true
+compatibility: >
+  Requires the `autobahn` CLI (npm package @maschinenlesbar.org/autobahn-cli) on
+  PATH, installed by the user; the skill never installs it. Network access to
+  verkehr.autobahn.de.
 ---
 
 # Autobahn EV Charging Planner
