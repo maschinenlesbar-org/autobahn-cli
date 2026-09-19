@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { AutobahnClient } from "../src/client/client.js";
-import { AutobahnApiError } from "../src/client/errors.js";
+import { AutobahnApiError, AutobahnNetworkError } from "../src/client/errors.js";
 import { makeMockTransport, jsonResponse, constantJson } from "./helpers.js";
 
 function clientWith(mt: ReturnType<typeof makeMockTransport>): AutobahnClient {
@@ -84,4 +84,13 @@ test("a 404 raises AutobahnApiError with status 404", async () => {
     () => clientWith(mt).roadworks.get("nope"),
     (err) => err instanceof AutobahnApiError && err.status === 404,
   );
+});
+
+test("a client with a file: base URL throws before its custom transport sees a request", () => {
+  const mt = makeMockTransport(() => jsonResponse({}));
+  assert.throws(
+    () => new AutobahnClient({ baseUrl: "file:///etc/passwd", transport: mt.transport }),
+    AutobahnNetworkError,
+  );
+  assert.equal(mt.calls.length, 0);
 });

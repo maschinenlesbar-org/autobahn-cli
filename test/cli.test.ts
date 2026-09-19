@@ -175,6 +175,16 @@ test("an invalid --timeout is a usage error (non-zero, no request)", async () =>
   assert.equal(cli.mt.calls.length, 0);
 });
 
+test("a non-http(s) or malformed --base-url is a usage error (non-zero, no request)", async () => {
+  for (const bad of ["file:///etc/passwd", "ftp://example.org", "notaurl"]) {
+    const cli = makeCli(() => jsonResponse({ roads: [] }));
+    const code = await run(["--base-url", bad, "roads"], cli.deps);
+    assert.notEqual(code, 0, bad);
+    assert.equal(cli.mt.calls.length, 0, bad);
+    assert.match(cli.err.join("\n"), /--base-url/, bad);
+  }
+});
+
 test("--timeout accepts up to the largest timer Node supports", async () => {
   const cli = makeCli(() => jsonResponse({ roads: [] }));
   assert.equal(await run(["--timeout", "2147483647", "roads"], cli.deps), 0);

@@ -32,16 +32,27 @@ test("buildUrl normalises the path and appends the query", () => {
   );
 });
 
-test("buildUrl rejects a malformed base URL with a clear, base-only message", () => {
-  const e = new RequestEngine({ baseUrl: "notaurl" });
+test("the constructor rejects a malformed base URL with a clear, base-only message", () => {
+  const mt = makeMockTransport(() => jsonResponse({}));
   assert.throws(
-    () => e.buildUrl("/o/autobahn/"),
+    () => new RequestEngine({ baseUrl: "notaurl", transport: mt.transport }),
     (err: unknown) =>
-      err instanceof AutobahnNetworkError &&
-      /Invalid base URL: "notaurl"/.test(err.message) &&
-      // the diagnostic must NOT carry the request path (which read as if at fault)
-      !/o\/autobahn/.test(err.message),
+      err instanceof AutobahnNetworkError && /Invalid base URL: "notaurl"/.test(err.message),
   );
+  assert.equal(mt.calls.length, 0);
+});
+
+test("the constructor rejects a non-http(s) base URL before any request", () => {
+  for (const bad of ["file:///etc/passwd", "ftp://example.org"]) {
+    const mt = makeMockTransport(() => jsonResponse({}));
+    assert.throws(
+      () => new RequestEngine({ baseUrl: bad, transport: mt.transport }),
+      (err: unknown) =>
+        err instanceof AutobahnNetworkError && /Unsupported protocol/.test(err.message),
+      bad,
+    );
+    assert.equal(mt.calls.length, 0, bad);
+  }
 });
 
 test("getJson parses a JSON body", async () => {
