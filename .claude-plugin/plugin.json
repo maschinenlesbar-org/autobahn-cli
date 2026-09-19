@@ -1,6 +1,6 @@
 {
   "name": "autobahn",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Live German motorway intelligence skills powered by the autobahn-cli (Autobahn App API).",
   "author": {
     "name": "Sebastian Schürmann",
