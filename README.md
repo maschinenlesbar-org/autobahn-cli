@@ -185,7 +185,7 @@ These apply to every command and may be given **before or after** it:
 | `--base-url <url>` | API base URL (default `https://verkehr.autobahn.de`) |
 | `--timeout <ms>` | Per-request timeout in ms (default `30000`; `0` disables; at most `2147483647`) |
 | `--user-agent <ua>` | `User-Agent` header value |
-| `--max-retries <n>` | Retries for transient `429`/`503` responses (default `2`) |
+| `--max-retries <n>` | Retries for transient `429`/`503` responses (default `2`, at most `10`; each waits the server's `Retry-After`, up to 30 s) |
 | `--max-response-bytes <n>` | Cap response body size in bytes (`0` = unlimited; default 100 MiB) |
 
 ## Learn more

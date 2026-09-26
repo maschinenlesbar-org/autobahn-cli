@@ -156,7 +156,7 @@ Global options may be given **before or after** the command — both
 | `--base-url <url>` | API base URL (default `https://verkehr.autobahn.de`) |
 | `--timeout <ms>` | Per-request timeout in milliseconds (`0` disables) |
 | `--user-agent <ua>` | `User-Agent` header value |
-| `--max-retries <n>` | Retries for transient `429`/`503` responses |
+| `--max-retries <n>` | Retries for transient `429`/`503` responses (default `2`, at most `10`) |
 | `--max-response-bytes <n>` | Cap response body size in bytes (`0` = unlimited; default 100 MiB) |
 | `--compact` | Print JSON on a single line instead of pretty-printed |
 | `-h, --help` | Display help for a command |

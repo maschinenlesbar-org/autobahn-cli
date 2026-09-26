@@ -53,6 +53,9 @@ const DEFAULT_MAX_RESPONSE_BYTES = 100 * 1024 * 1024;
 // The retry *count* is bounded by maxRetries, but each individual sleep was not.
 const MAX_RETRY_AFTER_MS = 30_000;
 
+/** Most automatic retries a caller may ask for (the CLI's --max-retries shares it). */
+export const MAX_RETRIES = 10;
+
 /**
  * Reject a base URL whose scheme is not http(s). The default transport already
  * gates this per hop, but the engine is exported as a library and may be handed a

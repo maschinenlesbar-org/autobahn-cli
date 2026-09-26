@@ -315,3 +315,14 @@ test("credentials in --base-url are redacted from error messages", async () => {
   assert.equal(cli.mt.last().url, "http://user:s3cret@127.0.0.1:18103/s500/o/autobahn/");
   assert.equal(cli.err.join("\n"), "Error: HTTP 500 for GET http://***@127.0.0.1:18103/s500/o/autobahn/: boom");
 });
+
+test("--max-retries is bounded to 0..10", async () => {
+  for (const [value, code] of [["0", 0], ["10", 0], ["11", 1], ["9007199254740991", 1]] as const) {
+    const cli = makeCli(() => jsonResponse({ roads: ["A1"] }));
+    assert.equal(await run(["--max-retries", value, "roads"], cli.deps), code, value);
+    if (code !== 0) {
+      assert.equal(cli.mt.calls.length, 0, value);
+      assert.match(cli.err.join("\n"), /from 0 to 10/, value);
+    }
+  }
+});
