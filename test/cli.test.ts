@@ -306,3 +306,12 @@ test("schema-violating bodies exit 1 with a parse error, not an 'Unexpected erro
     assert.match(cli.err.join("\n"), /^Error: Unexpected response shape from \/o\/autobahn\//, argv.join(" "));
   }
 });
+
+test("credentials in --base-url are redacted from error messages", async () => {
+  const cli = makeCli(() => jsonResponse({ message: "boom" }, 500));
+  const code = await run(["--base-url", "http://user:s3cret@127.0.0.1:18103/s500", "roads"], cli.deps);
+  assert.equal(code, 1);
+  // ...but still sent: the request URL keeps the userinfo (Node turns it into Basic auth).
+  assert.equal(cli.mt.last().url, "http://user:s3cret@127.0.0.1:18103/s500/o/autobahn/");
+  assert.equal(cli.err.join("\n"), "Error: HTTP 500 for GET http://***@127.0.0.1:18103/s500/o/autobahn/: boom");
+});

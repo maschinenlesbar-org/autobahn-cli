@@ -5,6 +5,7 @@ import {
   AutobahnApiError,
   AutobahnNetworkError,
   AutobahnParseError,
+  redactUrl,
 } from "../src/client/errors.js";
 import type { HttpResponse } from "../src/client/http.js";
 import { makeMockTransport, jsonResponse, rawResponse } from "./helpers.js";
@@ -248,4 +249,14 @@ test("a base URL with a query or fragment is rejected at construction", () => {
       baseUrl,
     );
   }
+});
+
+test("redactUrl hides userinfo and leaves other URLs alone", () => {
+  assert.equal(redactUrl("https://u:p@example.test/a?b=1"), "https://***@example.test/a?b=1");
+  assert.equal(redactUrl("https://token@example.test/"), "https://***@example.test/");
+  assert.equal(redactUrl("https://example.test/a b"), "https://example.test/a b");
+  assert.equal(redactUrl("not a url"), "not a url");
+  const err = new AutobahnApiError({ status: 500, url: "https://u:p@example.test/x", method: "GET", body: "" });
+  assert.equal(err.url, "https://***@example.test/x");
+  assert.ok(!err.message.includes("u:p"));
 });

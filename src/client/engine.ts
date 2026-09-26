@@ -9,6 +9,7 @@ import {
   AutobahnError,
   AutobahnNetworkError,
   AutobahnParseError,
+  redactUrl,
 } from "./errors.js";
 
 export const DEFAULT_BASE_URL = "https://verkehr.autobahn.de";
@@ -67,15 +68,15 @@ function assertHttpScheme(baseUrl: string): void {
   try {
     url = new URL(baseUrl);
   } catch {
-    throw new AutobahnNetworkError(`Invalid base URL: ${JSON.stringify(baseUrl)}`);
+    throw new AutobahnNetworkError(`Invalid base URL: ${JSON.stringify(redactUrl(baseUrl))}`);
   }
   if (url.protocol !== "http:" && url.protocol !== "https:") {
     throw new AutobahnNetworkError(
-      `Unsupported protocol "${url.protocol}" in base URL: ${JSON.stringify(baseUrl)}`,
+      `Unsupported protocol "${url.protocol}" in base URL: ${JSON.stringify(redactUrl(baseUrl))}`,
     );
   }
   if (/[?#]/.test(baseUrl)) {
-    throw new AutobahnNetworkError(`Base URL must not contain a query or fragment: ${baseUrl}`);
+    throw new AutobahnNetworkError(`Base URL must not contain a query or fragment: ${redactUrl(baseUrl)}`);
   }
 }
 

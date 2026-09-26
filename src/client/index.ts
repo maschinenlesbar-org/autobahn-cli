@@ -13,6 +13,7 @@ export {
   AutobahnNetworkError,
   AutobahnNotFoundError,
   AutobahnParseError,
+  redactUrl,
 } from "./errors.js";
 
 export * from "./types.js";
