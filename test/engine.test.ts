@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { RequestEngine, parseRetryAfter } from "../src/client/engine.js";
+import { RequestEngine, parseRetryAfter, sanitizeServerText } from "../src/client/engine.js";
 import {
   AutobahnApiError,
   AutobahnNetworkError,
@@ -259,4 +259,25 @@ test("redactUrl hides userinfo and leaves other URLs alone", () => {
   const err = new AutobahnApiError({ status: 500, url: "https://u:p@example.test/x", method: "GET", body: "" });
   assert.equal(err.url, "https://***@example.test/x");
   assert.ok(!err.message.includes("u:p"));
+});
+
+test("error detail loses bidi controls and line breaks, so it cannot reorder or forge lines", async () => {
+  const RLO = String.fromCharCode(0x202e);
+  const LRI = String.fromCharCode(0x2066);
+  const detail = `bad ${ESC}]0;PWNED${BEL} line1\r\nError: forged\u2028x\t ${RLO}evil${LRI}`;
+  const mt = makeMockTransport(() => jsonResponse({ message: detail }, 500));
+  const e = new RequestEngine({ transport: mt.transport, maxRetries: 0 });
+  await assert.rejects(
+    () => e.getJson("/x"),
+    (err: unknown) => {
+      assert.ok(err instanceof AutobahnApiError);
+      assert.equal(err.detail, "bad ]0;PWNED line1 Error: forged x evil");
+      assert.ok(!/[\n\r\u2028\u202e\u2066]/.test(err.message));
+      return true;
+    },
+  );
+});
+
+test("sanitizeServerText keeps ordinary text, umlauts and single spaces", () => {
+  assert.equal(sanitizeServerText("  Cannot GET  /autobahn/details/  Größe  "), "Cannot GET /autobahn/details/ Größe");
 });

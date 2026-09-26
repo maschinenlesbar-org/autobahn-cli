@@ -361,3 +361,16 @@ test("an empty body is not-found (exit 4) only for get; on roads/list it is a pa
     }
   }
 });
+
+test("bidi formatting characters in server data are escaped in the JSON output", async () => {
+  const bidi = String.fromCharCode(0x202e, 0x2066, 0x200f, 0x061c);
+  const served = { identifier: "x", title: `A1${bidi}live` };
+  for (const format of [[], ["--compact"]]) {
+    const cli = makeCli(() => jsonResponse(served));
+    assert.equal(await run([...format, "warnings", "get", "x"], cli.deps), 0);
+    const text = cli.out.join("\n");
+    assert.ok(!/[\u202e\u2066\u200f\u061c]/.test(text), format.join(" "));
+    assert.match(text, /A1\\u202e\\u2066\\u200f\\u061clive/);
+    assert.deepEqual(JSON.parse(text), served);
+  }
+});
