@@ -86,7 +86,11 @@ Each of the six service groups (`roadworks`, `webcams`, `parking`, `warnings`,
 | `get` | `<identifier>` | Full detail for one item by its identifier |
 
 A `list` that matches no items is **not** an error — it prints `[]` and exits
-`0`. A `get` with an unknown or mistyped identifier exits `4`.
+`0`. Road ids are case-sensitive (`A1`, not `a1`), and the API answers an unknown
+one exactly like an empty road, so when a `list` comes back empty the CLI checks
+the id against the road list: an unknown or mistyped road id exits `4`
+(`Unknown road id "a1": … (did you mean "A1"?)`) instead of printing `[]`. A `get`
+with an unknown or mistyped identifier exits `4` too.
 
 ## Common tasks
 
@@ -143,10 +147,10 @@ autobahn --compact roadworks list A1
 | Code | Meaning |
 | --- | --- |
 | `0` | Success (also `--help` / `--version`) |
-| `4` | Not found — the API returned `404`, or a `get <identifier>` matched no item |
+| `4` | Not found — the API returned `404`, a `get <identifier>` matched no item, or a `list <roadId>` named a road the API does not know |
 | `1` | Any other API, network, parse, or usage error |
 
-A `list` returning zero items is not an error — it exits `0` with `[]`.
+A `list` returning zero items for a known road is not an error — it exits `0` with `[]`.
 
 ## Troubleshooting
 
@@ -157,7 +161,9 @@ A `list` returning zero items is not an error — it exits `0` with `[]`.
   changed. Re-fetch it from a fresh `list` result; identifiers are opaque strings
   whose format varies by service, and they can change as the live data updates.
 - **Empty `[]` from `list`** — there are currently no items of that type on
-  that motorway. This is normal and exits `0`.
+  that motorway. This is normal and exits `0`. (A road id the API does not know
+  exits `4` with `Unknown road id …` instead; ids are case-sensitive — take them
+  from `autobahn roads`.)
 - **Exit `1` / network error** — connectivity, DNS, or a timeout. Try again, or
   raise the limit with `--timeout 60000`.
 - **`3xx` redirect error** — the CLI deliberately does not follow redirects

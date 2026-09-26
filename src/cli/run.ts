@@ -5,7 +5,7 @@
 import { CommanderError, type Command } from "commander";
 import { buildProgram, defaultDeps } from "./program.js";
 import type { CliDeps } from "./io.js";
-import { AutobahnApiError, AutobahnError } from "../client/errors.js";
+import { AutobahnApiError, AutobahnError, AutobahnNotFoundError } from "../client/errors.js";
 
 interface OutputSink {
   out: string[];
@@ -72,6 +72,11 @@ export async function run(argv: string[], deps: CliDeps = defaultDeps): Promise<
       // Map a few notable statuses to distinct exit codes for scripting.
       if (err.status === 404) return 4;
       return 1;
+    }
+    if (err instanceof AutobahnNotFoundError) {
+      // e.g. an unknown road id: not found, like a 404.
+      deps.io.err(`Error: ${err.message}`);
+      return 4;
     }
     if (err instanceof AutobahnError) {
       deps.io.err(`Error: ${err.message}`);

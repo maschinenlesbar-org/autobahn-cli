@@ -8,7 +8,7 @@
 //   client.chargingStations.get(identifier)
 
 import { RequestEngine, type EngineOptions } from "./engine.js";
-import { AutobahnError, AutobahnParseError } from "./errors.js";
+import { AutobahnError, AutobahnNotFoundError, AutobahnParseError } from "./errors.js";
 import type {
   RoadsResult,
   AutobahnServiceItem,
@@ -46,9 +46,17 @@ class ServiceResource<K extends string> {
     private readonly service: string,
     /** The JSON key the listing wraps its array in (usually === service). */
     private readonly key: K,
+    /** The API's motorway list, consulted when a listing comes back empty. */
+    private readonly knownRoads: () => Promise<string[]>,
   ) {}
 
-  /** List the service's items along a motorway, e.g. roadId "A1". */
+  /**
+   * List the service's items along a motorway, e.g. roadId "A1". Road ids are
+   * case-sensitive. The API answers an unknown id (`A999`, `a1`) exactly like a road
+   * without items, so an empty listing is checked against `roads()`: an id not in
+   * that list raises AutobahnNotFoundError (with a did-you-mean for a case slip)
+   * instead of returning [].
+   */
   async list(roadId: string): Promise<AutobahnServiceItem[]> {
     // Trim surrounding whitespace: the upstream API itself emits a few ids with a
     // trailing space (e.g. "A60 "), and copying such an id straight back in would
@@ -61,7 +69,20 @@ class ServiceResource<K extends string> {
     // key) is not "no items": treating it as [] would read as an all-clear.
     const items = isObject(body) ? body[this.key] : undefined;
     if (!Array.isArray(items)) throw shapeError(path, `a JSON object with a ${this.key} array`);
+    if (items.length === 0) await this.assertKnownRoad(id);
     return items as AutobahnServiceItem[];
+  }
+
+  private async assertKnownRoad(id: string): Promise<void> {
+    // The API's list carries a few ids with a trailing space ("A60 "); list() trims.
+    const roads = (await this.knownRoads()).map((road) => road.trim());
+    if (roads.includes(id)) return;
+    const lower = id.toLowerCase();
+    const suggestion = roads.find((road) => road.toLowerCase() === lower);
+    throw new AutobahnNotFoundError(
+      `Unknown road id ${JSON.stringify(id)}: not in the API's road list` +
+        (suggestion === undefined ? "." : ` (did you mean ${JSON.stringify(suggestion)}?).`),
+    );
   }
 
   /** Fetch one item's details by its identifier (an opaque string; the format varies by service). */
@@ -83,16 +104,18 @@ export class AutobahnClient {
 
   constructor(options: EngineOptions = {}) {
     this.engine = new RequestEngine(options);
+    const roads = (): Promise<string[]> => this.roads();
 
-    this.roadworks = new ServiceResource(this.engine, "roadworks", "roadworks");
-    this.webcams = new ServiceResource(this.engine, "webcam", "webcam");
-    this.parkingLorries = new ServiceResource(this.engine, "parking_lorry", "parking_lorry");
-    this.warnings = new ServiceResource(this.engine, "warning", "warning");
-    this.closures = new ServiceResource(this.engine, "closure", "closure");
+    this.roadworks = new ServiceResource(this.engine, "roadworks", "roadworks", roads);
+    this.webcams = new ServiceResource(this.engine, "webcam", "webcam", roads);
+    this.parkingLorries = new ServiceResource(this.engine, "parking_lorry", "parking_lorry", roads);
+    this.warnings = new ServiceResource(this.engine, "warning", "warning", roads);
+    this.closures = new ServiceResource(this.engine, "closure", "closure", roads);
     this.chargingStations = new ServiceResource(
       this.engine,
       "electric_charging_station",
       "electric_charging_station",
+      roads,
     );
   }
 

@@ -25,7 +25,8 @@ This skill drives the `autobahn` command. **Before anything else, validate it is
 
 Data comes from the `autobahn` CLI (`@maschinenlesbar.org/autobahn-cli`) — read-only, no
 key, **one motorway + one service per call**. Always `--compact`. Services: `roadworks`, `closures`, `warnings`, `parking`, `charging`,
-`webcams`. An empty `[]` is a valid result (no items of that type on that road).
+`webcams`. An empty `[]` is a valid result (no items of that type on that road); an unknown
+road id (ids are case-sensitive) exits `4` with `Unknown road id …` instead.
 
 ## Step 1 — Fetch
 

@@ -66,7 +66,9 @@ new AutobahnClient({
 
 `client.roadworks`, `.webcams`, `.parkingLorries`, `.warnings`, `.closures`,
 `.chargingStations` — each with `.list(roadId)` and `.get(identifier)`. Plus
-`client.roads()` for the motorway list.
+`client.roads()` for the motorway list. The API answers an unknown road id with an
+empty listing, so `list()` checks an empty result against `roads()` (one extra
+request) and throws `AutobahnNotFoundError` for an id that is not in it.
 
 ## Authentication internals
 
@@ -141,7 +143,8 @@ subprocess.
 (non-2xx, carries `status`/`detail`/`url`/`body`), `AutobahnNetworkError`
 (transport failure/timeout), `AutobahnParseError` (bad JSON, or a 2xx body without the
 expected shape: `Unexpected response shape from <path>: expected …`), all extending
-`AutobahnError`.
+`AutobahnError`. `AutobahnNotFoundError` (a road id the API does not know; CLI
+exit `4`) extends `AutobahnError` too.
 
 **Retry / backoff.** Transient `429` (rate-limited) and `503` (service
 unavailable) are retried automatically with backoff, up to `maxRetries`

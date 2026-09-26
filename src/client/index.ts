@@ -11,6 +11,7 @@ export {
   AutobahnError,
   AutobahnApiError,
   AutobahnNetworkError,
+  AutobahnNotFoundError,
   AutobahnParseError,
 } from "./errors.js";
 

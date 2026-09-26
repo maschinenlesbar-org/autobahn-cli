@@ -253,3 +253,21 @@ test("a 2xx body without the service envelope exits 1 instead of printing []", a
     "Error: Unexpected response shape from /o/autobahn/A1/services/roadworks: expected a JSON object with a roadworks array.",
   );
 });
+
+test("a mistyped or wrong-case road id exits 4 instead of printing [] (a false all-clear)", async () => {
+  const cli = makeCli((req) =>
+    new URL(req.url).pathname === "/o/autobahn/" ? jsonResponse({ roads: ["A1", "A2"] }) : jsonResponse({ warning: [] }),
+  );
+  const code = await run(["--compact", "warnings", "list", "a1"], cli.deps);
+  assert.equal(code, 4);
+  assert.deepEqual(cli.out, []);
+  assert.equal(cli.err.join("\n"), 'Error: Unknown road id "a1": not in the API\'s road list (did you mean "A1"?).');
+});
+
+test("a known road with nothing listed still prints [] and exits 0", async () => {
+  const cli = makeCli((req) =>
+    new URL(req.url).pathname === "/o/autobahn/" ? jsonResponse({ roads: ["A1", "A2"] }) : jsonResponse({ warning: [] }),
+  );
+  assert.equal(await run(["--compact", "warnings", "list", "A2"], cli.deps), 0);
+  assert.equal(cli.out.join("\n"), "[]");
+});

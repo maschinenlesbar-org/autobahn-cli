@@ -5,6 +5,7 @@ import {
   AutobahnApiError,
   AutobahnError,
   AutobahnNetworkError,
+  AutobahnNotFoundError,
   AutobahnParseError,
 } from "../src/client/errors.js";
 import { makeMockTransport, jsonResponse, constantJson } from "./helpers.js";
@@ -77,10 +78,42 @@ test("list() items type each coordinate shape the API returns", async () => {
   assert.equal(Number(c.long), 9.44);
 });
 
-test("list() returns an empty envelope array as []", async () => {
-  const mt = constantJson({ closure: [] });
-  const items = await clientWith(mt).closures.list("A2");
-  assert.deepEqual(items, []);
+/** Answers the road list at /o/autobahn/ and `listing` everywhere else. */
+function roadsAnd(listing: unknown, roads: string[] = ["A1", "A2", "A60 ", "A64a"]) {
+  return makeMockTransport((req) =>
+    new URL(req.url).pathname === "/o/autobahn/" ? jsonResponse({ roads }) : jsonResponse(listing),
+  );
+}
+
+test("list() returns an empty envelope array as [] for a known road", async () => {
+  for (const road of ["A2", "A60", " A64a "]) {
+    const mt = roadsAnd({ closure: [] });
+    const items = await clientWith(mt).closures.list(road);
+    assert.deepEqual(items, [], road);
+    // The empty listing is checked against the road list: one extra request.
+    assert.equal(mt.calls.length, 2, road);
+  }
+});
+
+test("an empty listing for a road id the API does not know raises AutobahnNotFoundError, not []", async () => {
+  for (const [road, message] of [
+    ["a1", 'Unknown road id "a1": not in the API\'s road list (did you mean "A1"?).'],
+    ["a64A", 'Unknown road id "a64A": not in the API\'s road list (did you mean "A64a"?).'],
+    ["A999", 'Unknown road id "A999": not in the API\'s road list.'],
+  ] as const) {
+    const mt = roadsAnd({ warning: [] });
+    await assert.rejects(
+      () => clientWith(mt).warnings.list(road),
+      (err: unknown) => err instanceof AutobahnNotFoundError && err.message === message,
+      road,
+    );
+  }
+});
+
+test("a non-empty listing is returned without consulting the road list", async () => {
+  const mt = roadsAnd({ warning: [{ identifier: "w" }] });
+  assert.equal((await clientWith(mt).warnings.list("X9")).length, 1);
+  assert.equal(mt.calls.length, 1);
 });
 
 test("a 2xx body without the expected envelope raises AutobahnParseError, not []", async () => {

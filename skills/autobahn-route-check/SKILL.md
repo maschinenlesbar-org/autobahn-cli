@@ -32,7 +32,8 @@ of this skill is the cross-road / cross-service merge the CLI deliberately doesn
 Always pass `--compact` so each result is one line, easy to pipe into `jq`. Bump
 `--timeout 60000` if a call times out. A `list` that matches nothing prints `[]` and
 exits `0` — that is **not** an error, it means "no disruptions of that type", which is
-exactly what you want to report.
+exactly what you want to report. A road id the API does not know exits `4` with
+`Unknown road id …` on stderr — never report such a road as clear.
 
 ## Step 1 — Resolve the roads
 
@@ -43,8 +44,9 @@ Figure out which roadId(s) the request maps to. Valid ids come from `autobahn ro
   `autobahn roads` and pick, or ask.
 - Multiple roads ("A1, A2 and A7", or a route that uses several) → process each and
   label findings by road.
-- Validate against `autobahn roads` before querying; a typo'd road id wastes three calls
-  that all 404.
+- Validate against `autobahn roads` before querying. Ids are case-sensitive (`A1`, not
+  `a1`); a typo'd or wrong-case id makes every `list` exit `4` with `Unknown road id "a1":
+  … (did you mean "A1"?)` — fix the id, don't report the road as clear.
 
 ## Step 2 — Pull the three disruption services per road
 

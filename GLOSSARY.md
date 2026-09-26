@@ -151,8 +151,12 @@ whitespace-only) body as not-found and raises a synthetic `404`
 `AutobahnApiError` (CLI exit code `4`), instead of a misleading JSON parse error.
 
 **Empty list vs not-found.** A `list <roadId>` that matches no items is **not**
-an error: it returns `[]` (exit `0`). Only a `get <id>` with no matching item, or
-a real `404`, is treated as not-found (exit `4`).
+an error: it returns `[]` (exit `0`). The API answers an **unknown road id** (a
+typo, or `a1` for `A1` — ids are case-sensitive) with the same empty listing and
+HTTP 200, so when a listing is empty the client checks the id against the road
+list and raises `AutobahnNotFoundError` (exit `4`, with a did-you-mean for a case
+slip) if it is not there. A `get <id>` with no matching item, or a real `404`, is
+not-found too (exit `4`).
 
 **Retryable status.** `429` (rate-limited) and `503` (service unavailable) are
 the statuses the API documents as transient. The engine retries them
@@ -174,8 +178,9 @@ trusted input).
 disables) that defends against memory exhaustion from a hostile or buggy
 endpoint.
 
-**Exit codes.** `0` success (incl. `--help`/`--version`); `4` not-found (`404`
-or an unmatched `get`); `1` any other API/network/parse error and usage errors.
+**Exit codes.** `0` success (incl. `--help`/`--version`); `4` not-found (`404`,
+an unmatched `get` or an unknown road id); `1` any other API/network/parse error and
+usage errors.
 
 ---
 

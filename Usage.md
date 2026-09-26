@@ -59,7 +59,9 @@ autobahn closures list A3
 ```
 
 A `list` that matches nothing is **not** an error: it prints an empty result
-and exits `0`.
+and exits `0`. A road id the API does not know (a typo, or `a3` for `A3` — ids
+are case-sensitive) exits `4` with `Unknown road id …` instead, so an empty
+result always means a real road with nothing listed.
 
 ### 4. Read the full detail of one item by its identifier
 
@@ -160,5 +162,6 @@ Commands: `roads`, and the six service groups `roadworks`, `webcams`,
 `parking`, `warnings`, `closures`, `charging` — each with `list <roadId>` and
 `get <identifier>` subcommands.
 
-Exit codes: `0` success, `4` not found (`get` matched nothing / API `404`),
+Exit codes: `0` success, `4` not found (`get` matched nothing / unknown road id
+in `list` / API `404`),
 `1` any other API, network, parse, or usage error.

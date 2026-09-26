@@ -153,8 +153,13 @@ Leerraum bestehenden) Body als „nicht gefunden“ und löst einen synthetische
 `AutobahnApiError` aus (CLI-Exit-Code `4`), statt eines irreführenden JSON-Parse-Fehlers.
 
 **Leere Liste vs. nicht gefunden.** Ein `list <roadId>` ohne passende Einträge ist
-**kein** Fehler: Es liefert `[]` (Exit `0`). Nur ein `get <id>` ohne passenden Eintrag
-oder ein echter `404` gilt als „nicht gefunden“ (Exit `4`).
+**kein** Fehler: Es liefert `[]` (Exit `0`). Eine **unbekannte Autobahn-Kennung** (ein
+Tippfehler oder `a1` statt `A1` – die Kennungen unterscheiden Groß- und Kleinschreibung)
+beantwortet die API mit derselben leeren Liste und HTTP 200. Deshalb prüft der Client bei
+einer leeren Liste die Kennung gegen die Autobahnliste und löst `AutobahnNotFoundError`
+aus (Exit `4`, bei falscher Schreibweise mit einem Vorschlag), wenn sie dort fehlt. Auch
+ein `get <id>` ohne passenden Eintrag oder ein echter `404` gilt als „nicht gefunden“
+(Exit `4`).
 
 **Wiederholbarer Status.** `429` (Rate-Limit) und `503` (Dienst nicht verfügbar) sind
 die Status, die die API als vorübergehend dokumentiert. Die Engine wiederholt sie
@@ -177,7 +182,8 @@ vertrauenswürdige Eingabe gilt).
 fehlerhaften Endpoint schützt.
 
 **Exit-Codes.** `0` bei Erfolg (inkl. `--help`/`--version`); `4` bei „nicht gefunden“
-(`404` oder ein `get` ohne Treffer); `1` bei jedem anderen API-, Netzwerk- oder
+(`404`, ein `get` ohne Treffer oder eine unbekannte Autobahn-Kennung); `1` bei jedem
+anderen API-, Netzwerk- oder
 Parse-Fehler sowie bei Bedienfehlern.
 
 ---
