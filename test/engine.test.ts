@@ -281,3 +281,30 @@ test("error detail loses bidi controls and line breaks, so it cannot reorder or 
 test("sanitizeServerText keeps ordinary text, umlauts and single spaces", () => {
   assert.equal(sanitizeServerText("  Cannot GET  /autobahn/details/  Größe  "), "Cannot GET /autobahn/details/ Größe");
 });
+
+test("a 3xx names the redirect target instead of a bare status", async () => {
+  const cases: Array<[string | undefined, string]> = [
+    ["https://verkehr.autobahn.de/o/autobahn/", ": redirect to https://verkehr.autobahn.de/o/autobahn/ not followed"],
+    ["/elsewhere", ": redirect to http://verkehr.autobahn.de/elsewhere not followed"],
+    ["https://u:p@evil.test/\u202ex", ": redirect to https://***@evil.test/%E2%80%AEx not followed"],
+    [undefined, ": redirect not followed (no Location header)"],
+  ];
+  for (const [location, suffix] of cases) {
+    const mt = makeMockTransport(() => ({
+      status: 301,
+      headers: location === undefined ? {} : { location },
+      body: Buffer.alloc(0),
+    }));
+    const e = new RequestEngine({ transport: mt.transport, baseUrl: "http://verkehr.autobahn.de" });
+    await assert.rejects(
+      () => e.getJson("/o/autobahn/"),
+      (err: unknown) => {
+        assert.ok(err instanceof AutobahnApiError);
+        assert.equal(err.message, `HTTP 301 for GET http://verkehr.autobahn.de/o/autobahn/${suffix}`);
+        return true;
+      },
+      String(location),
+    );
+    assert.equal(mt.calls.length, 1); // still not followed
+  }
+});

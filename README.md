@@ -170,8 +170,10 @@ A `list` returning zero items for a known road is not an error — it exits `0` 
 - **Exit `1` / network error** — connectivity, DNS, or a timeout. Try again, or
   raise the limit with `--timeout 60000`.
 - **`3xx` redirect error** — the CLI deliberately does not follow redirects
-  (a safety choice for `--base-url`); this means the upstream host moved. Try
-  the default base URL: `--base-url https://verkehr.autobahn.de`.
+  (a safety choice for `--base-url`). The error names the target
+  (`HTTP 301 for GET …: redirect to https://… not followed`); if that is where the
+  API now lives, pass its origin as `--base-url` (for a custom `--base-url`, check
+  the scheme and host you gave).
 
 ## Global options
 

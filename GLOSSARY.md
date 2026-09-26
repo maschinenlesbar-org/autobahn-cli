@@ -179,7 +179,9 @@ hostile value cannot hang the CLI for hours.
 
 **Redirects not followed.** A `3xx` response surfaces as an error rather than
 being chased to another host (a deliberate safety choice, since `--base-url` is
-trusted input).
+trusted input). The error names the target — `…: redirect to <url> not followed`,
+or `redirect not followed (no Location header)` — so you can point `--base-url`
+there yourself.
 
 **`maxResponseBytes`.** A hard cap on response body size (default 100 MiB; `0`
 disables) that defends against memory exhaustion from a hostile or buggy

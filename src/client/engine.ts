@@ -266,7 +266,7 @@ export class RequestEngine {
 
       const contentType = String(response.headers["content-type"] ?? "");
       if (status < 200 || status >= 300) {
-        throw this.toApiError(method, url, status, response.body);
+        throw this.toApiError(method, url, status, response.body, response.headers["location"]);
       }
 
       return { data: response.body, contentType, status };
@@ -307,7 +307,13 @@ export class RequestEngine {
     }
   }
 
-  private toApiError(method: string, url: string, status: number, body: Buffer): AutobahnApiError {
+  private toApiError(
+    method: string,
+    url: string,
+    status: number,
+    body: Buffer,
+    locationHeader?: string,
+  ): AutobahnApiError {
     const text = body.toString("utf8");
     let detail: string | undefined;
     try {
@@ -320,6 +326,25 @@ export class RequestEngine {
     // `detail` came from the response body; strip control characters so a hostile
     // endpoint cannot inject terminal escape sequences via the stderr error message.
     if (detail !== undefined) detail = sanitizeServerText(detail);
-    return new AutobahnApiError({ status, url, method, body: text, detail });
+    // Redirects are not followed; name the target so the user can fix --base-url.
+    const location =
+      status >= 300 && status < 400 && locationHeader ? redirectTarget(url, locationHeader) : undefined;
+    return new AutobahnApiError({ status, url, method, body: text, detail, location });
   }
+}
+
+/**
+ * The absolute, printable form of a `Location` header: resolved against the request
+ * URL, userinfo redacted, control/bidi characters stripped (it is server text bound
+ * for stderr). An unparseable value is shown sanitised as it came.
+ */
+function redirectTarget(requestUrl: string, location: string): string | undefined {
+  let target: string;
+  try {
+    target = redactUrl(new URL(location, requestUrl).href);
+  } catch {
+    target = location;
+  }
+  const clean = sanitizeServerText(target);
+  return clean === "" ? undefined : clean;
 }

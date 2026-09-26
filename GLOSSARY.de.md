@@ -182,7 +182,9 @@ begrenzt, damit ein unsinniger oder böswilliger Wert die CLI nicht stundenlang 
 
 **Keine Weiterleitungen.** Eine `3xx`-Antwort wird als Fehler gemeldet, statt ihr zu
 einem anderen Host zu folgen (eine bewusste Sicherheitsentscheidung, da `--base-url` als
-vertrauenswürdige Eingabe gilt).
+vertrauenswürdige Eingabe gilt). Die Fehlermeldung nennt das Ziel –
+`…: redirect to <url> not followed` bzw. `redirect not followed (no Location header)` –,
+sodass Sie `--base-url` selbst dorthin richten können.
 
 **`maxResponseBytes`.** Eine feste Obergrenze für die Größe des Antwort-Bodys (Standard
 100 MiB; `0` deaktiviert sie), die vor Speichererschöpfung durch einen böswilligen oder
