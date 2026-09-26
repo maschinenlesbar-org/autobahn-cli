@@ -69,7 +69,10 @@ charging    list <roadId> | get <identifier>   (electric charging stations)
 
 The `<roadId>` is a motorway designation from `autobahn roads` (e.g. `A1`).
 The `<identifier>` for a `get` command is the `identifier` field of an item
-returned by the matching `list`.
+returned by the matching `list`. Use the same service for both: the upstream
+detail endpoint resolves an identifier whatever the service, so
+`roadworks get <a parking id>` prints that parking area with exit `0` (its
+`display_type` says `PARKING`).
 
 > On the rare occasion an identifier begins with `-`, it would be read as an
 > option; pass it after a `--` separator:

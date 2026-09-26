@@ -76,7 +76,10 @@ autobahn roadworks list A1 | jq -r '.[0].identifier'
 autobahn roadworks get <identifier>
 ```
 
-`get` with an unknown id (or a 404 from the API) exits `4` (not found).
+`get` with an unknown id (or a 404 from the API) exits `4` (not found). Use the
+service the identifier was listed under: the API resolves an identifier whatever
+the service, so `roadworks get` on a parking id prints the parking area (exit `0`,
+`display_type` `PARKING`).
 
 ### 5. Find webcams along the A99 (Munich ring)
 

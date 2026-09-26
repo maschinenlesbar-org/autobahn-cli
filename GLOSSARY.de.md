@@ -73,7 +73,11 @@ dieses Eintrags abzurufen. Das Format hängt vom Dienst ab: Baustellen, Warnunge
 Sperrungen nutzen einfache Zeichenketten (`2026-006680--vi-fbm.…`), Parkplätze IDs wie
 `DE-SL-000031`, Ladestationen eine numerische ID bei Standorten des Deutschlandnetzes
 (`30388`) und eine Base64-ID bei allen anderen
-(`RUxFQ1RSSUNfQ0hBUkdJTkdfU1RBVElPTl9fMTkyMzE=`).
+(`RUxFQ1RSSUNfQ0hBUkdJTkdfU1RBVElPTl9fMTkyMzE=`). Der Detail-Endpoint löst eine Kennung
+**unabhängig vom Dienst** in seinem Pfad auf, daher gelingt auch ein `get` unter dem
+falschen Dienst: `roadworks get DE-SL-000009` liefert diesen Lkw-Parkplatz
+(`"display_type": "PARKING"`) mit Exit `0`. Verwenden Sie den Dienst, unter dem die
+Kennung gelistet war; `display_type` zeigt, was der Eintrag tatsächlich ist.
 
 **Dienstliste.** Das zweistufige Zugriffsmuster der API: `list(roadId)` liefert das Array
 der Einträge eines Dienstes entlang einer Autobahn; `get(identifier)` ruft dann die

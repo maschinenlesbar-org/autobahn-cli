@@ -74,7 +74,11 @@ and de-duplicates the list it prints.
 detail payload. Its format varies by service: roadworks, warnings and closures use
 plain strings (`2026-006680--vi-fbm.…`), parking uses ids like `DE-SL-000031`, and
 charging uses a numeric id for Deutschlandnetz sites (`30388`) and a base64 id for
-all others (`RUxFQ1RSSUNfQ0hBUkdJTkdfU1RBVElPTl9fMTkyMzE=`).
+all others (`RUxFQ1RSSUNfQ0hBUkdJTkdfU1RBVElPTl9fMTkyMzE=`). The detail endpoint
+resolves an identifier **regardless of the service** in its path, so a `get` under
+the wrong service still succeeds: `roadworks get DE-SL-000009` returns that lorry
+parking area (`"display_type": "PARKING"`) with exit `0`. Use the service the
+identifier was listed under; `display_type` shows what the item really is.
 
 **Service listing.** The two-step access pattern of the API: `list(roadId)`
 returns the array of items for a service along a motorway; `get(identifier)` then
