@@ -2,7 +2,7 @@
 // requests via a Transport, applies retry/backoff for transient statuses
 // (429, 503), and decodes responses.
 
-import { nodeHttpTransport, type Transport } from "./http.js";
+import { MAX_TIMEOUT_MS, nodeHttpTransport, type Transport } from "./http.js";
 import { buildQueryString, type QueryParams } from "./query.js";
 import {
   AutobahnApiError,
@@ -21,6 +21,11 @@ export interface RawResponse {
   status: number;
 }
 
+/**
+ * Options for {@link RequestEngine} and the client. The numeric options must be
+ * integers within their documented range; anything else (negative, fractional,
+ * NaN, Infinity, too large) makes the constructor throw an AutobahnError.
+ */
 export interface EngineOptions {
   /** Base URL of the API. Defaults to https://verkehr.autobahn.de */
   baseUrl?: string;
@@ -28,18 +33,20 @@ export interface EngineOptions {
   transport?: Transport;
   /** Value of the User-Agent header. */
   userAgent?: string;
-  /** Per-request timeout in milliseconds (0 disables; capped at `MAX_TIMEOUT_MS`, 2^31 - 1 ms). */
+  /** Per-request timeout in milliseconds (0 disables; at most `MAX_TIMEOUT_MS`, 2^31 - 1 ms). */
   timeoutMs?: number;
-  /** Number of automatic retries for transient (429/503) responses. */
+  /** Number of automatic retries for transient (429/503) responses, 0..`MAX_RETRIES` (10). */
   maxRetries?: number;
   /**
    * Base backoff between retries in milliseconds. Grows linearly per attempt,
    * unless the response carries a `Retry-After` header, which takes precedence.
+   * At most 30 000 (the Retry-After ceiling).
    */
   retryDelayMs?: number;
   /**
    * Hard cap on response body size in bytes (defends against memory exhaustion
    * from a hostile/buggy endpoint). Defaults to 100 MiB; set to 0 for no limit.
+   * At most `Number.MAX_SAFE_INTEGER`.
    */
   maxResponseBytes?: number;
   /** Injectable sleep, primarily for deterministic tests. */
@@ -130,6 +137,21 @@ export function parseRetryAfter(value: string | string[] | undefined): number | 
   return Math.max(0, when - Date.now());
 }
 
+/**
+ * Read a numeric engine option: `undefined` gives the default; anything but an
+ * integer in [0, max] throws. Without this a negative or NaN `timeoutMs` silently
+ * disabled the timeout, and `maxResponseBytes: -1` the size cap.
+ */
+function intOption(name: string, value: number | undefined, fallback: number, max: number): number {
+  if (value === undefined) return fallback;
+  if (!Number.isSafeInteger(value) || value < 0 || value > max) {
+    throw new AutobahnError(
+      `Invalid option ${name}: expected an integer from 0 to ${max}, got ${String(value)}.`,
+    );
+  }
+  return value;
+}
+
 export class RequestEngine {
   private readonly baseUrl: string;
   private readonly transport: Transport;
@@ -148,10 +170,15 @@ export class RequestEngine {
     assertHttpScheme(this.baseUrl);
     this.transport = options.transport ?? nodeHttpTransport;
     this.userAgent = options.userAgent || DEFAULT_USER_AGENT;
-    this.timeoutMs = options.timeoutMs ?? 30_000;
-    this.maxRetries = options.maxRetries ?? 2;
-    this.retryDelayMs = options.retryDelayMs ?? 200;
-    this.maxResponseBytes = options.maxResponseBytes ?? DEFAULT_MAX_RESPONSE_BYTES;
+    this.timeoutMs = intOption("timeoutMs", options.timeoutMs, 30_000, MAX_TIMEOUT_MS);
+    this.maxRetries = intOption("maxRetries", options.maxRetries, 2, MAX_RETRIES);
+    this.retryDelayMs = intOption("retryDelayMs", options.retryDelayMs, 200, MAX_RETRY_AFTER_MS);
+    this.maxResponseBytes = intOption(
+      "maxResponseBytes",
+      options.maxResponseBytes,
+      DEFAULT_MAX_RESPONSE_BYTES,
+      Number.MAX_SAFE_INTEGER,
+    );
     this.sleep = options.sleep ?? realSleep;
   }
 

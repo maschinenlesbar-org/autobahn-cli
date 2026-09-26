@@ -200,3 +200,38 @@ test("get() raises AutobahnParseError for a 2xx body that is not a JSON object",
     );
   }
 });
+
+test("numeric engine options must be integers in range; a bad one throws instead of disabling a limit", () => {
+  const bad: [string, number][] = [
+    ["timeoutMs", -1],
+    ["timeoutMs", Number.NaN],
+    ["timeoutMs", 1.5],
+    ["timeoutMs", 2_147_483_648],
+    ["maxRetries", -1],
+    ["maxRetries", Number.POSITIVE_INFINITY],
+    ["maxRetries", Number.NaN],
+    ["maxRetries", 11],
+    ["retryDelayMs", -1],
+    ["retryDelayMs", 30_001],
+    ["maxResponseBytes", -1],
+    ["maxResponseBytes", 0.5],
+  ];
+  for (const [name, value] of bad) {
+    assert.throws(
+      () => new AutobahnClient({ [name]: value }),
+      (e: unknown) =>
+        e instanceof AutobahnError &&
+        new RegExp(`^Invalid option ${name}: expected an integer from 0 to \\d+, got `).test(e.message),
+      `${name}=${value}`,
+    );
+  }
+  for (const [name, value] of [
+    ["timeoutMs", 0],
+    ["timeoutMs", 2_147_483_647],
+    ["maxRetries", 10],
+    ["retryDelayMs", 0],
+    ["maxResponseBytes", 0],
+  ] as const) {
+    assert.doesNotThrow(() => new AutobahnClient({ [name]: value }), `${name}=${value}`);
+  }
+});

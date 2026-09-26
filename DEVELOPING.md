@@ -62,6 +62,11 @@ new AutobahnClient({
 });
 ```
 
+The numeric options must be integers in range — `timeoutMs` 0..2³¹−1, `maxRetries`
+0..10 (`MAX_RETRIES`), `retryDelayMs` 0..30 000, `maxResponseBytes` 0..2⁵³−1 — or the
+constructor throws an `AutobahnError` naming the option (a negative or `NaN` timeout
+no longer silently disables the timeout).
+
 ### Resource groups
 
 `client.roadworks`, `.webcams`, `.parkingLorries`, `.warnings`, `.closures`,
