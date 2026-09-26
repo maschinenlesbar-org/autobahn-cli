@@ -38,7 +38,9 @@ erforderliche Pfadsegment für jeden `list`-Befehl eines Dienstes.
 entlang einer Autobahn. CLI: `roadworks`.
 
 **Webcam (`webcam`).** Eine Verkehrskamera an einer Autobahn; Einträge enthalten eine
-`imageurl` (das Standbild) und eine `linkurl`. CLI: `webcams`.
+`imageurl` (das Standbild) und eine `linkurl`. CLI: `webcams`. Der Upstream-Dienst
+listet derzeit **auf keiner geprüften Autobahn Webcams** (A1, A3, A7, A8, A99 im
+September 2026): `webcams list` gibt `[]` aus – eine Datenlücke der Quelle, kein Fehler.
 
 **Lkw-Parkplätze (`parking_lorry`).** Lkw-Parkplätze bzw. Rastplätze entlang einer
 Autobahn und Angaben zu ihrer Belegung. CLI: `parking`.

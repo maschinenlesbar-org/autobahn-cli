@@ -89,6 +89,10 @@ Pull live camera locations so you can eyeball traffic conditions.
 autobahn webcams list A99
 ```
 
+> **Upstream data gap.** The webcam service currently returns `[]` on every
+> road checked (A1, A3, A7, A8, A99 in September 2026). That is the upstream
+> data, not a CLI error: the commands work, there is just nothing listed.
+
 Extract the linkable camera URLs with `jq`:
 
 ```bash

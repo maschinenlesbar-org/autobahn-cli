@@ -37,7 +37,9 @@ is the required path segment for every service `list` command.
 along a motorway (German *Baustellen*). CLI: `roadworks`.
 
 **Webcam (`webcam`).** A traffic camera along a motorway; items carry an
-`imageurl` (the snapshot) and a `linkurl`. CLI: `webcams`.
+`imageurl` (the snapshot) and a `linkurl`. CLI: `webcams`. The upstream service
+currently lists **no webcams on any road checked** (A1, A3, A7, A8, A99 in
+September 2026): `webcams list` prints `[]` — an upstream data gap, not an error.
 
 **Parking lorry / lorry parking (`parking_lorry`).** Truck/HGV parking areas
 along a motorway (German *Lkw-Parkplätze / Rastplätze*) and their occupancy

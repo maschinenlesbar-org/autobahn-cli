@@ -114,7 +114,8 @@ autobahn roadworks list A1 | jq -r '.[].title'
 autobahn roadworks list A1 | jq -r '.[0].identifier'
 autobahn roadworks get <identifier>
 
-# Webcam URLs along the A99 Munich ring
+# Webcam URLs along the A99 Munich ring (the upstream webcam service has been
+# empty on every road checked since 2026-09 — expect [] until it is filled again)
 autobahn webcams list A99 | jq -r '.[].linkurl'
 
 # EV charging stations on the A9 (compact, for scripting)
