@@ -16,6 +16,8 @@ import type {
 } from "./types.js";
 
 const API_ROOT = "/o/autobahn";
+// Percent-encodes one path segment. It leaves "." and ".." unchanged; the engine
+// rejects those (see RequestEngine.buildUrl), so they cannot re-target a request.
 const enc = encodeURIComponent;
 
 /**

@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { AutobahnClient } from "../src/client/client.js";
-import { AutobahnApiError, AutobahnNetworkError } from "../src/client/errors.js";
+import { AutobahnApiError, AutobahnError, AutobahnNetworkError } from "../src/client/errors.js";
 import { makeMockTransport, jsonResponse, constantJson } from "./helpers.js";
 
 function clientWith(mt: ReturnType<typeof makeMockTransport>): AutobahnClient {
@@ -93,4 +93,37 @@ test("a client with a file: base URL throws before its custom transport sees a r
     AutobahnNetworkError,
   );
   assert.equal(mt.calls.length, 0);
+});
+
+// ---- Dot segments ----
+
+test("a road id or identifier of . or .. is rejected before any request instead of re-targeting the URL", async () => {
+  for (const [name, call] of [
+    ["roadworks.list ..", (c: AutobahnClient) => c.roadworks.list("..")],
+    ["warnings.list .", (c: AutobahnClient) => c.warnings.list(" . ")],
+    ["roadworks.get ..", (c: AutobahnClient) => c.roadworks.get("..")],
+    ["chargingStations.get .", (c: AutobahnClient) => c.chargingStations.get(".")],
+  ] as const) {
+    const mt = constantJson({ roadworks: [], warning: [] });
+    await assert.rejects(() => call(clientWith(mt)), (err: unknown) => {
+      assert.ok(err instanceof AutobahnError, name);
+      assert.match(
+        (err as Error).message,
+        /^Invalid path segment "\.\.?" in \/o\/autobahn\/\S+: "\." and "\.\." cannot be used as an id\.$/,
+        name,
+      );
+      return true;
+    });
+    assert.equal(mt.calls.length, 0, name);
+  }
+});
+
+test("ids that merely contain dots are still encoded and sent", async () => {
+  const mt = constantJson({ identifier: "x" });
+  await clientWith(mt).roadworks.get("2026-1.2.3");
+  await clientWith(mt).roadworks.get("...");
+  await clientWith(mt).roadworks.get("%2e%2e");
+  assert.equal(new URL(mt.calls[0]!.url).pathname, "/o/autobahn/details/roadworks/2026-1.2.3");
+  assert.equal(new URL(mt.calls[1]!.url).pathname, "/o/autobahn/details/roadworks/...");
+  assert.equal(new URL(mt.calls[2]!.url).pathname, "/o/autobahn/details/roadworks/%252e%252e");
 });

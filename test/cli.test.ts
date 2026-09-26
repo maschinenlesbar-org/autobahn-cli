@@ -233,3 +233,12 @@ test("global options flow through to the client engine", async () => {
   });
   assert.equal(new URL(mt.last().url).origin, "https://example.test");
 });
+
+test("a road id of .. exits 1 without a request instead of printing another endpoint's answer", async () => {
+  const cli = makeCli(() => jsonResponse({ roadworks: [] }));
+  const code = await run(["--compact", "roadworks", "list", ".."], cli.deps);
+  assert.equal(code, 1);
+  assert.equal(cli.mt.calls.length, 0);
+  assert.deepEqual(cli.out, []);
+  assert.match(cli.err.join("\n"), /^Error: Invalid path segment "\.\."/);
+});
