@@ -326,3 +326,24 @@ test("--max-retries is bounded to 0..10", async () => {
     }
   }
 });
+
+test("--user-agent that is blank or has control or non-Latin-1 characters is a usage error", async () => {
+  const CR = String.fromCharCode(0x0d);
+  const LF = String.fromCharCode(0x0a);
+  for (const [ua, message] of [
+    [`a${CR}${LF}X-Evil: 1`, /Value contains control characters\./],
+    [`a${String.fromCharCode(0x7f)}`, /Value contains control characters\./],
+    ["agent \u20ac", /Value contains characters outside Latin-1/],
+    ["", /Expected a non-empty value/],
+    ["   ", /Expected a non-empty value/],
+  ] as const) {
+    const cli = makeCli(() => jsonResponse({ roads: ["A1"] }));
+    const code = await run(["--user-agent", ua, "roads"], cli.deps);
+    assert.equal(code, 1, JSON.stringify(ua));
+    assert.equal(cli.mt.calls.length, 0, JSON.stringify(ua));
+    assert.match(cli.err.join("\n"), message, JSON.stringify(ua));
+  }
+  const cli = makeCli(() => jsonResponse({ roads: ["A1"] }));
+  assert.equal(await run(["--user-agent", "müller-bot/1.0\t(test)", "roads"], cli.deps), 0);
+  assert.equal(cli.mt.last().headers?.["User-Agent"], "müller-bot/1.0\t(test)");
+});

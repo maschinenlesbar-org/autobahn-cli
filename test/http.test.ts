@@ -100,3 +100,16 @@ test("an overall deadline bounds a slow-drip response (AUT-02)", async () => {
   );
   for (const iv of timers) clearInterval(iv);
 });
+
+test("a header value Node cannot send rejects with AutobahnNetworkError, not a raw TypeError", async () => {
+  const CRLF = String.fromCharCode(0x0d, 0x0a);
+  await assert.rejects(
+    () =>
+      nodeHttpTransport({
+        method: "GET",
+        url: "http://127.0.0.1:9/x",
+        headers: { "User-Agent": `a${CRLF}X-Evil: 1` },
+      }),
+    (err: unknown) => err instanceof AutobahnNetworkError && /^Invalid request: /.test(err.message),
+  );
+});
