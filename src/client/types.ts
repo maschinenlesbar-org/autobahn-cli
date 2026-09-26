@@ -70,7 +70,8 @@ export interface AutobahnServiceItem {
   display_type?: string;
   footer?: string[];
   routeRecommendation?: string[];
-  startTimestamp?: string;
+  /** ISO start time; `null` on lorry parking. */
+  startTimestamp?: string | null;
   // Webcam-specific
   imageurl?: string;
   linkurl?: string;

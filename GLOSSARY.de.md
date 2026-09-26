@@ -132,7 +132,7 @@ Baustelle umfasst).
 **`future`.** Boolean – ob sich der Eintrag auf ein künftiges (noch nicht aktives)
 Ereignis bezieht, z. B. eine geplante Baustelle.
 
-**`startTimestamp`.** Beginn des Ereignisses bzw. Eintrags.
+**`startTimestamp`.** Beginn des Ereignisses bzw. Eintrags (eine ISO-Zeit; `null` bei Lkw-Parkplätzen).
 
 **`display_type`.** Ein Typ- bzw. Kategoriehinweis, den die App zur Darstellung des
 Eintrags nutzt.

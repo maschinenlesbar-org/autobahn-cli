@@ -8,6 +8,7 @@ import {
   AutobahnNotFoundError,
   AutobahnParseError,
 } from "../src/client/errors.js";
+import type { AutobahnServiceItem } from "../src/client/types.js";
 import { makeMockTransport, jsonResponse, constantJson } from "./helpers.js";
 
 function clientWith(mt: ReturnType<typeof makeMockTransport>): AutobahnClient {
@@ -234,4 +235,14 @@ test("numeric engine options must be integers in range; a bad one throws instead
   ] as const) {
     assert.doesNotThrow(() => new AutobahnClient({ [name]: value }), `${name}=${value}`);
   }
+});
+
+test("startTimestamp is typed to allow the null that lorry parking returns", async () => {
+  // Live on 2026-09-26: `parking get DE-SL-000009` carried "startTimestamp": null.
+  const items = await clientWith(
+    constantJson({ parking_lorry: [{ identifier: "DE-SL-000009", startTimestamp: null }] }),
+  ).parkingLorries.list("A1");
+  // Compile-time check: this assignment did not type-check while the field was `string`.
+  const item: AutobahnServiceItem = { identifier: "DE-SL-000009", startTimestamp: null };
+  assert.equal(items[0]?.startTimestamp, item.startTimestamp);
 });

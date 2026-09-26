@@ -131,7 +131,7 @@ lorry parking.
 **`future`.** Boolean — whether the item refers to a future (not yet active)
 event, e.g. planned roadworks.
 
-**`startTimestamp`.** When the event/item starts.
+**`startTimestamp`.** When the event/item starts (an ISO time; `null` on lorry parking).
 
 **`display_type`.** A type/category hint the app uses to render the item.
 
