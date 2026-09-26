@@ -347,3 +347,17 @@ test("--user-agent that is blank or has control or non-Latin-1 characters is a u
   assert.equal(await run(["--user-agent", "müller-bot/1.0\t(test)", "roads"], cli.deps), 0);
   assert.equal(cli.mt.last().headers?.["User-Agent"], "müller-bot/1.0\t(test)");
 });
+
+test("an empty body is not-found (exit 4) only for get; on roads/list it is a parse error (exit 1)", async () => {
+  for (const [argv, code, message] of [
+    [["roadworks", "get", "x"], 4, /^Error: HTTP 404 for GET \S+\/o\/autobahn\/details\/roadworks\/x: Not found \(empty response body\)$/],
+    [["roads"], 1, /^Error: Empty response body from \/o\/autobahn\/$/],
+    [["roadworks", "list", "A1"], 1, /^Error: Empty response body from \/o\/autobahn\/A1\/services\/roadworks$/],
+  ] as const) {
+    for (const status of [200, 204]) {
+      const cli = makeCli(() => rawResponse("", "application/json", status));
+      assert.equal(await run([...argv], cli.deps), code, `${argv.join(" ")} ${status}`);
+      assert.match(cli.err.join("\n"), message, `${argv.join(" ")} ${status}`);
+    }
+  }
+});

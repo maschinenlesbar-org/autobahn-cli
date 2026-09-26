@@ -252,15 +252,25 @@ export class RequestEngine {
     }
   }
 
-  /** Perform a GET expecting JSON and parse it into `T`. */
-  async getJson<T>(path: string, query?: QueryParams): Promise<T> {
+  /**
+   * Perform a GET expecting JSON and parse it into `T`. An empty (or whitespace-only)
+   * body is an AutobahnParseError, or with `emptyIsNotFound` a synthetic 404.
+   */
+  async getJson<T>(
+    path: string,
+    query?: QueryParams,
+    options: { emptyIsNotFound?: boolean } = {},
+  ): Promise<T> {
     const res = await this.request("GET", path, { query, accept: "application/json" });
     const text = res.data.toString("utf8");
-    // The Autobahn detail endpoint answers an unknown identifier with HTTP 200
-    // and an *empty* body rather than a 404. Treat an empty (or whitespace-only)
-    // body as "not found" so it surfaces as a 404 AutobahnApiError (exit 4)
-    // instead of a misleading JSON parse error.
     if (text.trim() === "") {
+      // Only the detail endpoint answers an unknown identifier with HTTP 200 and an
+      // *empty* body rather than a 404, so only there (emptyIsNotFound) does an empty
+      // body mean "not found" (a 404 AutobahnApiError, exit 4). Elsewhere — the road
+      // list, a service listing — it is a broken response, not a missing resource.
+      if (!options.emptyIsNotFound) {
+        throw new AutobahnParseError(`Empty response body from ${path}`);
+      }
       throw new AutobahnApiError({
         status: 404,
         url: this.buildUrl(path, query),

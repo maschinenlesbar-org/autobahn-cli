@@ -155,6 +155,9 @@ Details variiert und nicht vollständig spezifiziert ist.
 HTTP 200 und leerem Body** statt mit `404`. Der Client wertet einen leeren (oder nur aus
 Leerraum bestehenden) Body als „nicht gefunden“ und löst einen synthetischen `404`
 `AutobahnApiError` aus (CLI-Exit-Code `4`), statt eines irreführenden JSON-Parse-Fehlers.
+Das gilt nur für `get`: Ein leerer Body von der Autobahnliste oder einer Dienstliste ist
+eine fehlerhafte Antwort, keine fehlende Ressource, und löst `AutobahnParseError` aus
+(Exit `1`).
 
 **Leere Liste vs. nicht gefunden.** Ein `list <roadId>` ohne passende Einträge ist
 **kein** Fehler: Es liefert `[]` (Exit `0`). Eine **unbekannte Autobahn-Kennung** (ein

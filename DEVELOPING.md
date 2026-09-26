@@ -168,10 +168,11 @@ start. The deadline stops a slow-drip endpoint that resets the inactivity timer
 forever (one byte at a time) from holding the CLI open under the size cap.
 
 **Empty-body 404.** The detail endpoint answers an unknown identifier with
-HTTP 200 and an empty body rather than a true `404`. The engine treats an
-empty (or whitespace-only) body as not-found and raises a synthetic
-`AutobahnApiError` with status `404` (CLI exit `4`), instead of a misleading
-parse error.
+HTTP 200 and an empty body rather than a true `404`. For `get` (the engine's
+`getJson(..., { emptyIsNotFound: true })`) an empty (or whitespace-only) body is
+not-found: a synthetic `AutobahnApiError` with status `404` (CLI exit `4`),
+instead of a misleading parse error. Everywhere else an empty body raises
+`AutobahnParseError` (`Empty response body from <path>`, exit `1`).
 
 ## Testing
 

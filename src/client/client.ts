@@ -92,7 +92,8 @@ class ServiceResource<K extends string> {
   async get(identifier: string): Promise<JsonObject> {
     requireSegment("identifier", identifier);
     const path = `${API_ROOT}/details/${this.service}/${enc(identifier)}`;
-    const body = await this.engine.getJson<unknown>(path);
+    // The detail endpoint answers an unknown identifier with 200 and an empty body.
+    const body = await this.engine.getJson<unknown>(path, undefined, { emptyIsNotFound: true });
     if (!isObject(body)) throw shapeError(path, "a JSON object");
     return body as JsonObject;
   }
