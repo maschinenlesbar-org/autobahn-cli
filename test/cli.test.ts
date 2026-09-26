@@ -293,3 +293,16 @@ test("a --base-url with a path prefix still works", async () => {
   assert.equal(await run(["--base-url", "https://mirror.example/autobahn/", "roads"], cli.deps), 0);
   assert.equal(cli.mt.last().url, "https://mirror.example/autobahn/o/autobahn/");
 });
+
+test("schema-violating bodies exit 1 with a parse error, not an 'Unexpected error' TypeError", async () => {
+  for (const [argv, body] of [
+    [["roads"], null],
+    [["roads"], { roads: [null, 5, "A1", "A1 "] }],
+    [["roadworks", "list", "A1"], null],
+    [["roadworks", "get", "x"], null],
+  ] as const) {
+    const cli = makeCli(() => jsonResponse(body));
+    assert.equal(await run([...argv], cli.deps), 1, argv.join(" "));
+    assert.match(cli.err.join("\n"), /^Error: Unexpected response shape from \/o\/autobahn\//, argv.join(" "));
+  }
+});

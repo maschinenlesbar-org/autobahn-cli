@@ -127,12 +127,12 @@ test("a 2xx body without the expected envelope raises AutobahnParseError, not []
       JSON.stringify(body),
     );
   }
-  for (const body of [{}, { roads: "A1" }, [1, 2], "hello", null]) {
+  for (const body of [{}, { roads: "A1" }, [1, 2], "hello", null, { roads: [null, 5, "A1"] }]) {
     await assert.rejects(
       () => clientWith(constantJson(body)).roads(),
       (err: unknown) =>
         err instanceof AutobahnParseError &&
-        err.message === "Unexpected response shape from /o/autobahn/: expected a JSON object with a roads array.",
+        err.message === "Unexpected response shape from /o/autobahn/: expected a JSON object with a roads array of strings.",
       JSON.stringify(body),
     );
   }
@@ -186,4 +186,17 @@ test("ids that merely contain dots are still encoded and sent", async () => {
   assert.equal(new URL(mt.calls[0]!.url).pathname, "/o/autobahn/details/roadworks/2026-1.2.3");
   assert.equal(new URL(mt.calls[1]!.url).pathname, "/o/autobahn/details/roadworks/...");
   assert.equal(new URL(mt.calls[2]!.url).pathname, "/o/autobahn/details/roadworks/%252e%252e");
+});
+
+test("get() raises AutobahnParseError for a 2xx body that is not a JSON object", async () => {
+  for (const body of [null, [1], "x", 5]) {
+    await assert.rejects(
+      () => clientWith(constantJson(body)).parkingLorries.get("DE-SL-000009"),
+      (err: unknown) =>
+        err instanceof AutobahnParseError &&
+        err.message ===
+          "Unexpected response shape from /o/autobahn/details/parking_lorry/DE-SL-000009: expected a JSON object.",
+      JSON.stringify(body),
+    );
+  }
 });

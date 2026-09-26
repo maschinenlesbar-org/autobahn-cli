@@ -85,10 +85,16 @@ class ServiceResource<K extends string> {
     );
   }
 
-  /** Fetch one item's details by its identifier (an opaque string; the format varies by service). */
-  get(identifier: string): Promise<JsonObject> {
+  /**
+   * Fetch one item's details by its identifier (an opaque string; the format varies
+   * by service). A 2xx body that is not a JSON object raises AutobahnParseError.
+   */
+  async get(identifier: string): Promise<JsonObject> {
     requireSegment("identifier", identifier);
-    return this.engine.getJson(`${API_ROOT}/details/${this.service}/${enc(identifier)}`);
+    const path = `${API_ROOT}/details/${this.service}/${enc(identifier)}`;
+    const body = await this.engine.getJson<unknown>(path);
+    if (!isObject(body)) throw shapeError(path, "a JSON object");
+    return body as JsonObject;
   }
 }
 
@@ -124,7 +130,9 @@ export class AutobahnClient {
     const path = `${API_ROOT}/`;
     const body = await this.engine.getJson<unknown>(path);
     const roads = isObject(body) ? body["roads"] : undefined;
-    if (!Array.isArray(roads)) throw shapeError(path, "a JSON object with a roads array");
+    if (!Array.isArray(roads) || !roads.every((road) => typeof road === "string")) {
+      throw shapeError(path, "a JSON object with a roads array of strings");
+    }
     return roads as RoadsResult["roads"];
   }
 }
