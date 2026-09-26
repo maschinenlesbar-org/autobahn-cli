@@ -85,7 +85,10 @@ array under a single key named after the service —
 `{ "roadworks": [...] }`, `{ "webcam": [...] }`, `{ "parking_lorry": [...] }`,
 `{ "warning": [...] }`, `{ "closure": [...] }`,
 `{ "electric_charging_station": [...] }`. The client unwraps this key and returns
-the bare array (an empty array when the key is missing).
+the bare array. The API sends the key even when a road has no items (`{ "webcam": [] }`);
+any other 2xx body — an error object, a bare array, a string, a non-array under the
+key — raises `AutobahnParseError` (exit `1`) rather than passing for "no items". The
+same holds for the `roads` array of the motorway list.
 
 ---
 

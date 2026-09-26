@@ -1,7 +1,12 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { AutobahnClient } from "../src/client/client.js";
-import { AutobahnApiError, AutobahnError, AutobahnNetworkError } from "../src/client/errors.js";
+import {
+  AutobahnApiError,
+  AutobahnError,
+  AutobahnNetworkError,
+  AutobahnParseError,
+} from "../src/client/errors.js";
 import { makeMockTransport, jsonResponse, constantJson } from "./helpers.js";
 
 function clientWith(mt: ReturnType<typeof makeMockTransport>): AutobahnClient {
@@ -72,10 +77,32 @@ test("list() items type each coordinate shape the API returns", async () => {
   assert.equal(Number(c.long), 9.44);
 });
 
-test("list() tolerates a missing envelope key", async () => {
-  const mt = constantJson({});
+test("list() returns an empty envelope array as []", async () => {
+  const mt = constantJson({ closure: [] });
   const items = await clientWith(mt).closures.list("A2");
   assert.deepEqual(items, []);
+});
+
+test("a 2xx body without the expected envelope raises AutobahnParseError, not []", async () => {
+  for (const body of [{}, { closure: "oops", error: "down" }, [1, 2], "hello", null, { closures: [] }]) {
+    await assert.rejects(
+      () => clientWith(constantJson(body)).closures.list("A2"),
+      (err: unknown) =>
+        err instanceof AutobahnParseError &&
+        err.message ===
+          "Unexpected response shape from /o/autobahn/A2/services/closure: expected a JSON object with a closure array.",
+      JSON.stringify(body),
+    );
+  }
+  for (const body of [{}, { roads: "A1" }, [1, 2], "hello", null]) {
+    await assert.rejects(
+      () => clientWith(constantJson(body)).roads(),
+      (err: unknown) =>
+        err instanceof AutobahnParseError &&
+        err.message === "Unexpected response shape from /o/autobahn/: expected a JSON object with a roads array.",
+      JSON.stringify(body),
+    );
+  }
 });
 
 test("a 404 raises AutobahnApiError with status 404", async () => {

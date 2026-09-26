@@ -242,3 +242,14 @@ test("a road id of .. exits 1 without a request instead of printing another endp
   assert.deepEqual(cli.out, []);
   assert.match(cli.err.join("\n"), /^Error: Invalid path segment "\.\."/);
 });
+
+test("a 2xx body without the service envelope exits 1 instead of printing []", async () => {
+  const cli = makeCli(() => jsonResponse({ roadworks: "oops", error: "down" }));
+  const code = await run(["--compact", "roadworks", "list", "A1"], cli.deps);
+  assert.equal(code, 1);
+  assert.deepEqual(cli.out, []);
+  assert.equal(
+    cli.err.join("\n"),
+    "Error: Unexpected response shape from /o/autobahn/A1/services/roadworks: expected a JSON object with a roadworks array.",
+  );
+});

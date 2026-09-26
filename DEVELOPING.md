@@ -139,7 +139,8 @@ subprocess.
 
 **Error types.** [`errors.ts`](src/client/errors.ts): `AutobahnApiError`
 (non-2xx, carries `status`/`detail`/`url`/`body`), `AutobahnNetworkError`
-(transport failure/timeout), `AutobahnParseError` (bad JSON), all extending
+(transport failure/timeout), `AutobahnParseError` (bad JSON, or a 2xx body without the
+expected shape: `Unexpected response shape from <path>: expected …`), all extending
 `AutobahnError`.
 
 **Retry / backoff.** Transient `429` (rate-limited) and `503` (service

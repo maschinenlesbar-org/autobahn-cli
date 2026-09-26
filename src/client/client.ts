@@ -8,7 +8,7 @@
 //   client.chargingStations.get(identifier)
 
 import { RequestEngine, type EngineOptions } from "./engine.js";
-import { AutobahnError } from "./errors.js";
+import { AutobahnError, AutobahnParseError } from "./errors.js";
 import type {
   RoadsResult,
   AutobahnServiceItem,
@@ -54,11 +54,14 @@ class ServiceResource<K extends string> {
     // trailing space (e.g. "A60 "), and copying such an id straight back in would
     // otherwise URL-encode the space and miss the road. Validate after trimming.
     const id = requireSegment("roadId", roadId).trim();
-    const res = await this.engine.getJson<Record<K, AutobahnServiceItem[]>>(
-      `${API_ROOT}/${enc(id)}/services/${this.service}`,
-    );
-    const items = res[this.key];
-    return Array.isArray(items) ? items : [];
+    const path = `${API_ROOT}/${enc(id)}/services/${this.service}`;
+    const body = await this.engine.getJson<unknown>(path);
+    // The API answers every road, even an empty one, with `{ "<key>": [...] }`. Any
+    // other 2xx body (an error object, a bare array, a string, a non-array under the
+    // key) is not "no items": treating it as [] would read as an all-clear.
+    const items = isObject(body) ? body[this.key] : undefined;
+    if (!Array.isArray(items)) throw shapeError(path, `a JSON object with a ${this.key} array`);
+    return items as AutobahnServiceItem[];
   }
 
   /** Fetch one item's details by its identifier (an opaque string; the format varies by service). */
@@ -95,7 +98,20 @@ export class AutobahnClient {
 
   /** List all motorways the API knows about (e.g. ["A1", "A2", ...]). */
   async roads(): Promise<string[]> {
-    const res = await this.engine.getJson<RoadsResult>(`${API_ROOT}/`);
-    return Array.isArray(res.roads) ? res.roads : [];
+    const path = `${API_ROOT}/`;
+    const body = await this.engine.getJson<unknown>(path);
+    const roads = isObject(body) ? body["roads"] : undefined;
+    if (!Array.isArray(roads)) throw shapeError(path, "a JSON object with a roads array");
+    return roads as RoadsResult["roads"];
   }
+}
+
+/** True for a JSON object (not null, not an array). */
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/** The error for a 2xx body that lacks the shape the client relies on. */
+function shapeError(path: string, expected: string): AutobahnParseError {
+  return new AutobahnParseError(`Unexpected response shape from ${path}: expected ${expected}.`);
 }
