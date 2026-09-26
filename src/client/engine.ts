@@ -58,7 +58,9 @@ const MAX_RETRY_AFTER_MS = 30_000;
  * custom transport that does no such check, so gate the configured base URL here
  * too (a `file:`/`ftp:` base URL fails fast with a typed error). A malformed base
  * URL gets a clear message naming the offending value, instead of an opaque
- * "Invalid URL" that would carry the full request path.
+ * "Invalid URL" that would carry the full request path. Request paths are appended
+ * to the base URL as a string, so a `?` or `#` in it would swallow every path:
+ * `http://h/?x=1` requests `/?x=1/o/autobahn/...` and `http://h/#f` requests `/`.
  */
 function assertHttpScheme(baseUrl: string): void {
   let url: URL;
@@ -71,6 +73,9 @@ function assertHttpScheme(baseUrl: string): void {
     throw new AutobahnNetworkError(
       `Unsupported protocol "${url.protocol}" in base URL: ${JSON.stringify(baseUrl)}`,
     );
+  }
+  if (/[?#]/.test(baseUrl)) {
+    throw new AutobahnNetworkError(`Base URL must not contain a query or fragment: ${baseUrl}`);
   }
 }
 

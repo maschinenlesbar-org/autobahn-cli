@@ -237,3 +237,15 @@ test("the User-Agent and Accept headers are sent", async () => {
   assert.equal(mt.last().headers?.["User-Agent"], "ua/1");
   assert.equal(mt.last().headers?.["Accept"], "application/json");
 });
+
+test("a base URL with a query or fragment is rejected at construction", () => {
+  for (const baseUrl of ["https://example.test/?x=1", "https://example.test/#frag", "https://example.test?"]) {
+    const mt = makeMockTransport(() => jsonResponse({}));
+    assert.throws(
+      () => new RequestEngine({ transport: mt.transport, baseUrl }),
+      (err: unknown) =>
+        err instanceof AutobahnNetworkError && /Base URL must not contain a query or fragment/.test(err.message),
+      baseUrl,
+    );
+  }
+});

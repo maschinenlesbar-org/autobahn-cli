@@ -271,3 +271,25 @@ test("a known road with nothing listed still prints [] and exits 0", async () =>
   assert.equal(await run(["--compact", "warnings", "list", "A2"], cli.deps), 0);
   assert.equal(cli.out.join("\n"), "[]");
 });
+
+test("a --base-url with a query, a fragment or surrounding whitespace is a usage error", async () => {
+  for (const [baseUrl, message] of [
+    ["http://127.0.0.1:18103/echo?x=1", /cannot have a query \(\?\) or fragment \(#\)/],
+    ["http://127.0.0.1:18103/echo#frag", /cannot have a query \(\?\) or fragment \(#\)/],
+    ["http://127.0.0.1:18103?", /cannot have a query \(\?\) or fragment \(#\)/],
+    [" https://verkehr.autobahn.de", /cannot have surrounding whitespace/],
+    ["https://verkehr.autobahn.de\t", /cannot have surrounding whitespace/],
+  ] as const) {
+    const cli = makeCli(() => jsonResponse({ roads: ["A1"] }));
+    const code = await run(["--base-url", baseUrl, "roads"], cli.deps);
+    assert.equal(code, 1, baseUrl);
+    assert.equal(cli.mt.calls.length, 0, baseUrl);
+    assert.match(cli.err.join("\n"), message, baseUrl);
+  }
+});
+
+test("a --base-url with a path prefix still works", async () => {
+  const cli = makeCli(() => jsonResponse({ roads: ["A1"] }));
+  assert.equal(await run(["--base-url", "https://mirror.example/autobahn/", "roads"], cli.deps), 0);
+  assert.equal(cli.mt.last().url, "https://mirror.example/autobahn/o/autobahn/");
+});
