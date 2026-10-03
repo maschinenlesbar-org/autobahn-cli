@@ -22,22 +22,31 @@ interface ServiceSpec {
   resource: ServiceKey;
   /** Human description for the command group. */
   description: string;
+  /** What `list` lists, for its help line ("List <noun> along a motorway"). */
+  noun: string;
 }
 
 const SERVICES: ServiceSpec[] = [
-  { command: "roadworks", resource: "roadworks", description: "Roadworks along a motorway" },
-  { command: "webcams", resource: "webcams", description: "Webcams along a motorway" },
+  { command: "roadworks", resource: "roadworks", description: "Roadworks along a motorway", noun: "roadworks" },
+  { command: "webcams", resource: "webcams", description: "Webcams along a motorway", noun: "webcams" },
   {
     command: "parking",
     resource: "parkingLorries",
     description: "Lorry parking areas along a motorway",
+    noun: "lorry parking areas",
   },
-  { command: "warnings", resource: "warnings", description: "Traffic warnings along a motorway" },
-  { command: "closures", resource: "closures", description: "Closures along a motorway" },
+  {
+    command: "warnings",
+    resource: "warnings",
+    description: "Traffic warnings along a motorway",
+    noun: "traffic warnings",
+  },
+  { command: "closures", resource: "closures", description: "Closures along a motorway", noun: "closures" },
   {
     command: "charging",
     resource: "chargingStations",
     description: "Electric charging stations along a motorway",
+    noun: "electric charging stations",
   },
 ];
 
@@ -47,7 +56,7 @@ export function registerServiceCommands(program: Command, deps: CliDeps): void {
 
     group
       .command("list <roadId>")
-      .description(`List ${spec.command} along a motorway (e.g. A1)`)
+      .description(`List ${spec.noun} along a motorway (e.g. A1)`)
       .action(
         action(deps, async ({ client, global }, [roadId]) => {
           const resource = client[spec.resource] as AutobahnClient[ServiceKey];

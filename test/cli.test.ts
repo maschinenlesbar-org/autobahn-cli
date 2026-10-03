@@ -128,6 +128,21 @@ test("--help exits 0", async () => {
   assert.equal(cli.mt.calls.length, 0);
 });
 
+test("list help names what it lists, and --max-retries help names the fallback backoff", async () => {
+  for (const [group, line] of [
+    ["charging", "List electric charging stations along a motorway (e.g. A1)"],
+    ["parking", "List lorry parking areas along a motorway (e.g. A1)"],
+    ["roadworks", "List roadworks along a motorway (e.g. A1)"],
+  ] as const) {
+    const cli = makeCli(() => jsonResponse({}));
+    assert.equal(await run([group, "--help"], cli.deps), 0);
+    assert.ok(cli.out.join("\n").includes(line), group);
+  }
+  const cli = makeCli(() => jsonResponse({}));
+  assert.equal(await run(["--help"], cli.deps), 0);
+  assert.match(cli.out.join("\n").replace(/\s+/g, " "), /else a short linear backoff from 200 ms/);
+});
+
 test("--version exits 0", async () => {
   const cli = makeCli(() => jsonResponse({}));
   const code = await run(["--version"], cli.deps);

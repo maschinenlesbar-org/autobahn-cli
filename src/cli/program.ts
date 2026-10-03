@@ -57,7 +57,8 @@ export function buildProgram(deps: CliDeps = defaultDeps): Command {
     .option("--user-agent <ua>", "User-Agent header value", parseHeaderValue)
     .option(
       "--max-retries <n>",
-      "retries for transient 429/502/503/504 responses (0..10; each waits the server's Retry-After, up to 30 s)",
+      "retries for transient 429/502/503/504 responses (0..10; each waits the server's " +
+        "Retry-After, up to 30 s, else a short linear backoff from 200 ms)",
       parseBoundedInt(0, MAX_RETRIES),
     )
     .option(
