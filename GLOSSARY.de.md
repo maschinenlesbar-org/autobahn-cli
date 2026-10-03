@@ -115,7 +115,8 @@ Parkplatzes steht in `subtitle`.
 
 **`point`.** Eine einzelne geografische Position, serialisiert als Zeichenkette. Die
 Reihenfolge hängt vom Dienst ab: `"lat,long"` bei Baustellen, Warnungen und Sperrungen,
-`"long,lat"` bei Ladestationen. Lkw-Parkplätze haben `point: null`.
+`"long,lat"` bei Ladestationen. Lkw-Parkplätze haben keine: Listeneinträge enthalten den
+Schlüssel `point` gar nicht, die `get`-Detailantwort hat `point: null`.
 
 **`coordinate`.** Ein geografischer Punkt als strukturiertes Objekt. Seine Form hängt vom
 Dienst ab: `{ lat, long }` mit JSON-Zahlen bei Baustellen, Warnungen und Sperrungen;
@@ -127,14 +128,19 @@ die Schlüssel `lat`/`long`.
 Reihenfolge `[long, lat]`, bei Baustellen, Warnungen und Sperrungen.
 
 **`extent`.** Eine räumliche Ausdehnung des Eintrags (z. B. der Abschnitt, den eine
-Baustelle umfasst).
+Baustelle umfasst): zwei Positionen in einer Zeichenkette, in derselben Reihenfolge wie
+`point` – `"lat,long,lat,long"` bei Baustellen, Warnungen und Sperrungen,
+`"long,lat,long,lat"` bei Ladestationen (ein einzelner Standort, beide Positionen sind
+gleich). Wie `point` fehlt sie in den Listeneinträgen der Lkw-Parkplätze und ist in deren
+Detailantwort `null`.
 
 **`isBlocked`.** Ein String-Flag, das angibt, ob der Abschnitt bzw. Eintrag blockiert ist.
 
 **`future`.** Boolean – ob sich der Eintrag auf ein künftiges (noch nicht aktives)
 Ereignis bezieht, z. B. eine geplante Baustelle.
 
-**`startTimestamp`.** Beginn des Ereignisses bzw. Eintrags (eine ISO-Zeit; `null` bei Lkw-Parkplätzen).
+**`startTimestamp`.** Beginn des Ereignisses bzw. Eintrags (eine ISO-Zeit). Lkw-Parkplätze
+haben keinen: Er fehlt in den Listeneinträgen und ist in der Detailantwort `null`.
 
 **`display_type`.** Ein Typ- bzw. Kategoriehinweis, den die App zur Darstellung des
 Eintrags nutzt.

@@ -53,7 +53,7 @@ For every item, emit one GeoJSON `Feature`.
 > |---|---|---|---|
 > | `roadworks`, `warnings`, `closures` | `{ lat, long }`, JSON **numbers** | `"lat,long"` | GeoJSON `LineString` of the affected stretch |
 > | `charging` | `{ lat, long }`, **strings** | `"long,lat"` | none |
-> | `parking` | a GeoJSON **Point**: `{ "type": "Point", "coordinates": [lon, lat] }`, no `lat`/`long` keys | `null` (`extent` too) | none |
+> | `parking` | a GeoJSON **Point**: `{ "type": "Point", "coordinates": [lon, lat] }`, no `lat`/`long` keys | absent from listing items (`null` in `get` details); `extent` too | none |
 >
 > **Never split the `point` string** — its order flips between services, and parking has
 > none. **Never read `coordinate.lat`/`.long` blindly either** — on parking they are

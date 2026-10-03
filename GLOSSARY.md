@@ -115,7 +115,8 @@ parking the upstream `title` is broken (`A8 | undefined`); the area name is in
 
 **`point`.** A single geographic position serialised as a string. The order
 varies by service: `"lat,long"` for roadworks, warnings and closures,
-`"long,lat"` for charging. Lorry parking has `point: null`.
+`"long,lat"` for charging. Lorry parking has none: listing items carry no `point`
+key at all, and the `get` detail response has `point: null`.
 
 **`coordinate`.** A geographic point as a structured object. Its shape varies by
 service: `{ lat, long }` with JSON numbers for roadworks, warnings and closures;
@@ -126,14 +127,19 @@ lorry parking.
 **`geometry`.** A GeoJSON `LineString` of the affected stretch, already in
 `[long, lat]` order, on roadworks, warnings and closures.
 
-**`extent`.** A bounding extent for the item (e.g. the span a roadworks covers).
+**`extent`.** A bounding extent for the item (e.g. the span a roadworks covers): two
+positions in one string, in the same order as `point` — `"lat,long,lat,long"` for
+roadworks, warnings and closures, `"long,lat,long,lat"` for charging (a single site, so
+both positions are equal). Like `point`, it is absent from lorry-parking listings and
+`null` in their detail response.
 
 **`isBlocked`.** A string flag indicating whether the segment/item is blocked.
 
 **`future`.** Boolean — whether the item refers to a future (not yet active)
 event, e.g. planned roadworks.
 
-**`startTimestamp`.** When the event/item starts (an ISO time; `null` on lorry parking).
+**`startTimestamp`.** When the event/item starts (an ISO time). Lorry parking has
+none: absent from listing items, `null` in the detail response.
 
 **`display_type`.** A type/category hint the app uses to render the item.
 

@@ -57,11 +57,12 @@ export interface AutobahnServiceItem {
   description?: string[];
   /**
    * Position as a string pair. The order varies by service: "lat,long" for
-   * roadworks, warnings and closures, "long,lat" for charging stations; `null`
-   * for lorry parking.
+   * roadworks, warnings and closures, "long,lat" for charging stations. Lorry
+   * parking has none: absent from listing items, `null` in the detail response.
    */
   point?: string | null;
   coordinate?: Coordinate;
+  /** Two positions ("lat,long,lat,long", or "long,lat,long,lat" for charging); as `point` for parking. */
   extent?: string | null;
   /** GeoJSON geometry of the affected stretch (roadworks, warnings, closures). */
   geometry?: JsonObject | null;
@@ -70,7 +71,7 @@ export interface AutobahnServiceItem {
   display_type?: string;
   footer?: string[];
   routeRecommendation?: string[];
-  /** ISO start time; `null` on lorry parking. */
+  /** ISO start time; on lorry parking absent from listings, `null` in the detail response. */
   startTimestamp?: string | null;
   // Webcam-specific
   imageurl?: string;
