@@ -7,7 +7,6 @@ import { buildQueryString, type QueryParams } from "./query.js";
 import {
   AutobahnApiError,
   AutobahnError,
-  AutobahnNetworkError,
   AutobahnParseError,
   isRetryableStatus,
   redactUrl,
@@ -68,7 +67,9 @@ export const MAX_RETRIES = 10;
  * Reject a base URL whose scheme is not http(s). The default transport already
  * gates this per hop, but the engine is exported as a library and may be handed a
  * custom transport that does no such check, so gate the configured base URL here
- * too (a `file:`/`ftp:` base URL fails fast with a typed error). A malformed base
+ * too (a `file:`/`ftp:` base URL fails fast with a typed error). It is a
+ * configuration error, so a plain AutobahnError — not AutobahnNetworkError, which a
+ * caller may treat as "connectivity problem, retry later". A malformed base
  * URL gets a clear message naming the offending value, instead of an opaque
  * "Invalid URL" that would carry the full request path. Request paths are appended
  * to the base URL as a string, so a `?` or `#` in it would swallow every path:
@@ -79,15 +80,15 @@ function assertHttpScheme(baseUrl: string): void {
   try {
     url = new URL(baseUrl);
   } catch {
-    throw new AutobahnNetworkError(`Invalid base URL: ${JSON.stringify(redactUrl(baseUrl))}`);
+    throw new AutobahnError(`Invalid base URL: ${JSON.stringify(redactUrl(baseUrl))}`);
   }
   if (url.protocol !== "http:" && url.protocol !== "https:") {
-    throw new AutobahnNetworkError(
+    throw new AutobahnError(
       `Unsupported protocol "${url.protocol}" in base URL: ${JSON.stringify(redactUrl(baseUrl))}`,
     );
   }
   if (/[?#]/.test(baseUrl)) {
-    throw new AutobahnNetworkError(`Base URL must not contain a query or fragment: ${redactUrl(baseUrl)}`);
+    throw new AutobahnError(`Base URL must not contain a query or fragment: ${redactUrl(baseUrl)}`);
   }
 }
 
@@ -103,6 +104,24 @@ const MAX_DETAIL_LENGTH = 500;
 function cleanDetail(text: string): string {
   const clean = sanitizeServerText(text);
   return clean.length > MAX_DETAIL_LENGTH ? `${clean.slice(0, MAX_DETAIL_LENGTH)}…` : clean;
+}
+
+/**
+ * Why `value` cannot be sent as an HTTP header value, or undefined when it can. Node
+ * throws an opaque "Invalid character in header content" at request time for a CR/LF
+ * (or any other C0 control or DEL) and for any character above U+00FF; a blank value
+ * would send an empty header. Tab is allowed, as in HTTP. Shared by the engine
+ * (`userAgent`) and the CLI's `--user-agent` parser. Checked by char code so the
+ * source stays free of control bytes.
+ */
+export function headerValueProblem(value: string): string | undefined {
+  if (value.trim() === "") return "Expected a non-empty value.";
+  for (let i = 0; i < value.length; i++) {
+    const c = value.charCodeAt(i);
+    if ((c < 0x20 && c !== 0x09) || c === 0x7f) return "Value contains control characters.";
+    if (c > 0xff) return "Value contains characters outside Latin-1 (above U+00FF).";
+  }
+  return undefined;
 }
 
 const realSleep = (ms: number): Promise<void> =>
@@ -220,6 +239,11 @@ export class RequestEngine {
     assertHttpScheme(this.baseUrl);
     this.transport = options.transport ?? nodeHttpTransport;
     this.userAgent = options.userAgent || DEFAULT_USER_AGENT;
+    // Checked here, not first by Node at request time (as an AutobahnNetworkError).
+    const userAgentProblem = headerValueProblem(this.userAgent);
+    if (userAgentProblem !== undefined) {
+      throw new AutobahnError(`Invalid option userAgent: ${userAgentProblem}`);
+    }
     this.timeoutMs = intOption("timeoutMs", options.timeoutMs, 30_000, MAX_TIMEOUT_MS);
     this.maxRetries = intOption("maxRetries", options.maxRetries, 2, MAX_RETRIES);
     this.retryDelayMs = intOption("retryDelayMs", options.retryDelayMs, 200, MAX_RETRY_AFTER_MS);

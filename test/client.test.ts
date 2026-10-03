@@ -199,7 +199,7 @@ test("a client with a file: base URL throws before its custom transport sees a r
   const mt = makeMockTransport(() => jsonResponse({}));
   assert.throws(
     () => new AutobahnClient({ baseUrl: "file:///etc/passwd", transport: mt.transport }),
-    AutobahnNetworkError,
+    (err: unknown) => err instanceof AutobahnError && !(err instanceof AutobahnNetworkError),
   );
   assert.equal(mt.calls.length, 0);
 });
