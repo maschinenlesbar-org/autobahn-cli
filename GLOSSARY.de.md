@@ -182,6 +182,8 @@ vorhandenen `Retry-After`-Header und nutzt andernfalls linearen Backoff.
 (`Retry-After: Wed, 21 Oct 2025 07:28:00 GMT`) auswertet, um zu bestimmen, wie lange sie
 vor einem erneuten Versuch wartet. Die resultierende Wartezeit ist auf höchstens 30 s
 begrenzt, damit ein unsinniger oder böswilliger Wert die CLI nicht stundenlang blockiert.
+Jeder andere Wert (ein Bruch wie `1.5`, eine negative Zahl, ein anderes Datumsformat) wird
+ignoriert; dann gilt der lineare Backoff – nie ein sofortiger erneuter Versuch.
 
 **Keine Weiterleitungen.** Eine `3xx`-Antwort wird als Fehler gemeldet, statt ihr zu
 einem anderen Host zu folgen (eine bewusste Sicherheitsentscheidung, da `--base-url` als

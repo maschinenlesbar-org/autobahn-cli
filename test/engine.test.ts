@@ -203,6 +203,24 @@ test("parseRetryAfter handles seconds, HTTP-date, arrays and junk", () => {
   assert.equal(parseRetryAfter("not-a-date"), undefined);
   // An HTTP-date in the past clamps to 0.
   assert.equal(parseRetryAfter("Wed, 21 Oct 2015 07:28:00 GMT"), 0);
+  // V8's Date.parse reads these as dates in 2001 (a 0 ms delay); they must be junk.
+  for (const junk of ["1.5", "-5", "+5", "1e3", "0x10", " 3x", "2026-10-03T10:00:00Z", "Sunday, 06-Nov-94 08:49:37 GMT"]) {
+    assert.equal(parseRetryAfter(junk), undefined, junk);
+  }
+});
+
+test("a malformed Retry-After falls back to linear backoff instead of retrying at once", async () => {
+  for (const header of ["1.5", "-5"]) {
+    const mt = makeMockTransport((): HttpResponse => ({
+      status: 429,
+      headers: { "content-type": "application/json", "retry-after": header },
+      body: Buffer.from("{}"),
+    }));
+    const slept: number[] = [];
+    const e = new RequestEngine({ transport: mt.transport, retryDelayMs: 200, sleep: async (ms) => void slept.push(ms) });
+    await assert.rejects(() => e.getJson("/x"), AutobahnApiError);
+    assert.deepEqual(slept, [200, 400], header);
+  }
 });
 
 test("an API error surfaces the body's detail field in the message", async () => {

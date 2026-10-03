@@ -140,11 +140,19 @@ export function sanitizeServerText(text: string): string {
   return out.replace(/\s+/g, " ").trim();
 }
 
+/** An IMF-fixdate (RFC 9110 §5.6.7), the one HTTP-date form senders must generate. */
+const IMF_FIXDATE =
+  /^(Mon|Tue|Wed|Thu|Fri|Sat|Sun), \d{2} (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) \d{4} \d{2}:\d{2}:\d{2} GMT$/;
+
 /**
  * Parse a `Retry-After` header into a delay in milliseconds, supporting both
  * the delta-seconds form (`Retry-After: 120`) and the HTTP-date form
  * (`Retry-After: Wed, 21 Oct 2025 07:28:00 GMT`). Returns `undefined` when the
  * header is absent or unparseable so the caller can fall back to its own backoff.
+ *
+ * Only an IMF-fixdate reaches `Date.parse`: V8 reads bare numbers such as "1.5" or
+ * "-5" as dates in 2001, which would turn a malformed header into a 0 ms delay — an
+ * instant retry against a server that asked us to slow down.
  */
 export function parseRetryAfter(value: string | string[] | undefined): number | undefined {
   const raw = (Array.isArray(value) ? value[0] : value)?.trim();
@@ -154,6 +162,7 @@ export function parseRetryAfter(value: string | string[] | undefined): number | 
     return Number(raw) * 1000;
   }
 
+  if (!IMF_FIXDATE.test(raw)) return undefined;
   const when = Date.parse(raw);
   if (Number.isNaN(when)) return undefined;
   return Math.max(0, when - Date.now());
