@@ -1,6 +1,6 @@
 // The request engine: turns logical (method, path, query) calls into HTTP
 // requests via a Transport, applies retry/backoff for transient statuses
-// (429, 503), and decodes responses.
+// (429, 502, 503, 504), and decodes responses.
 
 import { MAX_TIMEOUT_MS, nodeHttpTransport, type Transport } from "./http.js";
 import { buildQueryString, type QueryParams } from "./query.js";
@@ -9,6 +9,7 @@ import {
   AutobahnError,
   AutobahnNetworkError,
   AutobahnParseError,
+  isRetryableStatus,
   redactUrl,
 } from "./errors.js";
 
@@ -35,7 +36,7 @@ export interface EngineOptions {
   userAgent?: string;
   /** Per-request timeout in milliseconds (0 disables; at most `MAX_TIMEOUT_MS`, 2^31 - 1 ms). */
   timeoutMs?: number;
-  /** Number of automatic retries for transient (429/503) responses, 0..`MAX_RETRIES` (10). */
+  /** Number of automatic retries for transient (429/502/503/504) responses, 0..`MAX_RETRIES` (10). */
   maxRetries?: number;
   /**
    * Base backoff between retries in milliseconds. Grows linearly per attempt,
@@ -249,8 +250,7 @@ export class RequestEngine {
       });
 
       const status = response.status;
-      const retryable = status === 429 || status === 503;
-      if (retryable && attempt < this.maxRetries) {
+      if (isRetryableStatus(status) && attempt < this.maxRetries) {
         attempt += 1;
         // Honour a Retry-After header when present, clamped to MAX_RETRY_AFTER_MS
         // so a pathological/hostile value can't hang the CLI; otherwise fall back

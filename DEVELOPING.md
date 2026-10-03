@@ -55,7 +55,7 @@ try {
 new AutobahnClient({
   baseUrl: "https://verkehr.autobahn.de",
   timeoutMs: 15_000,
-  maxRetries: 3,              // 429 / 503 are retried (honours Retry-After, else linear backoff)
+  maxRetries: 3,              // 429 / 502 / 503 / 504 are retried (honours Retry-After, else linear backoff)
   maxResponseBytes: 50 << 20, // abort responses larger than 50 MiB (0 = unlimited)
   userAgent: "my-app/1.0",
   transport: customTransport, // inject your own HTTP transport
@@ -151,8 +151,8 @@ expected shape: `Unexpected response shape from <path>: expected …`), all exte
 `AutobahnError`. `AutobahnNotFoundError` (a road id the API does not know; CLI
 exit `4`) extends `AutobahnError` too.
 
-**Retry / backoff.** Transient `429` (rate-limited) and `503` (service
-unavailable) are retried automatically with backoff, up to `maxRetries`
+**Retry / backoff.** Transient `429` (rate-limited), `503` (service
+unavailable) and the gateway errors `502`/`504` are retried automatically with backoff, up to `maxRetries`
 (default `2`), honouring a `Retry-After` header when present (both
 delta-seconds and HTTP-date forms), clamped to a 30s ceiling so a pathological
 value cannot hang the CLI; otherwise using linear backoff.
@@ -182,7 +182,7 @@ npm test          # builds, then runs `node --test` over dist/test
 
 - **`query.test.ts`** — query-string serialisation.
 - **`http.test.ts`** — the default transport against a real loopback `http.createServer`.
-- **`engine.test.ts`** — URL building, JSON decoding, error mapping, 429/503 retry — mocked transport.
+- **`engine.test.ts`** — URL building, JSON decoding, error mapping, 429/502/503/504 retry — mocked transport.
 - **`client.test.ts`** — every resource's method/URL mapping — mocked transport.
 - **`shared.test.ts`** — option parsing (`parseIntArg`) and `toEngineOptions` mapping.
 - **`cli.test.ts`** — end-to-end command parsing, rendering, error/exit codes and option flow-through — mocked client.

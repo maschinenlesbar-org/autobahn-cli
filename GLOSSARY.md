@@ -167,8 +167,9 @@ list and raises `AutobahnNotFoundError` (exit `4`, with a did-you-mean for a cas
 slip) if it is not there. A `get <id>` with no matching item, or a real `404`, is
 not-found too (exit `4`).
 
-**Retryable status.** `429` (rate-limited) and `503` (service unavailable) are
-the statuses the API documents as transient. The engine retries them
+**Retryable status.** `429` (rate-limited), `503` (service unavailable) and the
+gateway errors `502` (bad gateway) and `504` (gateway timeout) are treated as
+transient — a `502` seen live cleared within seconds. The engine retries them
 automatically up to `maxRetries` (default `2`), honouring a `Retry-After` header
 when present, otherwise using linear backoff. `AutobahnApiError.isRetryable`
 reflects this.

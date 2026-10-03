@@ -19,6 +19,7 @@ export {
   AutobahnNetworkError,
   AutobahnNotFoundError,
   AutobahnParseError,
+  isRetryableStatus,
   redactUrl,
 } from "./errors.js";
 

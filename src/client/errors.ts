@@ -19,6 +19,15 @@ export function redactUrl(url: string): string {
   return parsed.href;
 }
 
+/**
+ * True for the statuses the engine retries as transient: `429` (rate-limited), `503`
+ * (service unavailable), and `502`/`504`, which the gateway in front of the API answers
+ * when a backend is briefly unreachable (a `502` seen live recovered within seconds).
+ */
+export function isRetryableStatus(status: number): boolean {
+  return status === 429 || status === 502 || status === 503 || status === 504;
+}
+
 /** Base class for every error originating from this client. */
 export class AutobahnError extends Error {
   constructor(message: string, options?: { cause?: unknown }) {
@@ -70,9 +79,9 @@ export class AutobahnApiError extends AutobahnError {
     this.location = args.location;
   }
 
-  /** True for statuses the API documents as transient and retry-able. */
+  /** True for the transient statuses the engine retries (isRetryableStatus). */
   get isRetryable(): boolean {
-    return this.status === 429 || this.status === 503;
+    return isRetryableStatus(this.status);
   }
 }
 

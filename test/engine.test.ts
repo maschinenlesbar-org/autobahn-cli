@@ -168,6 +168,32 @@ test("falls back to linear backoff when Retry-After is absent", async () => {
   assert.deepEqual(slept, [200]);
 });
 
+test("gateway errors 502 and 504 are retried like 503; 500 is not", async () => {
+  for (const status of [502, 504]) {
+    let calls = 0;
+    const mt = makeMockTransport(() => {
+      calls += 1;
+      return calls === 1 ? rawResponse("<html>Bad Gateway</html>", "text/html", status) : jsonResponse({ ok: 1 });
+    });
+    const e = new RequestEngine({ transport: mt.transport, sleep: async () => {} });
+    assert.deepEqual(await e.getJson("/x"), { ok: 1 }, String(status));
+    assert.equal(mt.calls.length, 2, String(status));
+
+    const failing = makeMockTransport(() => rawResponse("", "text/html", status));
+    const e2 = new RequestEngine({ transport: failing.transport, sleep: async () => {} });
+    await assert.rejects(
+      () => e2.getJson("/x"),
+      (err: unknown) => err instanceof AutobahnApiError && err.status === status && err.isRetryable,
+      String(status),
+    );
+    assert.equal(failing.calls.length, 3, String(status)); // 1 + maxRetries (2)
+  }
+  const mt = makeMockTransport(() => jsonResponse({}, 500));
+  const e = new RequestEngine({ transport: mt.transport, sleep: async () => {} });
+  await assert.rejects(() => e.getJson("/x"), AutobahnApiError);
+  assert.equal(mt.calls.length, 1);
+});
+
 test("parseRetryAfter handles seconds, HTTP-date, arrays and junk", () => {
   assert.equal(parseRetryAfter("120"), 120_000);
   assert.equal(parseRetryAfter("0"), 0);

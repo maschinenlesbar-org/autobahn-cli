@@ -170,8 +170,9 @@ aus (Exit `4`, bei falscher Schreibweise mit einem Vorschlag), wenn sie dort feh
 ein `get <id>` ohne passenden Eintrag oder ein echter `404` gilt als „nicht gefunden“
 (Exit `4`).
 
-**Wiederholbarer Status.** `429` (Rate-Limit) und `503` (Dienst nicht verfügbar) sind
-die Status, die die API als vorübergehend dokumentiert. Die Engine wiederholt sie
+**Wiederholbarer Status.** `429` (Rate-Limit), `503` (Dienst nicht verfügbar) und die
+Gateway-Fehler `502` (Bad Gateway) und `504` (Gateway Timeout) gelten als
+vorübergehend – ein live beobachteter `502` war nach wenigen Sekunden behoben. Die Engine wiederholt sie
 automatisch bis zu `maxRetries` Mal (Standard `2`), berücksichtigt dabei einen
 vorhandenen `Retry-After`-Header und nutzt andernfalls linearen Backoff.
 `AutobahnApiError.isRetryable` bildet das ab.
