@@ -3,7 +3,6 @@ import assert from "node:assert/strict";
 import { RequestEngine, parseRetryAfter, sanitizeServerText } from "../src/client/engine.js";
 import {
   AutobahnApiError,
-  AutobahnError,
   AutobahnNetworkError,
   AutobahnParseError,
   AutobahnValidationError,
@@ -45,6 +44,18 @@ test("the constructor rejects a malformed base URL with a clear, base-only messa
       err.message === "Invalid option baseUrl: Expected an absolute http(s) URL.",
   );
   assert.equal(mt.calls.length, 0);
+});
+
+test("an empty base URL is rejected, not replaced by the default", () => {
+  const mt = makeMockTransport(() => jsonResponse({}));
+  assert.throws(
+    () => new RequestEngine({ baseUrl: "", transport: mt.transport }),
+    (err: unknown) =>
+      err instanceof AutobahnValidationError &&
+      err.message === "Invalid option baseUrl: Expected an absolute http(s) URL.",
+  );
+  assert.equal(mt.calls.length, 0);
+  assert.equal(new RequestEngine({ baseUrl: undefined }).buildUrl("/x"), "https://verkehr.autobahn.de/x");
 });
 
 test("the constructor rejects a non-http(s) base URL before any request", () => {
@@ -305,21 +316,22 @@ test("a userAgent Node cannot send is rejected at construction, before any reque
   for (const [userAgent, reason] of [
     ["a\r\nX-Evil: 1", "Value contains control characters."],
     ["   ", "Expected a non-empty value."],
+    ["", "Expected a non-empty value."],
     ["snow \u2603", "Value contains characters outside Latin-1 (above U+00FF)."],
   ] as const) {
     const mt = makeMockTransport(() => jsonResponse({}));
     assert.throws(
       () => new RequestEngine({ transport: mt.transport, userAgent }),
       (err: unknown) =>
-        err instanceof AutobahnError &&
+        err instanceof AutobahnValidationError &&
         !(err instanceof AutobahnNetworkError) &&
         err.message === `Invalid option userAgent: ${reason}`,
       JSON.stringify(userAgent),
     );
     assert.equal(mt.calls.length, 0);
   }
-  // "" still means the default; Latin-1 and tab are fine.
-  for (const userAgent of ["", "M\u00fctze\tbot/1"]) {
+  // Latin-1 and tab are fine; only an omitted userAgent means the default.
+  for (const userAgent of ["M\u00fctze\tbot/1", undefined]) {
     assert.doesNotThrow(() => new RequestEngine({ userAgent }), JSON.stringify(userAgent));
   }
 });

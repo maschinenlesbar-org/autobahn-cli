@@ -83,3 +83,25 @@ test("parity: CLI and library reject a bad base URL with the same reason, and ne
     assert.doesNotMatch(lib.error?.message ?? "", /s3cret/, label);
   }
 });
+
+test("parity: an empty baseUrl or userAgent is rejected by CLI and library alike, not replaced by the default", async () => {
+  for (const [flag, option] of [
+    ["--base-url", "baseUrl"],
+    ["--user-agent", "userAgent"],
+  ] as const) {
+    for (const value of ["", "  "]) {
+      const { cli, lib } = await parity(
+        ["--compact", flag, value, "roads"],
+        (transport) => new AutobahnClient({ [option]: value, transport }).roads(),
+        () => jsonResponse({ roads: ["A1"] }),
+      );
+      const label = `${option}=${JSON.stringify(value)}`;
+      assert.equal(cli.code, 1, label);
+      assert.deepEqual(cli.requests, [], label);
+      assert.equal(lib.ok, false, label);
+      assert.deepEqual(lib.requests, [], label);
+      assert.equal(lib.error?.name, "AutobahnValidationError", label);
+      assert.equal(lib.error?.message, `Invalid option ${option}: ${cliReason(cli.err)}`, label);
+    }
+  }
+});

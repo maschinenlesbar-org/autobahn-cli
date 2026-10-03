@@ -73,10 +73,13 @@ engine appends request paths to the raw string, so `"https://h/ "` would otherwi
 request `/%20/o/autobahn/`. Anything else makes the constructor throw an
 `AutobahnValidationError` (`Invalid option baseUrl: <reason>`) before any request; the
 CLI's `--base-url` parser applies the same function, and its default is
-`DEFAULT_BASE_URL`. The reasons never repeat the value, and `run.ts` redacts the
+`DEFAULT_BASE_URL`. Only an omitted (`undefined`) `baseUrl` or `userAgent` selects the
+default; an empty string is rejected like `"  "`, as the CLI rejects `--base-url ""`.
+The reasons never repeat the value, and `run.ts` redacts the
 userinfo of a URL in commander's usage-error text (which echoes the rejected argument),
 so a credential in a base URL reaches no message. `userAgent` follows
-`headerValueProblem` (exported too), which the CLI's `--user-agent` parser shares.
+`headerValueProblem` (exported too), which the CLI's `--user-agent` parser shares; a
+value it rejects throws `AutobahnValidationError` (`Invalid option userAgent: <reason>`).
 
 ### Resource groups
 
@@ -162,9 +165,9 @@ subprocess.
 **Error types.** [`errors.ts`](src/client/errors.ts): `AutobahnApiError`
 (non-2xx, carries `status`/`detail`/`url`/`body`; `detail` is sanitised and cut at
 500 characters, `body` is the full text), `AutobahnNetworkError`
-(transport failure/timeout — never a configuration error: a bad `baseUrl` makes the
-constructor throw an `AutobahnValidationError`, a bad `userAgent` or numeric option a
-plain `AutobahnError`), `AutobahnParseError` (bad JSON, or a 2xx body without the
+(transport failure/timeout — never a configuration error: a bad `baseUrl` or
+`userAgent` makes the constructor throw an `AutobahnValidationError`, a bad numeric
+option a plain `AutobahnError`), `AutobahnParseError` (bad JSON, or a 2xx body without the
 expected shape: `Unexpected response shape from <path>: expected …`), all extending
 `AutobahnError`. `AutobahnNotFoundError` (a road id the API does not know; CLI
 exit `4`) extends `AutobahnError` too.

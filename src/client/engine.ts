@@ -204,22 +204,17 @@ export class RequestEngine {
   private readonly sleep: (ms: number) => Promise<void>;
 
   constructor(options: EngineOptions = {}) {
-    // Use `||` (not `??`) for the string options so that an empty string — which
-    // commander can hand us from `--base-url ""` / `--user-agent ""` — falls back
-    // to the default rather than producing an invalid URL or a blank UA header.
-    // The base URL is checked raw, before the trailing slashes are stripped. It is
-    // a configuration error, so AutobahnValidationError (an AutobahnError), not
-    // AutobahnNetworkError, which a caller may treat as "retry later". The default
-    // transport re-checks the scheme per hop; a custom transport may not.
-    const baseUrl = assertValid("option baseUrl", options.baseUrl || DEFAULT_BASE_URL, baseUrlProblem);
+    // Only `undefined` selects a default (`??`, not `||`): a blank baseUrl or
+    // userAgent is rejected like "  ", as the CLI rejects `--base-url ""`. Both are
+    // configuration errors, so AutobahnValidationError (an AutobahnError), not
+    // AutobahnNetworkError, which a caller may treat as "retry later".
+    // The base URL is checked raw, before the trailing slashes are stripped. The
+    // default transport re-checks the scheme per hop; a custom transport may not.
+    const baseUrl = assertValid("option baseUrl", options.baseUrl ?? DEFAULT_BASE_URL, baseUrlProblem);
     this.baseUrl = baseUrl.replace(/\/+$/, "");
     this.transport = options.transport ?? nodeHttpTransport;
-    this.userAgent = options.userAgent || DEFAULT_USER_AGENT;
     // Checked here, not first by Node at request time (as an AutobahnNetworkError).
-    const userAgentProblem = headerValueProblem(this.userAgent);
-    if (userAgentProblem !== undefined) {
-      throw new AutobahnError(`Invalid option userAgent: ${userAgentProblem}`);
-    }
+    this.userAgent = assertValid("option userAgent", options.userAgent ?? DEFAULT_USER_AGENT, headerValueProblem);
     this.timeoutMs = intOption("timeoutMs", options.timeoutMs, 30_000, MAX_TIMEOUT_MS);
     this.maxRetries = intOption("maxRetries", options.maxRetries, 2, MAX_RETRIES);
     this.retryDelayMs = intOption("retryDelayMs", options.retryDelayMs, 200, MAX_RETRY_AFTER_MS);
