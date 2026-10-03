@@ -358,6 +358,11 @@ test("a huge error detail is cut at 500 characters; the body keeps it whole", as
   );
 });
 
+test("sanitizeServerText drops invisible format characters (zero-width, soft hyphen, BOM)", () => {
+  const text = "real\u200b error\u2028Error: forged\u2066x\u2069 \ufeffend\u00ad\u200d\u2060!";
+  assert.equal(sanitizeServerText(text), "real error Error: forgedx end!");
+});
+
 test("sanitizeServerText keeps ordinary text, umlauts and single spaces", () => {
   assert.equal(sanitizeServerText("  Cannot GET  /autobahn/details/  Größe  "), "Cannot GET /autobahn/details/ Größe");
 });

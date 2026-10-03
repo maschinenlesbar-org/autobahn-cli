@@ -124,6 +124,9 @@ export function isBidiControl(code: number): boolean {
   );
 }
 
+/** Unicode General Category Cf (format): bidi controls, zero-width characters, U+00AD, U+FEFF, … */
+const FORMAT_CHAR = /\p{Cf}/u;
+
 /**
  * Make a string that originates in an attacker-controlled response — here the API
  * error `detail` extracted from the response body — safe to print into an error
@@ -133,8 +136,10 @@ export function isBidiControl(code: number): boolean {
  *   (a backslash-u-001b sequence) into a real ESC byte; printed raw, a hostile or
  *   MITM'd endpoint could drive ANSI/OSC sequences into the terminal (display
  *   spoofing, title changes).
- * - Bidi formatting characters (isBidiControl) are dropped, so server text cannot
- *   reorder the visible message.
+ * - Unicode format characters (General Category Cf) are dropped: the bidi controls
+ *   (isBidiControl), so server text cannot reorder the visible message, and the
+ *   invisible ones — zero-width space/joiners, word joiner, soft hyphen, BOM — so
+ *   two messages that look identical are identical.
  * - Every run of whitespace — newlines, tabs, U+2028/U+2029 included — becomes one
  *   space and the ends are trimmed, so the text stays on one line and a server
  *   cannot forge an `Error:` line of its own.
@@ -148,7 +153,7 @@ export function sanitizeServerText(text: string): string {
   for (const ch of text) {
     const n = ch.codePointAt(0) ?? 0;
     const whitespaceControl = n >= 0x09 && n <= 0x0d;
-    if (!whitespaceControl && (n <= 0x1f || (n >= 0x7f && n <= 0x9f) || isBidiControl(n))) continue;
+    if (!whitespaceControl && (n <= 0x1f || (n >= 0x7f && n <= 0x9f) || FORMAT_CHAR.test(ch))) continue;
     out += ch;
   }
   return out.replace(/\s+/g, " ").trim();
