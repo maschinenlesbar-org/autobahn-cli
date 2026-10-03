@@ -94,8 +94,9 @@ einem einzigen, nach dem Dienst benannten Schlüssel ablegt –
 liefert das reine Array. Die API sendet den Schlüssel auch dann, wenn eine Autobahn
 keine Einträge hat (`{ "webcam": [] }`); jeder andere 2xx-Body – ein Fehlerobjekt, ein
 bloßes Array, ein String, ein Nicht-Array unter dem Schlüssel – löst `AutobahnParseError`
-aus (Exit `1`), statt als „keine Einträge“ durchzugehen. Dasselbe gilt für das Array
-`roads` der Autobahnliste.
+aus (Exit `1`), statt als „keine Einträge“ durchzugehen. Ebenso ein Eintrag, der kein
+JSON-Objekt mit einer String-`identifier` ist. Dasselbe gilt für das Array `roads` der
+Autobahnliste (nur Strings).
 
 ---
 

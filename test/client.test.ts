@@ -73,14 +73,14 @@ test("list() items type each coordinate shape the API returns", async () => {
   assert.equal(parking[0]?.point, null);
 
   const warnings = await clientWith(
-    constantJson({ warning: [{ coordinate: { lat: 49.45, long: 6.51 } }] }),
+    constantJson({ warning: [{ identifier: "w1", coordinate: { lat: 49.45, long: 6.51 } }] }),
   ).warnings.list("A8");
   const w = warnings[0]?.coordinate;
   assert.ok(w && "lat" in w);
   assert.equal(w.lat, 49.45);
 
   const charging = await clientWith(
-    constantJson({ electric_charging_station: [{ coordinate: { lat: "54.6", long: "9.44" } }] }),
+    constantJson({ electric_charging_station: [{ identifier: "30388", coordinate: { lat: "54.6", long: "9.44" } }] }),
   ).chargingStations.list("A7");
   const c = charging[0]?.coordinate;
   assert.ok(c && "long" in c);
@@ -142,6 +142,19 @@ test("a failing road-list check after an empty listing names the check, not just
         return true;
       },
       String(status),
+    );
+  }
+});
+
+test("a listing item that is not an object with a string identifier raises AutobahnParseError", async () => {
+  for (const item of [null, 5, "x", [], {}, { identifier: 7 }, { identifier: null }]) {
+    await assert.rejects(
+      () => clientWith(constantJson({ roadworks: [{ identifier: "ok" }, item] })).roadworks.list("A1"),
+      (err: unknown) =>
+        err instanceof AutobahnParseError &&
+        err.message ===
+          "Unexpected response shape from /o/autobahn/A1/services/roadworks: expected every roadworks item to be a JSON object with a string identifier.",
+      JSON.stringify(item),
     );
   }
 });

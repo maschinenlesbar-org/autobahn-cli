@@ -71,6 +71,12 @@ class ServiceResource<K extends string> {
     // key) is not "no items": treating it as [] would read as an all-clear.
     const items = isObject(body) ? body[this.key] : undefined;
     if (!Array.isArray(items)) throw shapeError(path, `a JSON object with a ${this.key} array`);
+    // Every item the API lists is an object with a string identifier (the key for
+    // get). Anything else would reach callers typed as AutobahnServiceItem and fail
+    // later as a TypeError, or be skipped silently by a jq/node pipeline.
+    if (!items.every((item) => isObject(item) && typeof item["identifier"] === "string")) {
+      throw shapeError(path, `every ${this.key} item to be a JSON object with a string identifier`);
+    }
     if (items.length === 0) await this.assertKnownRoad(id);
     return items as AutobahnServiceItem[];
   }
