@@ -11,6 +11,7 @@ import {
   isRetryableStatus,
   redactUrl,
 } from "./errors.js";
+import { assertValid, baseUrlProblem } from "./validate.js";
 
 export const DEFAULT_BASE_URL = "https://verkehr.autobahn.de";
 const DEFAULT_USER_AGENT = "autobahn-cli";
@@ -62,35 +63,6 @@ const MAX_RETRY_AFTER_MS = 30_000;
 
 /** Most automatic retries a caller may ask for (the CLI's --max-retries shares it). */
 export const MAX_RETRIES = 10;
-
-/**
- * Reject a base URL whose scheme is not http(s). The default transport already
- * gates this per hop, but the engine is exported as a library and may be handed a
- * custom transport that does no such check, so gate the configured base URL here
- * too (a `file:`/`ftp:` base URL fails fast with a typed error). It is a
- * configuration error, so a plain AutobahnError — not AutobahnNetworkError, which a
- * caller may treat as "connectivity problem, retry later". A malformed base
- * URL gets a clear message naming the offending value, instead of an opaque
- * "Invalid URL" that would carry the full request path. Request paths are appended
- * to the base URL as a string, so a `?` or `#` in it would swallow every path:
- * `http://h/?x=1` requests `/?x=1/o/autobahn/...` and `http://h/#f` requests `/`.
- */
-function assertHttpScheme(baseUrl: string): void {
-  let url: URL;
-  try {
-    url = new URL(baseUrl);
-  } catch {
-    throw new AutobahnError(`Invalid base URL: ${JSON.stringify(redactUrl(baseUrl))}`);
-  }
-  if (url.protocol !== "http:" && url.protocol !== "https:") {
-    throw new AutobahnError(
-      `Unsupported protocol "${url.protocol}" in base URL: ${JSON.stringify(redactUrl(baseUrl))}`,
-    );
-  }
-  if (/[?#]/.test(baseUrl)) {
-    throw new AutobahnError(`Base URL must not contain a query or fragment: ${redactUrl(baseUrl)}`);
-  }
-}
 
 /**
  * Longest server text (in characters) kept for an error message: an error `detail` or
@@ -235,8 +207,12 @@ export class RequestEngine {
     // Use `||` (not `??`) for the string options so that an empty string — which
     // commander can hand us from `--base-url ""` / `--user-agent ""` — falls back
     // to the default rather than producing an invalid URL or a blank UA header.
-    this.baseUrl = (options.baseUrl || DEFAULT_BASE_URL).replace(/\/+$/, "");
-    assertHttpScheme(this.baseUrl);
+    // The base URL is checked raw, before the trailing slashes are stripped. It is
+    // a configuration error, so AutobahnValidationError (an AutobahnError), not
+    // AutobahnNetworkError, which a caller may treat as "retry later". The default
+    // transport re-checks the scheme per hop; a custom transport may not.
+    const baseUrl = assertValid("option baseUrl", options.baseUrl || DEFAULT_BASE_URL, baseUrlProblem);
+    this.baseUrl = baseUrl.replace(/\/+$/, "");
     this.transport = options.transport ?? nodeHttpTransport;
     this.userAgent = options.userAgent || DEFAULT_USER_AGENT;
     // Checked here, not first by Node at request time (as an AutobahnNetworkError).

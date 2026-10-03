@@ -67,6 +67,13 @@ The numeric options must be integers in range — `timeoutMs` 0..2³¹−1, `max
 constructor throws an `AutobahnError` naming the option (a negative or `NaN` timeout
 no longer silently disables the timeout).
 
+`baseUrl` must pass `baseUrlProblem` (exported): an absolute `http:`/`https:` URL with no
+query (`?`) or fragment (`#`), no surrounding whitespace and no control characters. The
+engine appends request paths to the raw string, so `"https://h/ "` would otherwise
+request `/%20/o/autobahn/`. Anything else makes the constructor throw an
+`AutobahnValidationError` (`Invalid option baseUrl: <reason>`) before any request; the
+CLI's `--base-url` parser applies the same function.
+
 ### Resource groups
 
 `client.roadworks`, `.webcams`, `.parkingLorries`, `.warnings`, `.closures`,
@@ -149,8 +156,9 @@ subprocess.
 **Error types.** [`errors.ts`](src/client/errors.ts): `AutobahnApiError`
 (non-2xx, carries `status`/`detail`/`url`/`body`; `detail` is sanitised and cut at
 500 characters, `body` is the full text), `AutobahnNetworkError`
-(transport failure/timeout — never a configuration error: a bad `baseUrl`,
-`userAgent` or numeric option makes the constructor throw a plain `AutobahnError`), `AutobahnParseError` (bad JSON, or a 2xx body without the
+(transport failure/timeout — never a configuration error: a bad `baseUrl` makes the
+constructor throw an `AutobahnValidationError`, a bad `userAgent` or numeric option a
+plain `AutobahnError`), `AutobahnParseError` (bad JSON, or a 2xx body without the
 expected shape: `Unexpected response shape from <path>: expected …`), all extending
 `AutobahnError`. `AutobahnNotFoundError` (a road id the API does not know; CLI
 exit `4`) extends `AutobahnError` too.

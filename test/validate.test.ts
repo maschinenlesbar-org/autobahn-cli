@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { assertValid, type Problem } from "../src/client/validate.js";
+import { assertValid, baseUrlProblem, type Problem } from "../src/client/validate.js";
 import { AutobahnError, AutobahnValidationError } from "../src/client/errors.js";
 import * as library from "../src/index.js";
 import { AutobahnClient } from "../src/client/client.js";
@@ -57,4 +57,36 @@ test("parity() runs one input through run() and the library on recording transpo
     error: { name: "AutobahnValidationError", message: "Invalid x: y" },
     requests: [],
   });
+});
+
+test("baseUrlProblem accepts http(s) URLs, with or without a path prefix or trailing slash", () => {
+  for (const value of [
+    "https://verkehr.autobahn.de",
+    "http://127.0.0.1:8080/",
+    "https://mirror.example/autobahn/",
+    "https://user:pw@h.example/a b",
+  ]) {
+    assert.equal(baseUrlProblem(value), undefined, value);
+  }
+});
+
+test("baseUrlProblem names the reason without repeating the value", () => {
+  for (const [value, reason] of [
+    ["", "Expected an absolute http(s) URL."],
+    ["  ", "Expected an absolute http(s) URL."],
+    ["not a url", "Expected an absolute http(s) URL."],
+    ["ftp://user:s3cret@h.example", 'Unsupported scheme "ftp:". Expected an http(s) URL.'],
+    ["file:///etc", 'Unsupported scheme "file:". Expected an http(s) URL.'],
+    ["https://h.example/?q=1", "A base URL cannot have a query (?) or fragment (#)."],
+    ["https://h.example/#f", "A base URL cannot have a query (?) or fragment (#)."],
+    ["https://h.example/ ", "A base URL cannot have surrounding whitespace."],
+    [" https://h.example", "A base URL cannot have surrounding whitespace."],
+    ["\thttp://h", "A base URL cannot have surrounding whitespace."],
+    ["https://h.example\n", "A base URL cannot have surrounding whitespace."],
+    ["https://h.example/\u00a0", "A base URL cannot have surrounding whitespace."],
+    ["https://h.exa\tmple", "A base URL cannot contain control characters."],
+    ["https://h.example/a\u007fb", "A base URL cannot contain control characters."],
+  ] as const) {
+    assert.equal(baseUrlProblem(value), reason, JSON.stringify(value));
+  }
 });

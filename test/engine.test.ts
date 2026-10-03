@@ -6,6 +6,7 @@ import {
   AutobahnError,
   AutobahnNetworkError,
   AutobahnParseError,
+  AutobahnValidationError,
   redactUrl,
 } from "../src/client/errors.js";
 import type { HttpResponse } from "../src/client/http.js";
@@ -39,7 +40,9 @@ test("the constructor rejects a malformed base URL with a clear, base-only messa
   assert.throws(
     () => new RequestEngine({ baseUrl: "notaurl", transport: mt.transport }),
     (err: unknown) =>
-      err instanceof AutobahnError && !(err instanceof AutobahnNetworkError) && /Invalid base URL: "notaurl"/.test(err.message),
+      err instanceof AutobahnValidationError &&
+      !(err instanceof AutobahnNetworkError) &&
+      err.message === "Invalid option baseUrl: Expected an absolute http(s) URL.",
   );
   assert.equal(mt.calls.length, 0);
 });
@@ -50,7 +53,9 @@ test("the constructor rejects a non-http(s) base URL before any request", () => 
     assert.throws(
       () => new RequestEngine({ baseUrl: bad, transport: mt.transport }),
       (err: unknown) =>
-        err instanceof AutobahnError && !(err instanceof AutobahnNetworkError) && /Unsupported protocol/.test(err.message),
+        err instanceof AutobahnValidationError &&
+        !(err instanceof AutobahnNetworkError) &&
+        /^Invalid option baseUrl: Unsupported scheme "(file|ftp):"\. Expected an http\(s\) URL\.$/.test(err.message),
       bad,
     );
     assert.equal(mt.calls.length, 0, bad);
@@ -333,11 +338,30 @@ test("a base URL with a query or fragment is rejected at construction", () => {
     assert.throws(
       () => new RequestEngine({ transport: mt.transport, baseUrl }),
       (err: unknown) =>
-        err instanceof AutobahnError &&
+        err instanceof AutobahnValidationError &&
         !(err instanceof AutobahnNetworkError) &&
-        /Base URL must not contain a query or fragment/.test(err.message),
+        err.message === "Invalid option baseUrl: A base URL cannot have a query (?) or fragment (#).",
       baseUrl,
     );
+    assert.equal(mt.calls.length, 0, baseUrl);
+  }
+});
+
+test("a base URL with surrounding whitespace or a control character is rejected at construction", () => {
+  for (const [baseUrl, reason] of [
+    ["https://example.test/ ", "A base URL cannot have surrounding whitespace."],
+    [" https://example.test", "A base URL cannot have surrounding whitespace."],
+    ["https://example.test\n", "A base URL cannot have surrounding whitespace."],
+    ["https://example.test/\u00a0", "A base URL cannot have surrounding whitespace."],
+    ["https://example.test/a\tb", "A base URL cannot contain control characters."],
+  ] as const) {
+    const mt = makeMockTransport(() => jsonResponse({}));
+    assert.throws(
+      () => new RequestEngine({ transport: mt.transport, baseUrl }),
+      (err: unknown) => err instanceof AutobahnValidationError && err.message === `Invalid option baseUrl: ${reason}`,
+      JSON.stringify(baseUrl),
+    );
+    assert.equal(mt.calls.length, 0, JSON.stringify(baseUrl));
   }
 });
 
