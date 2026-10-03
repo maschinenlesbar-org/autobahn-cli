@@ -5,6 +5,7 @@ export {
   RequestEngine,
   DEFAULT_BASE_URL,
   MAX_RETRIES,
+  headerValueProblem,
   isBidiControl,
   sanitizeServerText,
 } from "./engine.js";

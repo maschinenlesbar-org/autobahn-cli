@@ -90,3 +90,9 @@ test("baseUrlProblem names the reason without repeating the value", () => {
     assert.equal(baseUrlProblem(value), reason, JSON.stringify(value));
   }
 });
+
+test("the library root exports the shared input rules the CLI parsers use", () => {
+  assert.equal(library.baseUrlProblem, baseUrlProblem);
+  assert.equal(typeof library.headerValueProblem, "function");
+  assert.equal(library.headerValueProblem(" "), "Expected a non-empty value.");
+});

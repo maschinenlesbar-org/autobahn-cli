@@ -72,7 +72,11 @@ query (`?`) or fragment (`#`), no surrounding whitespace and no control characte
 engine appends request paths to the raw string, so `"https://h/ "` would otherwise
 request `/%20/o/autobahn/`. Anything else makes the constructor throw an
 `AutobahnValidationError` (`Invalid option baseUrl: <reason>`) before any request; the
-CLI's `--base-url` parser applies the same function.
+CLI's `--base-url` parser applies the same function, and its default is
+`DEFAULT_BASE_URL`. The reasons never repeat the value, and `run.ts` redacts the
+userinfo of a URL in commander's usage-error text (which echoes the rejected argument),
+so a credential in a base URL reaches no message. `userAgent` follows
+`headerValueProblem` (exported too), which the CLI's `--user-agent` parser shares.
 
 ### Resource groups
 

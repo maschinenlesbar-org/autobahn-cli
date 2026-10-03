@@ -58,3 +58,28 @@ test("parity: roads returns the same trimmed, de-duplicated list from CLI and li
     );
   }
 });
+
+test("parity: CLI and library reject a bad base URL with the same reason, and neither repeats its credentials", async () => {
+  for (const baseUrl of [
+    "ftp://user:s3cret@h.example",
+    "not a url",
+    "https://user:s3cret@h.example/?q=1",
+    "file:///etc",
+    "https://user:s3cret@h.example/a\tb",
+  ]) {
+    const { cli, lib } = await parity(
+      ["--compact", "--base-url", baseUrl, "roads"],
+      (transport) => new AutobahnClient({ baseUrl, transport }).roads(),
+      () => jsonResponse({ roads: ["A1"] }),
+    );
+    const label = JSON.stringify(baseUrl);
+    assert.equal(cli.code, 1, label);
+    assert.deepEqual(cli.requests, [], label);
+    assert.equal(lib.ok, false, label);
+    assert.deepEqual(lib.requests, [], label);
+    assert.equal(lib.error?.name, "AutobahnValidationError", label);
+    assert.equal(lib.error?.message, `Invalid option baseUrl: ${cliReason(cli.err)}`, label);
+    assert.doesNotMatch(cli.err, /s3cret/, label);
+    assert.doesNotMatch(lib.error?.message ?? "", /s3cret/, label);
+  }
+});

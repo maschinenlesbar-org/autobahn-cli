@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { run } from "../src/cli/run.js";
+import { redactUserinfo, run } from "../src/cli/run.js";
 import { AutobahnClient } from "../src/client/client.js";
 import type { CliDeps } from "../src/cli/io.js";
 import type { EngineOptions } from "../src/client/engine.js";
@@ -408,4 +408,23 @@ test("an AutobahnValidationError raised in an action is a usage error: exit 1, '
   assert.equal(code, 1);
   assert.deepEqual(out, []);
   assert.deepEqual(err, ["Error: Invalid roadId: Expected a non-empty value."]);
+});
+
+test("redactUserinfo hides the userinfo of every URL in a line and leaves other text alone", () => {
+  assert.equal(
+    redactUserinfo("argument 'ftp://user:s3cret@h.example' is invalid; also http://a@b@c.example/x?y=u@v"),
+    "argument 'ftp://***@h.example' is invalid; also http://***@c.example/x?y=u@v",
+  );
+  assert.equal(redactUserinfo("error: unknown option '--bogus' (mail@example.org)"), "error: unknown option '--bogus' (mail@example.org)");
+});
+
+test("a rejected --base-url keeps its usage error but not its credentials", async () => {
+  const cli = makeCli(() => jsonResponse({ roads: ["A1"] }));
+  assert.equal(await run(["--base-url", "ftp://user:s3cret@h.example", "roads"], cli.deps), 1);
+  assert.equal(cli.mt.calls.length, 0);
+  assert.equal(
+    cli.err[0],
+    "error: option '--base-url <url>' argument 'ftp://***@h.example' is invalid. " +
+      'Unsupported scheme "ftp:". Expected an http(s) URL.',
+  );
 });

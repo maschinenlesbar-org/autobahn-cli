@@ -9,7 +9,7 @@ import type { CliDeps } from "./io.js";
 import { defaultIO } from "./io.js";
 import { AutobahnClient } from "../client/client.js";
 import { MAX_TIMEOUT_MS } from "../client/http.js";
-import { MAX_RETRIES } from "../client/engine.js";
+import { DEFAULT_BASE_URL, MAX_RETRIES } from "../client/engine.js";
 import { parseBaseUrl, parseBoundedInt, parseHeaderValue, parseIntArg } from "./shared.js";
 import { registerRoadsCommand } from "./commands/roads.js";
 import { registerServiceCommands } from "./commands/services.js";
@@ -48,7 +48,7 @@ export function buildProgram(deps: CliDeps = defaultDeps): Command {
         "closures, lorry parking, webcams and charging stations.",
     )
     .version(VERSION, "-v, --version", "output the version number")
-    .option("--base-url <url>", "API base URL", parseBaseUrl, "https://verkehr.autobahn.de")
+    .option("--base-url <url>", "API base URL", parseBaseUrl, DEFAULT_BASE_URL)
     .option(
       "--timeout <ms>",
       `per-request timeout in milliseconds (0 disables; at most ${MAX_TIMEOUT_MS})`,

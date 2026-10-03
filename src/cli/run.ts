@@ -39,6 +39,15 @@ function configureTree(command: Command, sink: OutputSink): void {
   for (const child of command.commands) configureTree(child, sink);
 }
 
+/**
+ * Replace the userinfo of every URL in `text` with `***`, the form `redactUrl` gives
+ * (`https://user:secret@host` becomes `https://***@host`). Text-based, so it also
+ * covers a URL that does not parse; the last `@` before the host ends the userinfo.
+ */
+export function redactUserinfo(text: string): string {
+  return text.replace(/\b([a-z][a-z0-9+.-]*:\/\/)[^\s/?#']*@/gi, "$1***@");
+}
+
 export async function run(argv: string[], deps: CliDeps = defaultDeps): Promise<number> {
   const program = buildProgram(deps);
   const sink: OutputSink = { out: [], err: [] };
@@ -48,10 +57,12 @@ export async function run(argv: string[], deps: CliDeps = defaultDeps): Promise<
   // lines to stdout: commander emits no-command help (a bare invocation, a global
   // flag with no command, or a bare command group) via writeErr, and we want that
   // to match an explicit `--help` (stdout, exit 0) rather than landing on stderr.
+  // Commander's parse errors repeat a rejected argument raw ("argument '<value>' is
+  // invalid."), so the userinfo of any URL in them is redacted, as the library does.
   const flush = (helpToStdout: boolean): void => {
     for (const line of sink.out) deps.io.out(line);
     const errSink = helpToStdout ? deps.io.out : deps.io.err;
-    for (const line of sink.err) errSink(line);
+    for (const line of sink.err) errSink(redactUserinfo(line));
   };
 
   try {
