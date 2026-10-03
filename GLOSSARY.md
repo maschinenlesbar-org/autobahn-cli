@@ -81,6 +81,7 @@ resolves an identifier **regardless of the service** in its path, so a `get` und
 the wrong service still succeeds: `roadworks get DE-SL-000009` returns that lorry
 parking area (`"display_type": "PARKING"`) with exit `0`. Use the service the
 identifier was listed under; `display_type` shows what the item really is.
+Surrounding whitespace is trimmed before the request (no identifier has any).
 
 **Service listing.** The two-step access pattern of the API: `list(roadId)`
 returns the array of items for a service along a motorway; `get(identifier)` then

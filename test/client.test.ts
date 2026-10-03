@@ -49,6 +49,14 @@ test("warnings.get builds the details path and url-encodes the identifier", asyn
   );
 });
 
+test("get() trims surrounding whitespace from the identifier, like list() does for road ids", async () => {
+  for (const id of [" DE-BY-000131", "DE-BY-000131 ", "\tDE-BY-000131\n"]) {
+    const mt = constantJson({ identifier: "DE-BY-000131" });
+    await clientWith(mt).parkingLorries.get(id);
+    assert.equal(new URL(mt.last().url).pathname, "/o/autobahn/details/parking_lorry/DE-BY-000131", JSON.stringify(id));
+  }
+});
+
 test("list() items type each coordinate shape the API returns", async () => {
   // Shapes seen live on 2026-09-15: parking gives a GeoJSON Point and no point
   // string, warnings give numbers, charging gives strings.

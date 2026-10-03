@@ -80,6 +80,7 @@ Sperrungen nutzen einfache Zeichenketten (`2026-006680--vi-fbm.…`), Parkplätz
 falschen Dienst: `roadworks get DE-SL-000009` liefert diesen Lkw-Parkplatz
 (`"display_type": "PARKING"`) mit Exit `0`. Verwenden Sie den Dienst, unter dem die
 Kennung gelistet war; `display_type` zeigt, was der Eintrag tatsächlich ist.
+Umgebende Leerzeichen werden vor der Anfrage entfernt (keine Kennung enthält welche).
 
 **Dienstliste.** Das zweistufige Zugriffsmuster der API: `list(roadId)` liefert das Array
 der Einträge eines Dienstes entlang einer Autobahn; `get(identifier)` ruft dann die
