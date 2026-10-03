@@ -146,7 +146,8 @@ Lets the whole CLI run in tests with a mocked client and captured output — no
 subprocess.
 
 **Error types.** [`errors.ts`](src/client/errors.ts): `AutobahnApiError`
-(non-2xx, carries `status`/`detail`/`url`/`body`), `AutobahnNetworkError`
+(non-2xx, carries `status`/`detail`/`url`/`body`; `detail` is sanitised and cut at
+500 characters, `body` is the full text), `AutobahnNetworkError`
 (transport failure/timeout), `AutobahnParseError` (bad JSON, or a 2xx body without the
 expected shape: `Unexpected response shape from <path>: expected …`), all extending
 `AutobahnError`. `AutobahnNotFoundError` (a road id the API does not know; CLI

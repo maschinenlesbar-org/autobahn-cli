@@ -342,6 +342,22 @@ test("error detail loses bidi controls and line breaks, so it cannot reorder or 
   );
 });
 
+test("a huge error detail is cut at 500 characters; the body keeps it whole", async () => {
+  const message = "x".repeat(200_000);
+  const mt = makeMockTransport(() => jsonResponse({ message }, 500));
+  const e = new RequestEngine({ transport: mt.transport });
+  await assert.rejects(
+    () => e.getJson("/x"),
+    (err: unknown) => {
+      assert.ok(err instanceof AutobahnApiError);
+      assert.equal(err.detail, `${"x".repeat(500)}…`);
+      assert.ok(err.message.length < 1000);
+      assert.equal(err.body, JSON.stringify({ message }));
+      return true;
+    },
+  );
+});
+
 test("sanitizeServerText keeps ordinary text, umlauts and single spaces", () => {
   assert.equal(sanitizeServerText("  Cannot GET  /autobahn/details/  Größe  "), "Cannot GET /autobahn/details/ Größe");
 });

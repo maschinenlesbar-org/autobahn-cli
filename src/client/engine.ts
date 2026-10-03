@@ -91,6 +91,20 @@ function assertHttpScheme(baseUrl: string): void {
   }
 }
 
+/**
+ * Longest server text (in characters) kept for an error message: an error `detail` or
+ * a redirect target. A longer one is cut and ends in "…", so a hostile or buggy body
+ * cannot flood stderr or a CI log with one huge line. `AutobahnApiError.body` keeps
+ * the full text.
+ */
+const MAX_DETAIL_LENGTH = 500;
+
+/** sanitizeServerText, then cut at MAX_DETAIL_LENGTH characters. */
+function cleanDetail(text: string): string {
+  const clean = sanitizeServerText(text);
+  return clean.length > MAX_DETAIL_LENGTH ? `${clean.slice(0, MAX_DETAIL_LENGTH)}…` : clean;
+}
+
 const realSleep = (ms: number): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -333,8 +347,9 @@ export class RequestEngine {
       // Non-JSON error body; leave detail undefined.
     }
     // `detail` came from the response body; strip control characters so a hostile
-    // endpoint cannot inject terminal escape sequences via the stderr error message.
-    if (detail !== undefined) detail = sanitizeServerText(detail);
+    // endpoint cannot inject terminal escape sequences via the stderr error message,
+    // and cap its length.
+    if (detail !== undefined) detail = cleanDetail(detail);
     // Redirects are not followed; name the target so the user can fix --base-url.
     const location =
       status >= 300 && status < 400 && locationHeader ? redirectTarget(url, locationHeader) : undefined;
@@ -372,6 +387,6 @@ function redirectTarget(requestUrl: string, location: string): string | undefine
   } catch {
     target = location;
   }
-  const clean = sanitizeServerText(target);
+  const clean = cleanDetail(target);
   return clean === "" ? undefined : clean;
 }
