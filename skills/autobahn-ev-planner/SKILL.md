@@ -25,7 +25,10 @@ This skill drives the `autobahn` command. **Before anything else, validate it is
 Data comes from the `autobahn` CLI (`@maschinenlesbar.org/autobahn-cli`) — read-only, no
 key, **one motorway per call**. Pass `--compact`. An empty `[]` (exit `0`) means no chargers on that road — a valid
 answer, not an error. An unknown road id (ids are case-sensitive: `A7`, not `a7`) exits `4`
-with `Unknown road id …` — fix the id rather than reporting "no chargers".
+with `Unknown road id …` — fix the id rather than reporting "no chargers". Any other
+non-zero exit (`1`: an HTTP error, a timeout, a parse error) means the stations could not
+be fetched: retry once, and if it fails again say the road's stations are unavailable —
+never "no chargers".
 
 ## Step 1 — Resolve the road(s)
 

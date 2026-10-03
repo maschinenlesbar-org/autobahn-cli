@@ -26,7 +26,10 @@ This skill drives the `autobahn` command. **Before anything else, validate it is
 Data comes from the `autobahn` CLI (`@maschinenlesbar.org/autobahn-cli`) — read-only, no
 key, **one motorway + one service per call**. Always `--compact`. Services: `roadworks`, `closures`, `warnings`, `parking`, `charging`,
 `webcams`. An empty `[]` is a valid result (no items of that type on that road); an unknown
-road id (ids are case-sensitive) exits `4` with `Unknown road id …` instead.
+road id (ids are case-sensitive) exits `4` with `Unknown road id …` instead. Any other
+non-zero exit (`1`: an HTTP error, a timeout, a parse error) means that road/service could
+not be fetched: retry it once, and if it fails again leave it out of the file **and tell
+the user which layer is missing** — never present the export as complete.
 
 ## Step 1 — Fetch
 
