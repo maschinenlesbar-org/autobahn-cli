@@ -111,6 +111,33 @@ test("an empty listing for a road id the API does not know raises AutobahnNotFou
   }
 });
 
+test("a failing road-list check after an empty listing names the check, not just the road list endpoint", async () => {
+  const cases: Array<[unknown, number, (cause: unknown) => boolean, string]> = [
+    [{ message: "maintenance" }, 503, (c) => c instanceof AutobahnApiError && c.status === 503, "HTTP 503 for GET https://verkehr.autobahn.de/o/autobahn/: maintenance"],
+    [{ roads: ["A1", null] }, 200, (c) => c instanceof AutobahnParseError, "Unexpected response shape from /o/autobahn/: expected a JSON object with a roads array of strings."],
+  ];
+  for (const [roadsBody, status, isCause, reason] of cases) {
+    const mt = makeMockTransport((req) =>
+      new URL(req.url).pathname === "/o/autobahn/" ? jsonResponse(roadsBody, status) : jsonResponse({ roadworks: [] }),
+    );
+    const client = new AutobahnClient({ transport: mt.transport, sleep: async () => {} });
+    await assert.rejects(
+      () => client.roadworks.list("A1"),
+      (err: unknown) => {
+        assert.ok(err instanceof AutobahnError);
+        assert.equal(err.constructor, AutobahnError); // not a 404/not-found, not the road list's own class
+        assert.equal(
+          err.message,
+          `Could not check road id "A1" against the API's road list (the roadworks listing was empty): ${reason}`,
+        );
+        assert.ok(isCause(err.cause));
+        return true;
+      },
+      String(status),
+    );
+  }
+});
+
 test("a non-empty listing is returned without consulting the road list", async () => {
   const mt = roadsAnd({ warning: [{ identifier: "w" }] });
   assert.equal((await clientWith(mt).warnings.list("X9")).length, 1);

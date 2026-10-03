@@ -166,7 +166,11 @@ eine fehlerhafte Antwort, keine fehlende Ressource, und löst `AutobahnParseErro
 Tippfehler oder `a1` statt `A1` – die Kennungen unterscheiden Groß- und Kleinschreibung)
 beantwortet die API mit derselben leeren Liste und HTTP 200. Deshalb prüft der Client bei
 einer leeren Liste die Kennung gegen die Autobahnliste und löst `AutobahnNotFoundError`
-aus (Exit `4`, bei falscher Schreibweise mit einem Vorschlag), wenn sie dort fehlt. Auch
+aus (Exit `4`, bei falscher Schreibweise mit einem Vorschlag), wenn sie dort fehlt. Diese
+Prüfung ist eine zweite Anfrage mit eigenem Timeout und eigenen Wiederholungen; schlägt sie
+fehl, löst die Liste einen `AutobahnError` aus (Exit `1`,
+`Could not check road id … against the API's road list …`, der ursprüngliche Fehler als
+`cause`) statt einer Entwarnung. Auch
 ein `get <id>` ohne passenden Eintrag oder ein echter `404` gilt als „nicht gefunden“
 (Exit `4`).
 

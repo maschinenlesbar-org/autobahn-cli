@@ -92,7 +92,9 @@ A `list` that matches no items is **not** an error — it prints `[]` and exits
 `0`. Road ids are case-sensitive (`A1`, not `a1`), and the API answers an unknown
 one exactly like an empty road, so when a `list` comes back empty the CLI checks
 the id against the road list: an unknown or mistyped road id exits `4`
-(`Unknown road id "a1": … (did you mean "A1"?)`) instead of printing `[]`. A `get`
+(`Unknown road id "a1": … (did you mean "A1"?)`) instead of printing `[]`. That
+check is a second request; if it fails, the `list` exits `1` with
+`Could not check road id "A1" against the API's road list …` and the reason. A `get`
 with an unknown or mistyped identifier exits `4` too.
 
 ## Common tasks

@@ -264,6 +264,18 @@ test("a mistyped or wrong-case road id exits 4 instead of printing [] (a false a
   assert.equal(cli.err.join("\n"), 'Error: Unknown road id "a1": not in the API\'s road list (did you mean "A1"?).');
 });
 
+test("an empty listing whose road-list check fails exits 1 and says the check failed", async () => {
+  const cli = makeCli((req) =>
+    new URL(req.url).pathname === "/o/autobahn/" ? jsonResponse({ message: "boom" }, 500) : jsonResponse({ warning: [] }),
+  );
+  assert.equal(await run(["--compact", "warnings", "list", "A2"], cli.deps), 1);
+  assert.deepEqual(cli.out, []);
+  assert.equal(
+    cli.err.join("\n"),
+    'Error: Could not check road id "A2" against the API\'s road list (the warning listing was empty): HTTP 500 for GET https://verkehr.autobahn.de/o/autobahn/: boom',
+  );
+});
+
 test("a known road with nothing listed still prints [] and exits 0", async () => {
   const cli = makeCli((req) =>
     new URL(req.url).pathname === "/o/autobahn/" ? jsonResponse({ roads: ["A1", "A2"] }) : jsonResponse({ warning: [] }),

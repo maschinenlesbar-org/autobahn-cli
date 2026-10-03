@@ -55,7 +55,9 @@ class ServiceResource<K extends string> {
    * case-sensitive. The API answers an unknown id (`A999`, `a1`) exactly like a road
    * without items, so an empty listing is checked against `roads()`: an id not in
    * that list raises AutobahnNotFoundError (with a did-you-mean for a case slip)
-   * instead of returning [].
+   * instead of returning []. That check is a second request (with its own timeout and
+   * retries); if it fails, list() throws an AutobahnError naming the check, with the
+   * original error as `cause`.
    */
   async list(roadId: string): Promise<AutobahnServiceItem[]> {
     // Trim surrounding whitespace: the upstream API itself emits a few ids with a
@@ -74,8 +76,22 @@ class ServiceResource<K extends string> {
   }
 
   private async assertKnownRoad(id: string): Promise<void> {
+    // The listing itself succeeded, so a failure here is about the check, not the
+    // service the caller asked for: say so, instead of a bare error naming the road
+    // list endpoint. AutobahnError (CLI exit 1); the original error is the cause.
+    let known: string[];
+    try {
+      known = await this.knownRoads();
+    } catch (cause) {
+      const reason = cause instanceof Error ? cause.message : String(cause);
+      throw new AutobahnError(
+        `Could not check road id ${JSON.stringify(id)} against the API's road list ` +
+          `(the ${this.service} listing was empty): ${reason}`,
+        { cause },
+      );
+    }
     // The API's list carries a few ids with a trailing space ("A60 "); list() trims.
-    const roads = (await this.knownRoads()).map((road) => road.trim());
+    const roads = known.map((road) => road.trim());
     if (roads.includes(id)) return;
     const lower = id.toLowerCase();
     const suggestion = roads.find((road) => road.toLowerCase() === lower);
