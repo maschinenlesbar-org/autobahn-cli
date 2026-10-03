@@ -96,11 +96,10 @@ class ServiceResource<K extends string> {
         { cause },
       );
     }
-    // The API's list carries a few ids with a trailing space ("A60 "); list() trims.
-    const roads = known.map((road) => road.trim());
-    if (roads.includes(id)) return;
+    // roads() returns trimmed ids, as list() trims its own.
+    if (known.includes(id)) return;
     const lower = id.toLowerCase();
-    const suggestion = roads.find((road) => road.toLowerCase() === lower);
+    const suggestion = known.find((road) => road.toLowerCase() === lower);
     throw new AutobahnNotFoundError(
       `Unknown road id ${JSON.stringify(id)}: not in the API's road list` +
         (suggestion === undefined ? "." : ` (did you mean ${JSON.stringify(suggestion)}?).`),
@@ -151,7 +150,12 @@ export class AutobahnClient {
     );
   }
 
-  /** List all motorways the API knows about (e.g. ["A1", "A2", ...]). */
+  /**
+   * List all motorways the API knows about (e.g. ["A1", "A2", ...]), in the API's
+   * order. Each id is trimmed, blank ids are dropped and duplicates removed (the first
+   * occurrence is kept): the API lists both "A60" and "A60 ", and since `list()` trims
+   * its road id, both name the same road.
+   */
   async roads(): Promise<string[]> {
     const path = `${API_ROOT}/`;
     const body = await this.engine.getJson<unknown>(path);
@@ -159,7 +163,8 @@ export class AutobahnClient {
     if (!Array.isArray(roads) || !roads.every((road) => typeof road === "string")) {
       throw shapeError(path, "a JSON object with a roads array of strings");
     }
-    return roads as RoadsResult["roads"];
+    const ids = (roads as RoadsResult["roads"]).map((id) => id.trim()).filter((id) => id !== "");
+    return [...new Set(ids)];
   }
 }
 

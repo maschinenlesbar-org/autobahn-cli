@@ -65,8 +65,9 @@ entlang einer Autobahn, mit Metadaten zu Steckern und Betreiber. CLI: `charging`
 **`roadId`.** Die Bezeichnung der Autobahn als Pfadsegment, z. B. `A1`. Sie stammt aus
 dem Befehl `roads`. Die Upstream-API selbst liefert einige IDs mit nachgestelltem
 Leerzeichen neben ihrem bereinigten Gegenstück (z. B. `"A60"` und `"A60 "`). Deshalb
-entfernt der Client vor der Verwendung umgebende Leerzeichen, und der Befehl `roads`
-bereinigt die ausgegebene Liste und entfernt die Duplikate.
+entfernt der Client vor der Verwendung umgebende Leerzeichen, und `client.roads()`
+(also auch der Befehl `roads`) bereinigt die Liste, lässt leere IDs weg und entfernt
+die Duplikate.
 
 **`identifier`.** Die opake ID eines einzelnen Dienst-Eintrags, die in jedem gelisteten
 Eintrag als Feld `identifier` steht. Diesen Wert übergeben Sie einem

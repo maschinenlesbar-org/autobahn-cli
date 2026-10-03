@@ -15,6 +15,18 @@ function clientWith(mt: ReturnType<typeof makeMockTransport>): AutobahnClient {
   return new AutobahnClient({ transport: mt.transport });
 }
 
+test("roads() trims ids, drops blank ones and removes duplicates, keeping the API's order", async () => {
+  // Live on 2026-09-15 the API listed both "A60" and "A60 ".
+  for (const [served, expected] of [
+    [["A6", "A60", "A60 ", " A61", "A61"], ["A6", "A60", "A61"]],
+    [[" A2", "A2", "", " ", "\tA3\n", "A3", "A2"], ["A2", "A3"]],
+    [[], []],
+  ] as const) {
+    const roads = await clientWith(constantJson({ roads: served })).roads();
+    assert.deepEqual(roads, expected, JSON.stringify(served));
+  }
+});
+
 test("roads() unwraps the roads array", async () => {
   const mt = constantJson({ roads: ["A1", "A2", "A99"] });
   const roads = await clientWith(mt).roads();

@@ -67,8 +67,8 @@ CLI: `charging`.
 **`roadId`.** The motorway designation used as a path segment, e.g. `A1`. Taken
 from the `roads` command. The upstream API itself emits a few ids with a
 trailing space next to their trimmed twin (e.g. `"A60"` and `"A60 "`), so the
-client trims surrounding whitespace before use, and the `roads` command trims
-and de-duplicates the list it prints.
+client trims surrounding whitespace before use, and `client.roads()` (so also the
+`roads` command) trims the list, drops blank ids and removes the duplicates.
 
 **`identifier`.** The opaque id of a single service item, present as the
 `identifier` field on every listed item. It is the value you pass to a

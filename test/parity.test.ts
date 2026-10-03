@@ -36,3 +36,25 @@ test("parity: a base URL with surrounding whitespace is rejected by CLI and libr
     assert.equal(lib.error?.message, `Invalid option baseUrl: ${cliReason(cli.err)}`, label);
   }
 });
+
+test("parity: roads returns the same trimmed, de-duplicated list from CLI and library", async () => {
+  for (const roads of [
+    ["A1", "A60", "A60 ", "A7"],
+    [" A2", "A2", "", " ", "\tA3\n", "A3"],
+  ]) {
+    const { cli, lib } = await parity(
+      ["--compact", "roads"],
+      (transport) => new AutobahnClient({ transport }).roads(),
+      () => jsonResponse({ roads }),
+    );
+    const label = JSON.stringify(roads);
+    assert.equal(cli.code, 0, label);
+    assert.equal(lib.ok, true, label);
+    assert.deepEqual(JSON.parse(cli.out), lib.value, label);
+    assert.deepEqual(
+      cli.requests.map((r) => r.url),
+      lib.requests.map((r) => r.url),
+      label,
+    );
+  }
+});

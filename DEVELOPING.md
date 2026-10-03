@@ -78,7 +78,9 @@ CLI's `--base-url` parser applies the same function.
 
 `client.roadworks`, `.webcams`, `.parkingLorries`, `.warnings`, `.closures`,
 `.chargingStations` — each with `.list(roadId)` and `.get(identifier)`. Plus
-`client.roads()` for the motorway list. The API answers an unknown road id with an
+`client.roads()` for the motorway list, trimmed, without blank ids and de-duplicated
+in the API's order (the API lists both `"A60"` and `"A60 "`; `list()` trims its road id,
+so both name the same road). The API answers an unknown road id with an
 empty listing, so `list()` checks an empty result against `roads()` (one extra
 request) and throws `AutobahnNotFoundError` for an id that is not in it.
 
