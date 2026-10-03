@@ -5,7 +5,12 @@
 import { CommanderError, type Command } from "commander";
 import { buildProgram, defaultDeps } from "./program.js";
 import type { CliDeps } from "./io.js";
-import { AutobahnApiError, AutobahnError, AutobahnNotFoundError } from "../client/errors.js";
+import {
+  AutobahnApiError,
+  AutobahnError,
+  AutobahnNotFoundError,
+  AutobahnValidationError,
+} from "../client/errors.js";
 
 interface OutputSink {
   out: string[];
@@ -71,6 +76,12 @@ export async function run(argv: string[], deps: CliDeps = defaultDeps): Promise<
       deps.io.err(`Error: ${err.message}`);
       // Map a few notable statuses to distinct exit codes for scripting.
       if (err.status === 404) return 4;
+      return 1;
+    }
+    if (err instanceof AutobahnValidationError) {
+      // An input the library rejected before any request: a usage error, which
+      // exits 1 here like commander's own parse errors.
+      deps.io.err(`Error: ${err.message}`);
       return 1;
     }
     if (err instanceof AutobahnNotFoundError) {

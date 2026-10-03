@@ -93,7 +93,8 @@ src/
     query.ts     # dependency-free query-string builder
     http.ts      # the Transport interface + default node:http/https transport
     engine.ts    # URL building, retry/backoff, JSON/raw decoding, error mapping
-    errors.ts    # AutobahnError / AutobahnApiError / AutobahnNetworkError / AutobahnParseError
+    errors.ts    # AutobahnError / AutobahnApiError / AutobahnNetworkError / AutobahnParseError / AutobahnValidationError
+    validate.ts  # the Problem type + assertValid(): input rules shared by library and CLI
     client.ts    # AutobahnClient — a generic ServiceResource per service group
   cli/
     io.ts        # injectable I/O seam (stdout/stderr)
@@ -154,6 +155,15 @@ expected shape: `Unexpected response shape from <path>: expected …`), all exte
 `AutobahnError`. `AutobahnNotFoundError` (a road id the API does not know; CLI
 exit `4`) extends `AutobahnError` too.
 
+**Input validation.** [`validate.ts`](src/client/validate.ts): a rule is a pure
+`<thing>Problem(value)` function that returns why a value is invalid, or `undefined`.
+The library enforces it with `assertValid(name, value, problem)` before any request,
+which throws `AutobahnValidationError` (extends `AutobahnError`, exported) with the
+message `Invalid <name>: <reason>`; a method that returns a promise rejects with it. The
+CLI's option parsers call the same `…Problem` functions, so an input gets the same
+outcome on both sides, and `run.ts` reports an `AutobahnValidationError` raised in an
+action as a usage error (`Error: <message>`, exit `1`).
+
 **Retry / backoff.** Transient `429` (rate-limited), `503` (service
 unavailable) and the gateway errors `502`/`504` are retried automatically with backoff, up to `maxRetries`
 (default `2`), honouring a `Retry-After` header when present (both
@@ -187,6 +197,7 @@ npm test          # builds, then runs `node --test` over dist/test
 - **`http.test.ts`** — the default transport against a real loopback `http.createServer`.
 - **`engine.test.ts`** — URL building, JSON decoding, error mapping, 429/502/503/504 retry — mocked transport.
 - **`client.test.ts`** — every resource's method/URL mapping — mocked transport.
+- **`validate.test.ts`** — `assertValid` and the `parity()` helper (`test/helpers.ts`), which sends one input through `run()` and through the library, each on a recording mock transport, so a test can assert both give the same outcome.
 - **`shared.test.ts`** — option parsing (`parseIntArg`) and `toEngineOptions` mapping.
 - **`cli.test.ts`** — end-to-end command parsing, rendering, error/exit codes and option flow-through — mocked client.
 

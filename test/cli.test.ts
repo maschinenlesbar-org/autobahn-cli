@@ -5,7 +5,7 @@ import { AutobahnClient } from "../src/client/client.js";
 import type { CliDeps } from "../src/cli/io.js";
 import type { EngineOptions } from "../src/client/engine.js";
 import type { HttpRequest, HttpResponse } from "../src/client/http.js";
-import { AutobahnNetworkError } from "../src/client/errors.js";
+import { AutobahnNetworkError, AutobahnValidationError } from "../src/client/errors.js";
 import { makeMockTransport, jsonResponse, rawResponse } from "./helpers.js";
 
 function makeCli(responder: (req: HttpRequest) => HttpResponse | Promise<HttpResponse>) {
@@ -400,4 +400,20 @@ test("bidi formatting characters in server data are escaped in the JSON output",
     assert.match(text, /A1\\u202e\\u2066\\u200f\\u061clive/);
     assert.deepEqual(JSON.parse(text), served);
   }
+});
+
+test("an AutobahnValidationError raised in an action is a usage error: exit 1, 'Error: <message>'", async () => {
+  const out: string[] = [];
+  const err: string[] = [];
+  const client = new AutobahnClient({ transport: makeMockTransport(() => jsonResponse({})).transport });
+  client.roads = async () => {
+    throw new AutobahnValidationError("Invalid roadId: Expected a non-empty value.");
+  };
+  const code = await run(["roads"], {
+    io: { out: (s) => out.push(s), err: (s) => err.push(s) },
+    createClient: () => client,
+  });
+  assert.equal(code, 1);
+  assert.deepEqual(out, []);
+  assert.deepEqual(err, ["Error: Invalid roadId: Expected a non-empty value."]);
 });
