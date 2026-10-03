@@ -128,7 +128,8 @@ CLI; defaults to `https://verkehr.autobahn.de`.
 `http`/`https`; tests inject a mock. This is the only HTTP seam.
 
 **Request engine.** [`RequestEngine`](src/client/engine.ts) — builds URLs,
-serialises queries, applies retry/backoff, decodes JSON responses and maps
+serialises queries, applies retry/backoff, decodes JSON responses (by the
+Content-Type charset, UTF-8 by default, a leading BOM dropped) and maps
 errors. Sits between the client's resource methods and the transport.
 
 **RawResponse.** The low-level result of a request: `{ data: Buffer,

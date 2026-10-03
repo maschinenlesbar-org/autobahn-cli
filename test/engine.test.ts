@@ -97,6 +97,26 @@ test("a retried request that then succeeds resolves", async () => {
   assert.equal(calls, 2);
 });
 
+test("getJson drops a leading BOM and decodes by the Content-Type charset", async () => {
+  const bom = Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), Buffer.from('{"roads":["A1"]}')]);
+  const e1 = new RequestEngine({ transport: makeMockTransport(() => rawResponse(bom, "application/json")).transport });
+  assert.deepEqual(await e1.getJson("/x"), { roads: ["A1"] });
+
+  const latin1 = Buffer.from('{"t":"Gr\u00f6\u00dfe"}', "latin1");
+  const e2 = new RequestEngine({
+    transport: makeMockTransport(() => rawResponse(latin1, "application/json; charset=ISO-8859-1")).transport,
+  });
+  assert.deepEqual(await e2.getJson("/x"), { t: "Größe" });
+
+  const e3 = new RequestEngine({
+    transport: makeMockTransport(() => rawResponse("{}", 'application/json; charset="x-bogus"')).transport,
+  });
+  await assert.rejects(
+    () => e3.getJson("/x"),
+    (err: unknown) => err instanceof AutobahnParseError && err.message === 'Unsupported response charset "x-bogus" from /x.',
+  );
+});
+
 test("a 429 with Retry-After (seconds) waits for that delay", async () => {
   let calls = 0;
   const mt = makeMockTransport((): HttpResponse => {

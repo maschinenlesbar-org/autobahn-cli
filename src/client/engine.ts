@@ -292,7 +292,7 @@ export class RequestEngine {
     options: { emptyIsNotFound?: boolean } = {},
   ): Promise<T> {
     const res = await this.request("GET", path, { query, accept: "application/json" });
-    const text = res.data.toString("utf8");
+    const text = decodeBody(res.data, res.contentType, path);
     if (text.trim() === "") {
       // Only the detail endpoint answers an unknown identifier with HTTP 200 and an
       // *empty* body rather than a 404, so only there (emptyIsNotFound) does an empty
@@ -340,6 +340,24 @@ export class RequestEngine {
       status >= 300 && status < 400 && locationHeader ? redirectTarget(url, locationHeader) : undefined;
     return new AutobahnApiError({ status, url, method, body: text, detail, location });
   }
+}
+
+/**
+ * Decode a response body by the charset its Content-Type names (UTF-8 when it names
+ * none). TextDecoder drops a leading byte order mark, which Buffer#toString keeps and
+ * JSON.parse then rejects, so a BOM added by a proxy or a backend change cannot turn
+ * a valid answer into a parse error. An unknown charset label is an
+ * AutobahnParseError.
+ */
+function decodeBody(body: Buffer, contentType: string, path: string): string {
+  const charset = /;\s*charset\s*=\s*"?([^";\s]+)"?/i.exec(contentType)?.[1] ?? "utf-8";
+  let decoder: TextDecoder;
+  try {
+    decoder = new TextDecoder(charset);
+  } catch {
+    throw new AutobahnParseError(`Unsupported response charset "${sanitizeServerText(charset)}" from ${path}.`);
+  }
+  return decoder.decode(body);
 }
 
 /**
