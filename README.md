@@ -172,6 +172,10 @@ A `list` returning zero items for a known road is not an error — it exits `0` 
   that motorway. This is normal and exits `0`. (A road id the API does not know
   exits `4` with `Unknown road id …` instead; ids are case-sensitive — take them
   from `autobahn roads`.)
+- **Exit `2` / `error: …`** — a usage error: the command, an option or an argument
+  was rejected before any request (a typo, a value out of range, a road id with
+  characters no road id has). The message says what; `autobahn <command> --help`
+  shows the usage. Retrying the same command won't help.
 - **Exit `1` / network error** — connectivity, DNS, or a timeout. Try again, or
   raise the limit with `--timeout 60000`.
 - **`3xx` redirect error** — the CLI deliberately does not follow redirects
