@@ -124,7 +124,9 @@ parking the upstream `title` is broken (`A8 | undefined`); the area name is in
 usually starts with a space (`" Saarbrücken -> Trier"`); trim it before matching or
 splitting on `" -> "`. The client passes it on unchanged.
 
-**`description`.** An array of descriptive text lines.
+**`description`.** An array of descriptive text lines. Its times are German local time,
+except the event line of an INRIX warning (`Unfall, seit 04.10.2026, 19:53`), which is UTC
+without a zone marker — two hours behind the same item's `Beginn: … 21:53 Uhr` in summer.
 
 **`point`.** A single geographic position serialised as a string. The order
 varies by service: `"lat,long"` for roadworks, warnings and closures,

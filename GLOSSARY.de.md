@@ -128,7 +128,10 @@ die Fahrtrichtung und beginnt meist mit einem Leerzeichen (`" Saarbrücken -> Tr
 vor dem Vergleichen oder Aufteilen an `" -> "` trimmen. Der Client gibt es unverändert
 weiter.
 
-**`description`.** Ein Array beschreibender Textzeilen.
+**`description`.** Ein Array beschreibender Textzeilen. Die Zeiten darin sind deutsche
+Ortszeit, außer der Ereigniszeile einer INRIX-Warnung (`Unfall, seit 04.10.2026, 19:53`):
+Sie ist UTC ohne Zeitzonenangabe – im Sommer zwei Stunden hinter dem `Beginn: … 21:53 Uhr`
+desselben Eintrags.
 
 **`point`.** Eine einzelne geografische Position, serialisiert als Zeichenkette. Die
 Reihenfolge hängt vom Dienst ab: `"lat,long"` bei Baustellen, Warnungen und Sperrungen,

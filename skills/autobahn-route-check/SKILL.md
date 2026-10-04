@@ -114,7 +114,10 @@ closures even when the road is shut. Classify like this:
     `Ende: DD.MM.YY um HH:MM Uhr`;
   - `Die Baustelle ist zu folgenden Zeiträumen gültig:` then one or more lines
     `DD.MM.YY HH:MM bis zum DD.MM.YY HH:MM Uhr.` (night closures often list several).
-  Warnings carry only a `Beginn:` line. Times are German local time.
+  Warnings carry only a `Beginn:` line. The `Beginn:`/`Ende:` and window times are German
+  local time — but an INRIX warning's event line (`Unfall, seit 04.10.2026, 19:53`,
+  `Angespannte Verkehrslage, seit …`) is **UTC** with no zone marker, two hours behind its
+  own `Beginn: … 21:53 Uhr` in summer. Quote the `Beginn:` time, not the `seit` one.
 - **Active** otherwise.
 
 Classify by **`display_type`, not by the command** that returned an item: `warnings list`
