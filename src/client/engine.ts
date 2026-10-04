@@ -76,6 +76,20 @@ export const MAX_RETRIES = 10;
  */
 const MAX_DETAIL_LENGTH = 500;
 
+/** Node error codes of a connection that broke off mid-request (`socket hang up` is ECONNRESET). */
+const TRANSIENT_NETWORK_CODES = new Set(["ECONNRESET", "EPIPE", "ECONNABORTED"]);
+
+/**
+ * True for an AutobahnNetworkError caused by a reset or aborted connection, which the
+ * engine retries. A refused connection, a DNS failure or a timeout is not transient in
+ * that sense and is not retried.
+ */
+export function isTransientNetworkError(err: unknown): boolean {
+  if (!(err instanceof AutobahnNetworkError)) return false;
+  const code = (err.cause as { code?: unknown } | undefined)?.code;
+  return typeof code === "string" && TRANSIENT_NETWORK_CODES.has(code);
+}
+
 /** sanitizeServerText, then cut at MAX_DETAIL_LENGTH characters. */
 function cleanDetail(text: string): string {
   const clean = sanitizeServerText(text);
@@ -324,6 +338,14 @@ export class RequestEngine {
           ...(this.maxResponseBytes > 0 ? { maxResponseBytes: this.maxResponseBytes } : {}),
         });
       } catch (cause) {
+        // A connection the server (or a gateway) reset is the network-level twin of a
+        // 502: retry the GET like a transient status. Timeouts are not retried — a slow
+        // upstream should not be asked again at once, and --timeout bounds each attempt.
+        if (isTransientNetworkError(cause) && attempt < this.maxRetries) {
+          attempt += 1;
+          await this.sleep(this.retryDelayMs * attempt);
+          continue;
+        }
         // The default transport rejects with AutobahnNetworkError only; an injected one
         // may throw anything. Keep the library's error contract for both: a caller (and
         // the CLI) can rely on every failure being an AutobahnError.

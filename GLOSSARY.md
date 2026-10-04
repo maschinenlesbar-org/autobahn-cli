@@ -217,7 +217,8 @@ transient — a `502` seen live cleared within seconds. The engine retries them
 automatically up to `maxRetries` (default `2`), honouring a `Retry-After` header
 when present, otherwise using linear backoff. `AutobahnApiError.isRetryable`
 reflects this. When the status persists, the error says so — `… (after 2 retries)` — and
-`AutobahnApiError.retries` holds the count.
+`AutobahnApiError.retries` holds the count. A connection reset mid-request
+(`socket hang up`, `ECONNRESET`) is retried the same way, with the linear backoff.
 
 **`Retry-After`.** A response header the engine parses for both the
 delta-seconds form (`Retry-After: 120`) and the HTTP-date form

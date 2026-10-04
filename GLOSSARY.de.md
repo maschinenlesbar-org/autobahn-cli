@@ -231,6 +231,8 @@ automatisch bis zu `maxRetries` Mal (Standard `2`), berücksichtigt dabei einen
 vorhandenen `Retry-After`-Header und nutzt andernfalls linearen Backoff.
 `AutobahnApiError.isRetryable` bildet das ab. Bleibt der Status bestehen, sagt die
 Fehlermeldung das – `… (after 2 retries)` –, und `AutobahnApiError.retries` enthält die Zahl.
+Eine während der Anfrage zurückgesetzte Verbindung (`socket hang up`, `ECONNRESET`) wird
+ebenso wiederholt, mit dem linearen Backoff.
 
 **`Retry-After`.** Ein Antwort-Header, den die Engine sowohl in der Sekundenform
 (`Retry-After: 120`) als auch in der HTTP-Datumsform

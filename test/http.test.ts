@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import http from "node:http";
 import { nodeHttpTransport } from "../src/client/http.js";
+import { RequestEngine } from "../src/client/engine.js";
 import { AutobahnNetworkError } from "../src/client/errors.js";
 
 /** Start a throwaway loopback server for one test and return its base URL. */
@@ -50,6 +51,35 @@ test("userinfo in the URL is sent as HTTP Basic auth to that host, as documented
       assert.deepEqual(JSON.parse(plain.body.toString("utf8")), { authorization: null });
     },
   );
+});
+
+test("a reset connection is retried by the engine; a refused one is not", async () => {
+  let requests = 0;
+  await withServer(
+    (req, res) => {
+      requests += 1;
+      if (requests === 1) {
+        req.socket.destroy();
+        return;
+      }
+      res.setHeader("content-type", "application/json");
+      res.end(JSON.stringify({ roads: ["A1"] }));
+    },
+    async (baseUrl) => {
+      const engine = new RequestEngine({ baseUrl, maxRetries: 2, sleep: async () => {} });
+      assert.deepEqual(await engine.getJson("/o/autobahn/"), { roads: ["A1"] });
+      assert.equal(requests, 2);
+    },
+  );
+  let calls = 0;
+  const refused = new RequestEngine({
+    baseUrl: "http://127.0.0.1:1",
+    maxRetries: 2,
+    sleep: async () => {},
+    transport: (req) => { calls += 1; return nodeHttpTransport(req); },
+  });
+  await assert.rejects(() => refused.getJson("/o/autobahn/"), AutobahnNetworkError);
+  assert.equal(calls, 1);
 });
 
 test("rejects an unsupported protocol with AutobahnNetworkError", async () => {

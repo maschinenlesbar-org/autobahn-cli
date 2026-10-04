@@ -195,7 +195,9 @@ unavailable) and the gateway errors `502`/`504` are retried automatically with b
 (default `2`), honouring a `Retry-After` header when present (both
 delta-seconds and HTTP-date forms), clamped to a 30s ceiling so a pathological
 value cannot hang the CLI; otherwise using linear backoff.
-`AutobahnApiError.isRetryable` reflects this.
+`AutobahnApiError.isRetryable` reflects this. A reset connection
+(`isTransientNetworkError`: `ECONNRESET`/`EPIPE`/`ECONNABORTED` as the network error's
+`cause`) is retried with the linear backoff too.
 
 **`maxResponseBytes`.** A hard cap on response body size (default 100 MiB;
 `0` disables) that defends against memory exhaustion from a hostile or buggy
