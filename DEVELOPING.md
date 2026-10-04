@@ -239,6 +239,9 @@ npm test          # builds, then runs `node --test` over dist/test
 - **`validate.test.ts`** — `assertValid` and the `parity()` helper (`test/helpers.ts`), which sends one input through `run()` and through the library, each on a recording mock transport, so a test can assert both give the same outcome.
 - **`shared.test.ts`** — option parsing (`parseIntArg`) and `toEngineOptions` mapping.
 - **`cli.test.ts`** — end-to-end command parsing, rendering, error/exit codes and option flow-through — mocked client.
+- **`parity.test.ts`** — CLI ↔ library parity: the same input through `run()` and through the library must give the same outcome (both reject without a request with the same reason, or both send the same requests).
+- **`io.test.ts`** — the default I/O seam: EPIPE and other stdout/stderr write errors.
+- **`types.test.ts`** — compile-time checks of exported library types (e.g. `ServiceResource`).
 
 ## Continuous integration
 
