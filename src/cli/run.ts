@@ -182,9 +182,9 @@ export async function run(argv: string[], deps: CliDeps = defaultDeps): Promise<
     for (const line of sink.err) errSink(redactUserinfo(line));
   };
 
-  // An unknown command is the error, whatever help or version flag comes with it:
-  // drop the flag so commander reports `unknown command '<name>'` (exit 1) instead of
-  // showing help or printing the version (exit 0) — a false success for a script.
+  // Read argv against the command tree before commander parses it: an unknown command,
+  // a version flag after a command, help flags after `help` and a value on a boolean
+  // flag each need a different answer than commander would give.
   const scan = scanArgv(program, argv);
   // A version flag after a command would print the version and drop the command
   // silently (and `-v` there is more likely a "verbose" guess): a usage error instead.

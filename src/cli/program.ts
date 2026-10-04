@@ -138,7 +138,7 @@ function editDistance(a: string, b: string): number {
  * The built-in one only looks one level down and shows help for anything it cannot
  * find: `autobahn help roadworks list` printed the `roadworks` help, and
  * `autobahn help foo` printed the root help with exit 0. This one walks the whole path
- * and reports an unknown name as `unknown command` (exit 1). It is hidden, so the
+ * and reports an unknown name as `unknown command` (exit 2). It is hidden, so the
  * generated site reference does not list it per group, and put back into the help
  * output's command list where the built-in one was.
  */
