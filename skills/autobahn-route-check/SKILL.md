@@ -90,7 +90,9 @@ Each returns an array of items. The fields that matter for a briefing:
 > the current picture — don't cache stale items. A road's listing also carries items of
 > **other motorways where they meet** (on the A1: works titled `A45 - Ersatzneubau
 > Kreuzungsbauwerk A1-A45 …`, `A255 zur A1, …`) — label such an item with the road its
-> title names, or note "at the A1/A45 interchange", rather than as plain A1. **Volume is
+> title names, or note "at the A1/A45 interchange", rather than as plain A1. Place names in
+> the data are not always spelled consistently (`Güthersloh` next to `Gütersloh` on the A2):
+> match place names loosely when geo-filtering by name (Step 3). **Volume is
 > large** — a busy motorway
 > routinely returns 40–60 closures and 200+ roadworks, the vast majority planned or
 > non-blocking. Never enumerate all of them (see Step 5); summarise and surface only what
