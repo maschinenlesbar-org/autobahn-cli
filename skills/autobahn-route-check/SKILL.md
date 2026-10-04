@@ -74,7 +74,7 @@ Each returns an array of items. The fields that matter for a briefing:
 | `description[]` | Multi-line German detail (start time, cause, length, delay). Often the only place the real time window appears. |
 | `delayTimeValue` | Minutes of delay (warnings) — use for severity. A JSON **string** (`"10"`, `"5"`): convert before sorting (`tonumber` in jq, `Number()` in node), or `"5"` ranks above `"37"` |
 | `abnormalTrafficType` | `QUEUING_TRAFFIC`, `SLOW_TRAFFIC`, `UNSPECIFIED_ABNORMAL_TRAFFIC` (warnings) — and **absent** on some warnings |
-| `startTimestamp` | ISO time on warnings, closures and roadworks (charging uses `DD.MM.YYYY`); warnings are real-time and **auto-expire ~24h**. Offsets differ — warnings `Z` (UTC), roadworks/closures `+02:00` — so compare parsed dates (`fromdateiso8601` needs the `Z` form; use `node -e` + `Date.parse` across services), never the strings |
+| `startTimestamp` | ISO time on warnings, closures and roadworks (charging uses `DD.MM.YYYY`); warnings are real-time and **auto-expire ~24h**. Offsets differ by **source**, not service — INRIX warnings `Z` (UTC); `eva` warnings, roadworks and closures `+02:00` — so compare parsed dates (jq's `fromdateiso8601` reads only the `Z` form; use `node -e` + `Date.parse`), never the strings |
 | `point` | `"lat,long"` of the item |
 | `extent` | `"lat,long,lat,long"` bounding box of the affected stretch |
 | `routeRecommendation[]` | Official detour advice, if any — always surface it |
