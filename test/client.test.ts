@@ -235,6 +235,11 @@ test("a listing item whose typed field has the wrong type raises AutobahnParseEr
       problem,
     );
   }
+  // A display-only field of the wrong type is dropped from its item; the listing survives.
+  const cosmetic = constantJson({
+    roadworks: [{ identifier: "a", icon: 123, startLcPosition: 5, title: "t" }, { identifier: "b", icon: "x" }],
+  });
+  assert.deepEqual(await clientWith(cosmetic).roadworks.list("A1"), [{ identifier: "a", title: "t" }, { identifier: "b", icon: "x" }]);
   // null where null is allowed, and unknown extra fields, pass.
   const ok = constantJson({ roadworks: [{ identifier: "a", point: null, geometry: null, extra: 1 }] });
   assert.equal((await clientWith(ok).roadworks.list("A1")).length, 1);

@@ -68,15 +68,18 @@ export class ServiceResource<K extends string> {
     }
     // The other fields AutobahnServiceItem types are optional, but when present they
     // must have the promised type: `item.description?.join(...)` on a string would be a
-    // TypeError in the caller's code instead of a parse error here.
-    for (const [index, item] of items.entries()) {
+    // TypeError in the caller's code instead of a parse error here. Only the fields a
+    // consumer relies on fail the listing; a display-only field of the wrong type is
+    // dropped from that item, so one cosmetic upstream change cannot take every listing down.
+    const checked = items.map((item, index) => {
       const problem = fieldProblem(item as Record<string, unknown>);
       if (problem !== undefined) {
         throw shapeError(this.engine.describeUrl(path), `${this.key} item ${index} to have ${problem}`);
       }
-    }
-    if (items.length === 0) await this.assertKnownRoad(id);
-    return items as AutobahnServiceItem[];
+      return withoutMistypedDisplayFields(item as Record<string, unknown>);
+    });
+    if (checked.length === 0) await this.assertKnownRoad(id);
+    return checked as AutobahnServiceItem[];
   }
 
   private async assertKnownRoad(id: string): Promise<void> {
@@ -239,41 +242,53 @@ const isStringArray = (v: unknown): boolean => Array.isArray(v) && v.every(isStr
 
 /**
  * The type each optional AutobahnServiceItem field must have when present, with how a
- * message names it. Every one of 962 live items (all six services, five roads) passes.
+ * message names it. Every one of 1 487 live items checked (all six services, over ten roads,
+ * 2026-10-04/05) passes.
+ * `strict` fields — the ones the skills and typical consumers read — fail the listing when
+ * mistyped; the display-only rest is dropped from the item instead.
  */
-const FIELD_RULES: Array<[field: string, ok: (v: unknown) => boolean, expected: string]> = [
-  ["title", isString, "a string"],
-  ["subtitle", isString, "a string"],
-  ["icon", isString, "a string"],
-  ["display_type", isString, "a string"],
-  ["isBlocked", isString, "a string"],
-  ["future", (v) => typeof v === "boolean", "a boolean"],
-  ["description", isStringArray, "an array of strings"],
-  ["footer", isStringArray, "an array of strings"],
-  ["routeRecommendation", isStringArray, "an array of strings"],
-  ["point", isStringOrNull, "a string or null"],
-  ["extent", isStringOrNull, "a string or null"],
-  ["startTimestamp", isStringOrNull, "a string or null"],
-  ["coordinate", isObject, "an object"],
-  ["geometry", isObjectOrNull, "an object or null"],
-  ["impact", isObjectOrNull, "an object or null"],
-  ["delayTimeValue", isStringOrNull, "a string or null"],
-  ["abnormalTrafficType", isStringOrNull, "a string or null"],
-  ["averageSpeed", isStringOrNull, "a string or null"],
-  ["source", isStringOrNull, "a string or null"],
-  ["startLcPosition", isStringOrNull, "a string or null"],
-  ["lorryParkingFeatureIcons", Array.isArray, "an array"],
-  ["imageurl", isString, "a string"],
-  ["linkurl", isString, "a string"],
-  ["operator", isString, "a string"],
+const FIELD_RULES: Array<[field: string, ok: (v: unknown) => boolean, expected: string, strict: boolean]> = [
+  ["title", isString, "a string", true],
+  ["subtitle", isString, "a string", true],
+  ["display_type", isString, "a string", true],
+  ["isBlocked", isString, "a string", true],
+  ["future", (v) => typeof v === "boolean", "a boolean", true],
+  ["description", isStringArray, "an array of strings", true],
+  ["routeRecommendation", isStringArray, "an array of strings", true],
+  ["point", isStringOrNull, "a string or null", true],
+  ["extent", isStringOrNull, "a string or null", true],
+  ["startTimestamp", isStringOrNull, "a string or null", true],
+  ["coordinate", isObject, "an object", true],
+  ["geometry", isObjectOrNull, "an object or null", true],
+  ["delayTimeValue", isStringOrNull, "a string or null", true],
+  ["abnormalTrafficType", isStringOrNull, "a string or null", true],
+  ["imageurl", isString, "a string", true],
+  ["linkurl", isString, "a string", true],
+  ["icon", isString, "a string", false],
+  ["footer", isStringArray, "an array of strings", false],
+  ["impact", isObjectOrNull, "an object or null", false],
+  ["averageSpeed", isStringOrNull, "a string or null", false],
+  ["source", isStringOrNull, "a string or null", false],
+  ["startLcPosition", isStringOrNull, "a string or null", false],
+  ["lorryParkingFeatureIcons", Array.isArray, "an array", false],
+  ["operator", isString, "a string", false],
 ];
 
-/** The first typed field of a listing item that has the wrong type, as `"field" as <type>`. */
+/** The first strict field of a listing item that has the wrong type, as `"field" as <type>`. */
 function fieldProblem(item: Record<string, unknown>): string | undefined {
-  for (const [field, ok, expected] of FIELD_RULES) {
-    if (field in item && !ok(item[field])) return `"${field}" as ${expected}`;
+  for (const [field, ok, expected, strict] of FIELD_RULES) {
+    if (strict && field in item && !ok(item[field])) return `"${field}" as ${expected}`;
   }
   return undefined;
+}
+
+/** `item` without its display-only fields of the wrong type (the same object when there are none). */
+function withoutMistypedDisplayFields(item: Record<string, unknown>): Record<string, unknown> {
+  const mistyped = FIELD_RULES.filter(([field, ok, , strict]) => !strict && field in item && !ok(item[field]));
+  if (mistyped.length === 0) return item;
+  const copy = { ...item };
+  for (const [field] of mistyped) delete copy[field];
+  return copy;
 }
 
 /** True for a JSON object (not null, not an array). */

@@ -119,7 +119,10 @@ keine Einträge hat (`{ "webcam": [] }`); jeder andere 2xx-Body – ein Fehlerob
 bloßes Array, ein String, ein Nicht-Array unter dem Schlüssel – löst `AutobahnParseError`
 aus (Exit `1`), statt als „keine Einträge“ durchzugehen. Ebenso ein Eintrag, der kein
 JSON-Objekt mit einer String-`identifier` ist, oder dessen typisiertes Feld den falschen Typ
-hat (`description` kein Array von Strings, `future` kein Boolean, …). Dasselbe gilt für das Array `roads` der
+hat (`description` kein Array von Strings, `future` kein Boolean, …). Ein **reines
+Anzeigefeld** mit falschem Typ (`icon`, `footer`, `impact`, `averageSpeed`, `source`,
+`startLcPosition`, `lorryParkingFeatureIcons`, `operator`) wird stattdessen aus diesem Eintrag
+entfernt, damit eine kosmetische Änderung der Quelle nicht die ganze Liste scheitern lässt. Dasselbe gilt für das Array `roads` der
 Autobahnliste (nur Strings).
 
 ---
