@@ -102,6 +102,8 @@ export interface ArgvScan {
   displayFlags: number[];
   /** A version flag (`-V`, `--version`, or the hidden `-v`) follows a command (`autobahn roads -V`). */
   versionFlagAfterCommand: boolean;
+  /** Indexes of -h/--help after the `help` command (`help roadworks list --help`). */
+  helpFlagsOnHelpCommand: number[];
 }
 
 /**
@@ -115,7 +117,7 @@ export interface ArgvScan {
 export function scanArgv(program: Command, argv: string[]): ArgvScan {
   let command: Command | undefined = program;
   const path: Command[] = [program];
-  const scan: ArgvScan = { unknownCommand: false, displayFlags: [], versionFlagAfterCommand: false };
+  const scan: ArgvScan = { unknownCommand: false, displayFlags: [], versionFlagAfterCommand: false, helpFlagsOnHelpCommand: [] };
   for (let i = 0; i < argv.length; i++) {
     const token = argv[i]!;
     if (token === "--") break;
@@ -126,6 +128,9 @@ export function scanArgv(program: Command, argv: string[]): ArgvScan {
       if (flags !== undefined) {
         scan.displayFlags.push(i);
         if (path.length > 1 && flags.some((f) => VERSION_FLAGS.has(f))) scan.versionFlagAfterCommand = true;
+        if (path.length > 1 && path[path.length - 1]!.name() === "help" && (token === "-h" || token === "--help")) {
+          scan.helpFlagsOnHelpCommand.push(i);
+        }
         continue;
       }
       if (token.includes("=")) continue;
@@ -173,7 +178,10 @@ export async function run(argv: string[], deps: CliDeps = defaultDeps): Promise<
     deps.io.err('(run "autobahn --help" for usage)');
     return 1;
   }
-  const args = scan.unknownCommand ? argv.filter((_, i) => !scan.displayFlags.includes(i)) : argv;
+  // `help <path> --help` asks for the help of <path>, which the help command prints;
+  // left in, commander would answer the --help with the help command's own help.
+  const drop = scan.unknownCommand ? scan.displayFlags : scan.helpFlagsOnHelpCommand;
+  const args = argv.filter((_, i) => !drop.includes(i));
 
   try {
     await program.parseAsync(args, { from: "user" });

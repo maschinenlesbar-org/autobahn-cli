@@ -297,6 +297,18 @@ test("an unknown command with --help is still an unknown command (exit 1), not h
   }
 });
 
+test("help <path> --help prints the help of <path>, like help <path>", async () => {
+  for (const argv of [["help", "roadworks", "list", "--help"], ["help", "roadworks", "list", "-h"], ["roadworks", "help", "get", "--help"]]) {
+    const cli = makeCli(() => jsonResponse({}));
+    assert.equal(await run(argv, cli.deps), 0, argv.join(" "));
+    assert.match(cli.out[0] ?? "", /^Usage: autobahn roadworks (list|get) /, argv.join(" "));
+  }
+  // Without a path, `help --help` prints the root help, like `help`.
+  const own = makeCli(() => jsonResponse({}));
+  assert.equal(await run(["help", "--help"], own.deps), 0);
+  assert.match(own.out.join("\n"), /^Usage: autobahn \[options\] \[command\]/);
+});
+
 test("help suggests the closest command for a typo, like commander does", async () => {
   for (const [argv, hint] of [
     [["help", "roadwork"], "(Did you mean roadworks?)"],
