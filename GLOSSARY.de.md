@@ -52,7 +52,8 @@ Autobahn – z. B. Stau, Unfälle, Gefahren. CLI: `warnings`.
 CLI: `closures`.
 
 **E-Ladestation (`electric_charging_station`).** Ein Ladepunkt für Elektrofahrzeuge
-entlang einer Autobahn, mit Metadaten zu Steckern und Betreiber. CLI: `charging`.
+entlang einer Autobahn. Stecker, Leistung und Zahl der Ladepunkte stehen als Zeilen in
+`description`, nicht in eigenen Feldern. CLI: `charging`.
 
 > Die sechs Dienst-Ressourcen – Baustellen, Webcams, Parkplätze, Warnungen, Sperrungen,
 > Ladestationen – sind **strukturell identisch**: Jede unterstützt `list <roadId>` und
@@ -178,7 +179,10 @@ Fußzeilen und etwaige Zeilen mit Umleitungsempfehlungen.
 
 **`imageurl` / `linkurl` (Webcams).** Die URL des Kamerastandbilds und eine Link-URL.
 
-**`operator` (Ladestationen/Webcams).** Die betreibende Organisation des Eintrags.
+**`operator` (Webcams).** Die betreibende Organisation einer Webcam. Ladestationen haben
+**kein** Feld `operator`: Ein Standort des Deutschlandnetzes (numerische `identifier`)
+nennt seinen Betreiber in `description` (`Ladesäulenbetreiber: …`), die übrigen Standorte
+gar nicht.
 
 **Detailantwort.** Die Antwort eines `get` auf einen einzelnen Eintrag wird als
 unverändertes rohes `JsonObject` zurückgegeben (`RoadworkDetail`, `WebcamDetail`, … sind

@@ -45,7 +45,7 @@ export type Coordinate = LatLongCoordinate | GeoJsonPoint;
 /**
  * The shared item shape across the service listings. Every field is optional
  * because the API populates a different subset per service type (a webcam has an
- * `imageurl`, a charging station has connector metadata, and so on). The
+ * `imageurl`, a charging station lists its connectors in `description`, and so on). The
  * `identifier` is the opaque id you pass to the corresponding `get` endpoint;
  * its format varies by service.
  */
@@ -77,9 +77,14 @@ export interface AutobahnServiceItem {
    * on lorry parking absent from listings, `null` in the detail response.
    */
   startTimestamp?: string | null;
-  // Webcam-specific
+  // Webcam-specific (the webcam service has listed nothing since 2026-09)
   imageurl?: string;
   linkurl?: string;
+  /**
+   * Operating organisation, documented for webcams. Charging stations do **not** send
+   * it: a Deutschlandnetz site names its operator in `description`
+   * (`"Ladesäulenbetreiber: …"`), the other sites not at all.
+   */
   operator?: string;
 }
 

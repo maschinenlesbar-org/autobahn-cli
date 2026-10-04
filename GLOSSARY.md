@@ -53,8 +53,8 @@ CLI: `warnings`.
 *Sperrung*). CLI: `closures`.
 
 **Electric charging station (`electric_charging_station`).** An EV charging point
-along a motorway (German *E-Ladestation*), with connector/operator metadata.
-CLI: `charging`.
+along a motorway (German *E-Ladestation*). Connectors, power and point count are
+lines in `description`, not separate fields. CLI: `charging`.
 
 > The six service resources — roadworks, webcams, parking, warnings, closures,
 > charging — are **structurally identical**: each supports `list <roadId>` and
@@ -173,7 +173,9 @@ footer text lines, and any recommended-route lines.
 
 **`imageurl` / `linkurl` (webcams).** The camera snapshot URL and a link URL.
 
-**`operator` (charging/webcams).** The operating organisation for the item.
+**`operator` (webcams).** The operating organisation for a webcam. Charging stations
+have **no** `operator` field: a Deutschlandnetz site (numeric `identifier`) names its
+operator in `description` (`Ladesäulenbetreiber: …`), the other sites not at all.
 
 **Detail payload.** The single-item response from a `get` is returned as a
 faithful raw `JsonObject` (`RoadworkDetail`, `WebcamDetail`, … are all aliases of
