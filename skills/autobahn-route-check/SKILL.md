@@ -33,11 +33,13 @@ Always pass `--compact` so each result is one line, easy to pipe into `jq`. Bump
 `--timeout 60000` if a call times out. A `list` that matches nothing prints `[]` and
 exits `0` — that is **not** an error, it means "no disruptions of that type", which is
 exactly what you want to report. A road id the API does not know exits `4` with
-`Unknown road id …` on stderr — never report such a road as clear. Any other non-zero
-exit (`1`: `Error: HTTP 502 …`, a timeout, a parse error) means that service **could not
-be fetched**: retry that one call once, and if it fails again report the service as
+`Unknown road id …` on stderr — never report such a road as clear. Exit `2` is a **usage
+error** (`error: command-argument value 'A1/' is invalid …`) — a bad input, not an upstream
+failure: fix the command, don't retry it or report the service as unavailable. Exit `1`
+(`Error: HTTP 502 …`, a timeout, a parse error) means that service **could not be
+fetched**: retry that one call once, and if it fails again report the service as
 *unavailable* for that road ("A3: warnings unavailable — upstream error"). Never drop it
-and never let it count towards a "clear" verdict. Exit `2` is a **usage error** (`error: command-argument value 'A1/' is invalid …`) — a bad input, not an upstream failure: fix the command, don't retry it or report the service as unavailable.
+and never let it count towards a "clear" verdict.
 
 ## Step 1 — Resolve the roads
 
