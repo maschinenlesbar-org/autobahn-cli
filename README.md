@@ -12,10 +12,9 @@ terminal. `autobahn` is a command-line tool over the open
 [Autobahn App API](https://autobahn.api.bund.dev/) (`verkehr.autobahn.de`)
 operated by Autobahn GmbH des Bundes.
 
-- **Works out of the box** — no account, no API key, no configuration. Install and query.
+- **Works out of the box** — no account, no API key, no configuration: the API is fully open and read-only, and the CLI sends no credentials of its own. (A `user:password@` you put into `--base-url` yourself — for a mirror behind a login — is sent to that host as HTTP Basic auth, like `curl` does, and redacted from every message.)
 - **Clean JSON output** — pretty-printed by default, `--compact` for one-line/scripting.
 - **Seven commands** — `roads` plus six service groups (`roadworks`, `webcams`, `parking`, `warnings`, `closures`, `charging`), each with `list` and `get`.
-- **Nothing to configure** — the API is fully open and read-only; the CLI sends no credentials of its own. (A `user:password@` you put into `--base-url` yourself — for a mirror behind a login — is sent to that host as HTTP Basic auth, like `curl` does, and redacted from every message.)
 
 > Want to use this as a TypeScript library or understand how it's built?
 > See **[DEVELOPING.md](DEVELOPING.md)**.
