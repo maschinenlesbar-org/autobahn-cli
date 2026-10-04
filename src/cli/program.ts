@@ -37,7 +37,7 @@ export function buildProgram(deps: CliDeps = defaultDeps): Command {
     .addOption(new Option("-v", "output the version number").hideHelp())
     .option(
       "--base-url <url>",
-      "API base URL (a user:password@ in it is sent as HTTP Basic auth)",
+      "API base URL; a user:password@ in it is sent as HTTP Basic auth",
       parseBaseUrl,
       DEFAULT_BASE_URL,
     )
