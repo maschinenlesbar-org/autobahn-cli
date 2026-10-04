@@ -59,7 +59,8 @@ try {
 new AutobahnClient({
   baseUrl: "https://verkehr.autobahn.de",
   timeoutMs: 15_000,
-  maxRetries: 3,              // 429 / 502 / 503 / 504 are retried (honours Retry-After, else linear backoff)
+  maxRetries: 3,              // 429/502/503/504 and reset connections are retried (honours Retry-After,
+                              // else a linear backoff from retryDelayMs; a 429 from 1 s, doubling)
   maxResponseBytes: 50 << 20, // abort responses larger than 50 MiB (0 = unlimited)
   userAgent: "my-app/1.0",
   transport: customTransport, // inject your own HTTP transport
