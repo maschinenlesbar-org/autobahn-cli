@@ -161,6 +161,18 @@ test("list help names what it lists, and --max-retries help names the fallback b
   assert.match(cli.out.join("\n").replace(/\s+/g, " "), /else a short linear backoff from 200 ms/);
 });
 
+test("combined short flags are read like separate ones by the -v and unknown-command rules", async () => {
+  for (const argv of [["roads", "-vh"], ["roads", "-hv"]]) {
+    const cli = makeCli(() => jsonResponse({ roads: ["A1"] }));
+    assert.equal(await run(argv, cli.deps), 1, argv.join(" "));
+    assert.equal(cli.out.length, 0, argv.join(" "));
+    assert.match(cli.err.join("\n"), /^error: -v is the version flag/, argv.join(" "));
+  }
+  const unknown = makeCli(() => jsonResponse({}));
+  assert.equal(await run(["bogus", "-hV"], unknown.deps), 1);
+  assert.match(unknown.err.join("\n"), /unknown command 'bogus'/);
+});
+
 test("-v after a command is a usage error, not the version instead of the command", async () => {
   for (const argv of [["roads", "-v"], ["roadworks", "list", "A1", "-v"], ["--compact", "roads", "-v"]]) {
     const cli = makeCli(() => jsonResponse({ roads: ["A1"] }));

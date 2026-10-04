@@ -84,6 +84,13 @@ export function escapeCommanderError(message: string): string {
 /** Flags that make commander print something and exit 0: help, and the version (`-v` is its alias). */
 const DISPLAY_FLAGS = new Set(["-h", "--help", "-V", "--version", "-v"]);
 
+/** `["-v", "-h"]` for `-vh` when every letter is a display flag, else undefined. */
+function combinedDisplayFlags(token: string): string[] | undefined {
+  if (!/^-[A-Za-z]{2,}$/.test(token)) return undefined;
+  const flags = [...token.slice(1)].map((c) => `-${c}`);
+  return flags.every((f) => DISPLAY_FLAGS.has(f)) ? flags : undefined;
+}
+
 /** What scanArgv found in argv before commander parses it. */
 export interface ArgvScan {
   /** A token names a command that does not exist (`autobahn services …`). */
@@ -110,9 +117,12 @@ export function scanArgv(program: Command, argv: string[]): ArgvScan {
     const token = argv[i]!;
     if (token === "--") break;
     if (token.startsWith("-")) {
-      if (DISPLAY_FLAGS.has(token)) {
+      // Commander splits combined short flags (`-vh` → `-v -h`), so read a token made
+      // only of display-flag letters the same way.
+      const flags = DISPLAY_FLAGS.has(token) ? [token] : combinedDisplayFlags(token);
+      if (flags !== undefined) {
         scan.displayFlags.push(i);
-        if (token === "-v" && path.length > 1) scan.versionAliasAfterCommand = true;
+        if (flags.includes("-v") && path.length > 1) scan.versionAliasAfterCommand = true;
         continue;
       }
       if (token.includes("=")) continue;
