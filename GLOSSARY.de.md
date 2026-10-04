@@ -260,7 +260,10 @@ Fehlermeldung das – `… (after 2 retries)` –, und `AutobahnApiError.retries
 Eine während der Anfrage zurückgesetzte Verbindung (`socket hang up`, `ECONNRESET`) wird
 ebenso wiederholt, mit dem linearen Backoff. Ein **Timeout wird nicht wiederholt** (ein
 langsamer Upstream wird nicht sofort erneut angefragt; `--timeout` begrenzt jeden Versuch),
-ebenso wenig eine abgelehnte Verbindung oder ein DNS-Fehler.
+ebenso wenig eine abgelehnte Verbindung oder ein DNS-Fehler. Die Wartezeiten summieren sich:
+Bei `maxRetries: 10` wartet ein anhaltender 429 1 + 2 + 4 + 8 + 16 + 5 × 30 s ≈ 3 min (mit
+`Retry-After` bis zu 10 × 30 s = 5 min), zusätzlich zu den Versuchen selbst; eine
+Gesamtobergrenze gibt es nicht.
 
 **`Retry-After`.** Ein Antwort-Header, den die Engine sowohl in der Sekundenform
 (`Retry-After: 120`) als auch in der HTTP-Datumsform

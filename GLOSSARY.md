@@ -244,7 +244,10 @@ reflects this. When the status persists, the error says so — `… (after 2 ret
 `AutobahnApiError.retries` holds the count. A connection reset mid-request
 (`socket hang up`, `ECONNRESET`) is retried the same way, with the linear backoff. A
 **timeout is not retried** (a slow upstream is not asked again at once; `--timeout`
-bounds each attempt), and neither is a refused connection or a DNS failure.
+bounds each attempt), and neither is a refused connection or a DNS failure. The waits add
+up: at `maxRetries: 10` a persistent 429 waits 1 + 2 + 4 + 8 + 16 + 5 × 30 s ≈ 3 min (with
+`Retry-After` up to 10 × 30 s = 5 min), on top of the attempts themselves; there is no
+overall cap.
 
 **`Retry-After`.** A response header the engine parses for both the
 delta-seconds form (`Retry-After: 120`) and the HTTP-date form
