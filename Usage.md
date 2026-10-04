@@ -181,7 +181,7 @@ Commands: `roads`, and the six service groups `roadworks`, `webcams`,
 `get <identifier>` subcommands. `autobahn help <command path>` (for example
 `autobahn help roadworks list`) prints the help of any command, like `--help` after it.
 
-Exit codes: `0` success, `4` not found (`get` matched nothing or answered `404` /
+Exit codes: `0` success (also help, including `autobahn` or a command group without a subcommand), `4` not found (`get` matched nothing or answered `404` /
 unknown road id in `list`),
 `2` usage error (a command, option or argument rejected before any request),
 `1` any other API, network or parse error — including a `404` from `roads` or
