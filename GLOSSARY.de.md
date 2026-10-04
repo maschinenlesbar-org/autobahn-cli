@@ -71,6 +71,7 @@ entfernt der Client vor der Verwendung umgebende Leerzeichen, und `client.roads(
 die Duplikate. Eine Autobahn-Kennung mit `/` wird vor jeder Anfrage abgelehnt
 (`AutobahnValidationError`, Exit `1`): Die API decodiert das `%2F` des Clients zurück zu
 `/` und löst `..` auf, sonst gäbe `A1/../A2` unter einem A1-Befehl die Daten der A2 aus.
+Ebenso `.` oder `..` (`Invalid roadId: "." and ".." are not ids.`).
 
 **`identifier`.** Die opake ID eines einzelnen Dienst-Eintrags, die in jedem gelisteten
 Eintrag als Feld `identifier` steht. Diesen Wert übergeben Sie einem

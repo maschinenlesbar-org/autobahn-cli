@@ -71,7 +71,8 @@ client trims surrounding whitespace before use, and `client.roads()` (so also th
 `roads` command) trims the list, drops blank ids and removes the duplicates.
 A road id containing `/` is rejected (`AutobahnValidationError`, exit `1`) before any
 request: the API decodes the client's `%2F` back to `/` and resolves `..`, so
-`A1/../A2` would otherwise print the A2 data under an A1 command.
+`A1/../A2` would otherwise print the A2 data under an A1 command. So is `.` or `..`
+(`Invalid roadId: "." and ".." are not ids.`).
 
 **`identifier`.** The opaque id of a single service item, present as the
 `identifier` field on every listed item. It is the value you pass to a

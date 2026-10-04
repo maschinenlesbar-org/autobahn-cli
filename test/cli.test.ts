@@ -255,7 +255,7 @@ test("a road id of .. exits 1 without a request instead of printing another endp
   assert.equal(code, 1);
   assert.equal(cli.mt.calls.length, 0);
   assert.deepEqual(cli.out, []);
-  assert.match(cli.err.join("\n"), /^Error: Invalid path segment "\.\."/);
+  assert.equal(cli.err.join("\n"), 'Error: Invalid roadId: "." and ".." are not ids.');
 });
 
 test("a road id with / exits 1 without a request instead of printing another road's data", async () => {

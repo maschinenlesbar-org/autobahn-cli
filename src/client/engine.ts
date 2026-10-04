@@ -236,7 +236,9 @@ export class RequestEngine {
    * those two unchanged, and URL parsing then resolves them: `roadworks list ..`
    * would request `/o/services/roadworks` and report "no roadworks" with exit 0.
    * Neither can name a resource. (Percent-encoded forms such as "%2e%2e" are safe:
-   * encodeURIComponent turns their "%" into "%25".)
+   * encodeURIComponent turns their "%" into "%25".) The client rejects such ids first,
+   * with a message about the id (validate.ts `idProblem`); this guard is the backstop for
+   * a direct `getJson`/`request` caller.
    */
   buildUrl(path: string, query?: QueryParams): string {
     const normalizedPath = path.startsWith("/") ? path : `/${path}`;

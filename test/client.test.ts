@@ -288,12 +288,8 @@ test("a road id or identifier of . or .. is rejected before any request instead 
   ] as const) {
     const mt = constantJson({ roadworks: [], warning: [] });
     await assert.rejects(() => call(clientWith(mt)), (err: unknown) => {
-      assert.ok(err instanceof AutobahnError, name);
-      assert.match(
-        (err as Error).message,
-        /^Invalid path segment "\.\.?" in \/o\/autobahn\/\S+: "\." and "\.\." cannot be used as an id\.$/,
-        name,
-      );
+      assert.ok(err instanceof AutobahnValidationError, name);
+      assert.match((err as Error).message, /^Invalid (roadId|identifier): "\." and "\.\." are not ids\.$/, name);
       return true;
     });
     assert.equal(mt.calls.length, 0, name);
