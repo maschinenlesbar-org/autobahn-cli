@@ -263,6 +263,17 @@ test("a fetch Headers object from a custom transport is read like plain headers"
   assert.deepEqual(slept, [7000]);
 });
 
+test("upper-case header names from a custom transport are read", async () => {
+  const e = new RequestEngine({
+    transport: async () => ({
+      status: 200,
+      headers: { "Content-Type": "application/json; charset=iso-8859-1" },
+      body: Buffer.from('{"roads":["A\xfc"]}', "latin1"),
+    }),
+  });
+  assert.deepEqual(await e.getJson("/x"), { roads: ["Aü"] });
+});
+
 test("a malformed response from a custom transport is an AutobahnNetworkError, not a TypeError", async () => {
   for (const [response, problem] of [
     [{}, "status is not an HTTP status code"],

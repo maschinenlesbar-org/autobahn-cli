@@ -121,7 +121,8 @@ function responseProblem(value: unknown): string | undefined {
  * The response headers as a plain record. A transport built on `fetch` naturally returns
  * its `Headers` object, which passes as an object but has no plain properties: the
  * engine then saw no Retry-After and no Content-Type at all. Such an object (anything
- * with `get` and `forEach`) is copied into a record; `Headers` already lower-cases names.
+ * with `get` and `forEach`) is copied into a record; a plain record gets its names
+ * lower-cased, as the engine reads them.
  */
 function plainHeaders(headers: object): Record<string, string | string[] | undefined> {
   const h = headers as { get?: unknown; forEach?: unknown };
@@ -132,7 +133,12 @@ function plainHeaders(headers: object): Record<string, string | string[] | undef
     });
     return record;
   }
-  return headers as Record<string, string | string[] | undefined>;
+  // Node's transport lower-cases header names; a custom one may not ("Content-Type").
+  const record: Record<string, string | string[] | undefined> = {};
+  for (const [name, value] of Object.entries(headers as Record<string, string | string[] | undefined>)) {
+    record[name.toLowerCase()] = value;
+  }
+  return record;
 }
 
 /** Node error codes of a connection that broke off mid-request (`socket hang up` is ECONNRESET). */
