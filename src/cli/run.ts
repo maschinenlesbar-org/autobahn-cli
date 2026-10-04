@@ -64,6 +64,35 @@ export function escapeTerminalText(text: string): string {
   );
 }
 
+/**
+ * True when `argv` names a command that does not exist (`autobahn services …`,
+ * `autobahn roadworks foo …`). Commander answers `--help` before it checks the command,
+ * so `autobahn services --help` printed the root help and exited 0 — a false success
+ * for a script probing for a command. Options are skipped (with their value when they
+ * take one), so `--base-url <url>` is not read as a command; scanning stops at `--`
+ * and at a command without subcommands.
+ */
+export function namesUnknownCommand(program: Command, argv: string[]): boolean {
+  let command = program;
+  const path: Command[] = [program];
+  for (let i = 0; i < argv.length; i++) {
+    const token = argv[i]!;
+    if (token === "--") return false;
+    if (token.startsWith("-")) {
+      if (token.includes("=")) continue;
+      const option = path.flatMap((c) => c.options).find((o) => o.short === token || o.long === token);
+      if (option?.required) i++;
+      continue;
+    }
+    if (command.commands.length === 0) return false;
+    const sub = command.commands.find((c) => c.name() === token || c.aliases().includes(token));
+    if (sub === undefined) return true;
+    command = sub;
+    path.push(sub);
+  }
+  return false;
+}
+
 export async function run(argv: string[], deps: CliDeps = defaultDeps): Promise<number> {
   const program = buildProgram(deps);
   const sink: OutputSink = { out: [], err: [] };
@@ -81,8 +110,14 @@ export async function run(argv: string[], deps: CliDeps = defaultDeps): Promise<
     for (const line of sink.err) errSink(redactUserinfo(line));
   };
 
+  // An unknown command is the error, whatever help flag comes with it: drop the flag
+  // so commander reports `unknown command '<name>'` (exit 1) instead of showing help.
+  const args = namesUnknownCommand(program, argv)
+    ? argv.filter((a, i) => (a !== "--help" && a !== "-h") || argv.slice(0, i).includes("--"))
+    : argv;
+
   try {
-    await program.parseAsync(argv, { from: "user" });
+    await program.parseAsync(args, { from: "user" });
     flush(false);
     return 0;
   } catch (err) {

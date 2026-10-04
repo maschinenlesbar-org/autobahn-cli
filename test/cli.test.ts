@@ -183,6 +183,25 @@ test("an unknown command still errors on stderr with exit 1", async () => {
   assert.match(cli.err.join("\n"), /unknown command 'bogus'/);
 });
 
+test("an unknown command with --help is still an unknown command (exit 1), not help", async () => {
+  for (const argv of [
+    ["services", "--help"],
+    ["-h", "services"],
+    ["--base-url", "https://example.test", "services", "-h"],
+    ["roadworks", "foo", "--help"],
+  ]) {
+    const cli = makeCli(() => jsonResponse({}));
+    const code = await run(argv, cli.deps);
+    assert.equal(code, 1, argv.join(" "));
+    assert.match(cli.err.join("\n"), /unknown command '(services|foo)'/, argv.join(" "));
+  }
+  for (const argv of [["roadworks", "--help"], ["--base-url", "https://example.test", "roads", "--help"]]) {
+    const cli = makeCli(() => jsonResponse({}));
+    assert.equal(await run(argv, cli.deps), 0, argv.join(" "));
+    assert.match(cli.out.join("\n"), /^Usage: autobahn/, argv.join(" "));
+  }
+});
+
 test("an invalid --timeout is a usage error (non-zero, no request)", async () => {
   const cli = makeCli(() => jsonResponse({}));
   const code = await run(["--timeout", "1e3", "roads"], cli.deps);
