@@ -72,8 +72,20 @@ export function buildProgram(deps: CliDeps = defaultDeps): Command {
   registerRoadsCommand(program, deps);
   registerServiceCommands(program, deps);
   addHelpCommands(program);
+  showGlobalOptions(program);
 
   return program;
+}
+
+/**
+ * List the root's options under "Global Options" in every subcommand's help: they work
+ * after the subcommand too (`autobahn roads --compact`), but `roads --help` showed only
+ * `-h, --help`. Merged into each command's help configuration (the help commands set
+ * `visibleCommands`).
+ */
+function showGlobalOptions(command: Command): void {
+  command.configureHelp({ ...command.configureHelp(), showGlobalOptions: true });
+  for (const sub of command.commands) showGlobalOptions(sub);
 }
 
 /**

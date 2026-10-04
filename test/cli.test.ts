@@ -154,7 +154,7 @@ test("list help names what it lists, and --max-retries help names the fallback b
   ] as const) {
     const cli = makeCli(() => jsonResponse({}));
     assert.equal(await run([group, "--help"], cli.deps), 0);
-    assert.ok(cli.out.join("\n").includes(line), group);
+    assert.ok(cli.out.join("\n").replace(/\s+/g, " ").includes(line), group);
   }
   const cli = makeCli(() => jsonResponse({}));
   assert.equal(await run(["--help"], cli.deps), 0);
@@ -212,9 +212,20 @@ test("-V, --version and the old -v all print the version; help shows -V", async 
 test("get help says where an identifier comes from", async () => {
   const cli = makeCli(() => jsonResponse({}));
   assert.equal(await run(["parking", "get", "--help"], cli.deps), 0);
-  const help = cli.out.join("\n");
+  const help = cli.out.join("\n").replace(/\s+/g, " ");
   assert.match(help, /identifier +the "identifier" field of an item from `parking list`/);
   assert.match(help, /autobahn parking list A1 \| jq -r '\.\[0\]\.identifier'/);
+});
+
+test("subcommand help lists the global options", async () => {
+  for (const argv of [["roads", "--help"], ["roadworks", "list", "--help"], ["help", "charging", "get"]]) {
+    const cli = makeCli(() => jsonResponse({}));
+    assert.equal(await run(argv, cli.deps), 0, argv.join(" "));
+    const help = cli.out.join("\n");
+    assert.match(help, /Global Options:/, argv.join(" "));
+    assert.match(help, /--compact/, argv.join(" "));
+    assert.match(help, /--base-url <url>/, argv.join(" "));
+  }
 });
 
 test("--max-retries help states its default", async () => {
