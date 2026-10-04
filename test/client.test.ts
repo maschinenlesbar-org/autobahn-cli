@@ -265,6 +265,24 @@ test("get() rejects an answer about another item instead of returning it as the 
   assert.deepEqual(echoed, { identifier: "abc", title: "t" });
 });
 
+test("error messages cut a very long URL or road id at 500 characters; err.url keeps it whole", async () => {
+  const long = "A".repeat(20_000);
+  const tooLong = makeMockTransport(() => jsonResponse({ message: "header too large" }, 431));
+  await assert.rejects(() => clientWith(tooLong).roadworks.list(long), (err: unknown) => {
+    assert.ok(err instanceof AutobahnApiError);
+    assert.ok(err.message.length < 700, String(err.message.length));
+    assert.match(err.message, /^HTTP 431 for GET https:\/\/verkehr\.autobahn\.de\/o\/autobahn\/A+…: header too large$/);
+    assert.ok(err.url.endsWith(`${long}/services/roadworks`));
+    return true;
+  });
+  const unknown = roadsAnd({ roadworks: [] });
+  await assert.rejects(() => clientWith(unknown).roadworks.list(long), (err: unknown) => {
+    assert.ok(err instanceof AutobahnNotFoundError);
+    assert.ok(err.message.length < 600, String(err.message.length));
+    return true;
+  });
+});
+
 test("a 404 raises AutobahnApiError with status 404", async () => {
   const mt = makeMockTransport(() => jsonResponse({ detail: "not found" }, 404));
   await assert.rejects(

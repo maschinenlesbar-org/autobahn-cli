@@ -9,6 +9,7 @@ import {
   AutobahnNotFoundError,
   AutobahnParseError,
   AutobahnValidationError,
+  cutForMessage,
   isRetryableStatus,
   redactUrl,
 } from "./errors.js";
@@ -156,11 +157,12 @@ export function sanitizeServerText(text: string): string {
  * leaves raw although a terminal acts on it: DEL, the C1 controls and every Unicode
  * format character (bidi overrides, zero-width characters). A road id or identifier is
  * echoed in messages, and it can come from a pipeline; an override in it would reorder
- * the rest of the line ("Trojan Source"). The result stays valid JSON.
+ * the rest of the line ("Trojan Source"). A value longer than MAX_MESSAGE_VALUE_LENGTH
+ * characters is cut first (ending in "…"). The result stays valid JSON.
  */
 export function quoteValue(value: string): string {
   let out = "";
-  for (const ch of JSON.stringify(value)) {
+  for (const ch of JSON.stringify(cutForMessage(value))) {
     const n = ch.codePointAt(0) ?? 0;
     if ((n >= 0x7f && n <= 0x9f) || FORMAT_CHAR.test(ch)) {
       // One escape per UTF-16 unit, so a character above U+FFFF stays valid JSON.
@@ -343,7 +345,7 @@ export class RequestEngine {
       }
       throw new AutobahnNotFoundError(
         `Not found: the API answered HTTP ${res.status} with an empty body for GET ` +
-          redactUrl(this.buildUrl(path, query)),
+          cutForMessage(redactUrl(this.buildUrl(path, query))),
       );
     }
     try {

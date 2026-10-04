@@ -164,7 +164,8 @@ subprocess.
 
 **Error types.** [`errors.ts`](src/client/errors.ts): `AutobahnApiError`
 (non-2xx, carries `status`/`detail`/`url`/`body`; `detail` is sanitised and cut at
-500 characters, `body` is the full text), `AutobahnNetworkError`
+500 characters, `body` is the full text; the message also cuts the URL at 500
+characters, `url` keeps it whole), `AutobahnNetworkError`
 (transport failure/timeout — never a configuration error: a bad `baseUrl` or
 `userAgent`, a numeric option out of range or a blank, `.`/`..` or `/`-containing road
 id or identifier throws an `AutobahnValidationError` before any request),

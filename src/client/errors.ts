@@ -20,6 +20,18 @@ export function redactUrl(url: string): string {
 }
 
 /**
+ * Longest URL or echoed value (in characters) an error message shows, like the 500
+ * characters kept of a server `detail`. A 20 000-character road id would otherwise put a
+ * 20 KB URL on one stderr line. The error's `url` property keeps the full value.
+ */
+export const MAX_MESSAGE_VALUE_LENGTH = 500;
+
+/** `text` cut to MAX_MESSAGE_VALUE_LENGTH characters, ending in "…" when cut. */
+export function cutForMessage(text: string): string {
+  return text.length > MAX_MESSAGE_VALUE_LENGTH ? `${text.slice(0, MAX_MESSAGE_VALUE_LENGTH)}…` : text;
+}
+
+/**
  * True for the statuses the engine retries as transient: `429` (rate-limited), `503`
  * (service unavailable), and `502`/`504`, which the gateway in front of the API answers
  * when a backend is briefly unreachable (a `502` seen live recovered within seconds).
@@ -70,7 +82,7 @@ export class AutobahnApiError extends AutobahnError {
       );
     }
     const detailPart = parts.length > 0 ? `: ${parts.join("; ")}` : "";
-    super(`HTTP ${args.status} for ${args.method} ${url}${detailPart}`);
+    super(`HTTP ${args.status} for ${args.method} ${cutForMessage(url)}${detailPart}`);
     this.status = args.status;
     this.url = url;
     this.method = args.method;
