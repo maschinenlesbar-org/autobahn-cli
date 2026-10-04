@@ -73,7 +73,7 @@ Each returns an array of items. The fields that matter for a briefing:
 | `future` | Boolean — `true` means the item is **planned/upcoming**, not active yet. The primary active-vs-planned signal. |
 | `description[]` | Multi-line German detail (start time, cause, length, delay). Often the only place the real time window appears. |
 | `delayTimeValue` | Minutes of delay (warnings) — use for severity. A JSON **string** (`"10"`, `"5"`): convert before sorting (`tonumber` in jq, `Number()` in node), or `"5"` ranks above `"37"` |
-| `abnormalTrafficType` | e.g. `SLOW_TRAFFIC`, `QUEUING_TRAFFIC` (warnings) |
+| `abnormalTrafficType` | `QUEUING_TRAFFIC`, `SLOW_TRAFFIC`, `UNSPECIFIED_ABNORMAL_TRAFFIC` (warnings) — and **absent** on some warnings |
 | `startTimestamp` | ISO time; warnings are real-time and **auto-expire ~24h** |
 | `point` | `"lat,long"` of the item |
 | `extent` | `"lat,long,lat,long"` bounding box of the affected stretch |
@@ -133,8 +133,9 @@ Then rank the **active** items, most severe first:
    separately, list one only when it is at a junction the user named, and never let them
    make the road read as shut.
 2. **Warnings** by `delayTimeValue` as a number (higher = worse; it arrives as a string —
-   `sort_by(.delayTimeValue | tonumber? // 0) | reverse`); `QUEUING_TRAFFIC` outranks
-   `SLOW_TRAFFIC` at equal delay.
+   `sort_by(.delayTimeValue | tonumber? // 0) | reverse`). At equal delay:
+   `QUEUING_TRAFFIC` > `SLOW_TRAFFIC` > `UNSPECIFIED_ABNORMAL_TRAFFIC` > no
+   `abnormalTrafficType` at all (show such a warning by its `description[]`).
 3. **Roadworks** — background unless they're blocking (`isBlocked === "true"`, or a
    `description[]` that says `Vollsperrung` / the carriageway is closed); those few rank
    with closures.
