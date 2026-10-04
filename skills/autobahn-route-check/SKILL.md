@@ -77,7 +77,7 @@ Each returns an array of items. The fields that matter for a briefing:
 | `startTimestamp` | ISO time on warnings, closures and roadworks — but **absent on short-term roadworks** (`SHORT_TERM_ROADWORKS`): take their time from the `description[]` window (charging uses `DD.MM.YYYY`); warnings are real-time and **auto-expire ~24h**. Offsets differ by **source**, not service — INRIX warnings `Z` (UTC); `eva` warnings, roadworks and closures `+02:00` — so compare parsed dates (jq's `fromdateiso8601` reads only the `Z` form; use `node -e` + `Date.parse`), never the strings |
 | `point` | `"lat,long"` of the item |
 | `extent` | `"lat,long,lat,long"` bounding box of the affected stretch |
-| `routeRecommendation[]` | Official detour advice, if any — always surface it |
+| `routeRecommendation[]` | Official detour advice — surface it if present, but the API leaves it **empty in practice** (on every item seen in October 2026); don't promise detours the data doesn't carry |
 | `identifier` | Pass to `autobahn … get <identifier>` for full detail on request |
 
 > **Quirks to respect.** Warnings disappear from the response within ~24h of expiry, so what you fetch *is*
@@ -183,7 +183,8 @@ Rules:
 - **Separate planned from active.** Tag upcoming items `(planned)` / with their start time;
   never let a future closure read as a road that's shut now.
 - If a road has nothing active, say so plainly — "A7: clear" is a valid, useful answer.
-- Surface `routeRecommendation` / detour info whenever present.
+- Surface `routeRecommendation` / detour info when present (rare); otherwise say none was
+  published rather than implying the road has no detour.
 - Show delay minutes and direction (`subtitle`) — those are what a driver acts on.
 - Offer the `get <identifier>` follow-up for any item the user wants full detail on, but
   don't dump raw JSON unless asked. For a **warning**, use an identifier from **this** run:
