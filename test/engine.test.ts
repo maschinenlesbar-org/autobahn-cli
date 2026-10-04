@@ -122,6 +122,26 @@ test("the error after the last retry says how many retries were made", async () 
   await assert.rejects(() => e.getJson("/x"), (err: unknown) => err instanceof AutobahnApiError && err.retries === 0 && !/retr/.test(err.message));
 });
 
+test("a compressed body names its Content-Encoding instead of failing as non-JSON", async () => {
+  const gzip = makeMockTransport(() => ({
+    status: 200,
+    headers: { "content-type": "application/json", "content-encoding": "gzip" },
+    body: Buffer.from([0x1f, 0x8b, 0, 0]),
+  }));
+  await assert.rejects(
+    () => new RequestEngine({ transport: gzip.transport }).getJson("/x"),
+    (err: unknown) =>
+      err instanceof AutobahnParseError &&
+      err.message === 'Unsupported Content-Encoding "gzip" from https://verkehr.autobahn.de/x: the client does not decompress responses.',
+  );
+  const identity = makeMockTransport(() => ({
+    status: 200,
+    headers: { "content-type": "application/json", "content-encoding": "identity" },
+    body: Buffer.from('{"ok":1}'),
+  }));
+  assert.deepEqual(await new RequestEngine({ transport: identity.transport }).getJson("/x"), { ok: 1 });
+});
+
 test("a non-JSON body names its Content-Type when that is not JSON", async () => {
   for (const [contentType, message] of [
     ["text/html; charset=utf-8", 'Failed to parse JSON response from https://verkehr.autobahn.de/x: expected JSON, got Content-Type "text/html"'],

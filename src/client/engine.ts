@@ -28,6 +28,8 @@ export const DEFAULT_USER_AGENT = `autobahn-cli/${VERSION} (+https://github.com/
 export interface RawResponse {
   data: Buffer;
   contentType: string;
+  /** The Content-Encoding header ("" when absent). */
+  contentEncoding: string;
   status: number;
 }
 
@@ -404,7 +406,8 @@ export class RequestEngine {
         throw this.toApiError(method, url, status, response.body, response.headers["location"], attempt);
       }
 
-      return { data: response.body, contentType, status };
+      const contentEncoding = String(response.headers["content-encoding"] ?? "").trim();
+      return { data: response.body, contentType, contentEncoding, status };
     }
   }
 
@@ -419,6 +422,14 @@ export class RequestEngine {
     options: { emptyIsNotFound?: boolean } = {},
   ): Promise<T> {
     const res = await this.request("GET", path, { query, accept: "application/json" });
+    // The client sends no Accept-Encoding and does not decompress; a compressed body can
+    // only come from a misbehaving proxy. Name it rather than fail as "not JSON".
+    if (res.contentEncoding !== "" && !/^identity$/i.test(res.contentEncoding)) {
+      throw new AutobahnParseError(
+        `Unsupported Content-Encoding "${cleanDetail(res.contentEncoding)}" from ${this.describeUrl(path, query)}: ` +
+          "the client does not decompress responses.",
+      );
+    }
     const text = decodeBody(res.data, res.contentType, this.describeUrl(path, query));
     if (text.trim() === "") {
       // Only the detail endpoint answers an unknown identifier with HTTP 200 and an
