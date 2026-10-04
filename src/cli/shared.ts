@@ -20,7 +20,8 @@ export function parseIntArg(value: string): number {
   }
   const n = Number(value);
   if (!Number.isSafeInteger(n)) {
-    throw new InvalidArgumentError("Expected a non-negative integer.");
+    // It is a non-negative integer, just too large to hold exactly: name the limit.
+    throw new InvalidArgumentError(`Expected an integer from 0 to ${Number.MAX_SAFE_INTEGER}.`);
   }
   return n;
 }
@@ -28,8 +29,10 @@ export function parseIntArg(value: string): number {
 /** Build a commander value-parser for an integer constrained to [min, max]. */
 export function parseBoundedInt(min: number, max: number): (value: string) => number {
   return (value: string) => {
-    const n = parseIntArg(value);
-    if (n < min || n > max) {
+    if (!/^\d+$/.test(value)) throw new InvalidArgumentError("Expected a non-negative integer.");
+    // A digit string too large to hold exactly is out of range too: name the range.
+    const n = Number(value);
+    if (!Number.isSafeInteger(n) || n < min || n > max) {
       throw new InvalidArgumentError(`Expected an integer from ${min} to ${max}.`);
     }
     return n;

@@ -10,7 +10,7 @@ import { defaultIO } from "./io.js";
 import { AutobahnClient } from "../client/client.js";
 import { MAX_TIMEOUT_MS } from "../client/http.js";
 import { DEFAULT_BASE_URL, MAX_RETRIES } from "../client/engine.js";
-import { parseBaseUrl, parseBoundedInt, parseHeaderValue, parseIntArg } from "./shared.js";
+import { parseBaseUrl, parseBoundedInt, parseHeaderValue } from "./shared.js";
 import { registerRoadsCommand } from "./commands/roads.js";
 import { registerServiceCommands } from "./commands/services.js";
 
@@ -64,7 +64,7 @@ export function buildProgram(deps: CliDeps = defaultDeps): Command {
     .option(
       "--max-response-bytes <n>",
       "cap response body size in bytes (0 = unlimited; default 100 MiB)",
-      parseIntArg,
+      parseBoundedInt(0, Number.MAX_SAFE_INTEGER),
     )
     .option("--compact", "print JSON on a single line instead of pretty-printed");
 
