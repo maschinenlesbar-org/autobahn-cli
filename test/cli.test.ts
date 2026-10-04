@@ -224,6 +224,21 @@ test("help walks the whole command path and rejects an unknown name", async () =
   assert.match(root.out.join("\n"), /\n {2}help \[command\.\.\.\] +display help for command$/m);
 });
 
+test("a usage error is the error plus a one-line pointer to the command's help, not the whole help", async () => {
+  for (const [argv, hint] of [
+    [["--max-retries", "11", "roads"], '(run "autobahn --help" for usage)'],
+    [["roadworks", "list"], '(run "autobahn roadworks list --help" for usage)'],
+    [["bogus"], '(run "autobahn --help" for usage)'],
+  ] as const) {
+    const cli = makeCli(() => jsonResponse({}));
+    assert.equal(await run([...argv], cli.deps), 1, argv.join(" "));
+    const lines = cli.err.join("\n").split("\n");
+    assert.equal(lines.length, 2, argv.join(" "));
+    assert.match(lines[0]!, /^error: /, argv.join(" "));
+    assert.equal(lines[1], hint, argv.join(" "));
+  }
+});
+
 test("an invalid --timeout is a usage error (non-zero, no request)", async () => {
   const cli = makeCli(() => jsonResponse({}));
   const code = await run(["--timeout", "1e3", "roads"], cli.deps);

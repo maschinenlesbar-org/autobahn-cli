@@ -66,8 +66,7 @@ export function buildProgram(deps: CliDeps = defaultDeps): Command {
       "cap response body size in bytes (0 = unlimited; default 100 MiB)",
       parseIntArg,
     )
-    .option("--compact", "print JSON on a single line instead of pretty-printed")
-    .showHelpAfterError();
+    .option("--compact", "print JSON on a single line instead of pretty-printed");
 
   registerRoadsCommand(program, deps);
   registerServiceCommands(program, deps);

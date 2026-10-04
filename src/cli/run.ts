@@ -29,9 +29,13 @@ interface OutputSink {
  */
 function configureTree(command: Command, sink: OutputSink): void {
   command.exitOverride();
-  // Propagate showHelpAfterError to every subcommand so parse errors render the
-  // same depth of help everywhere, not just at the root.
-  command.showHelpAfterError();
+  // After a parse error, point at the command's own help in one line instead of
+  // printing the whole help (25+ lines for a root option), which scrolled the actual
+  // error off a small terminal or CI log. Set on every command: commander does not
+  // propagate it.
+  const path: string[] = [];
+  for (let c: Command | null = command; c !== null; c = c.parent) path.unshift(c.name());
+  command.showHelpAfterError(`(run "${path.join(" ")} --help" for usage)`);
   command.configureOutput({
     writeOut: (str) => sink.out.push(str.replace(/\n$/, "")),
     writeErr: (str) => sink.err.push(str.replace(/\n$/, "")),
