@@ -211,7 +211,11 @@ operator in `description` (`Ladesäulenbetreiber: …`), the other sites not at 
 **Detail payload.** The single-item response from a `get` is returned as a
 faithful raw `JsonObject` (`RoadworkDetail`, `WebcamDetail`, … are all aliases of
 `JsonObject`) rather than a partially-guessed type, because the detail shape
-varies and is not fully specified.
+varies and is not fully specified. The detail carries every field of every service: a
+field a listing item simply omits (`startTimestamp` on a short-term roadwork,
+`delayTimeValue`, `abnormalTrafficType`, `averageSpeed`, `source` outside warnings) is
+present as `null` in its detail. Compare a listing item and its detail with absent and
+`null` treated as the same.
 
 ---
 

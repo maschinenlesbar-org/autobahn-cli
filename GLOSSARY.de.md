@@ -223,7 +223,11 @@ gar nicht.
 **Detailantwort.** Die Antwort eines `get` auf einen einzelnen Eintrag wird als
 unverändertes rohes `JsonObject` zurückgegeben (`RoadworkDetail`, `WebcamDetail`, … sind
 allesamt Aliase von `JsonObject`) statt als teilweise geratener Typ, weil die Form der
-Details variiert und nicht vollständig spezifiziert ist.
+Details variiert und nicht vollständig spezifiziert ist. Die Detailantwort enthält jedes
+Feld aller Dienste: Ein Feld, das ein Listeneintrag einfach weglässt (`startTimestamp` bei
+einer Tagesbaustelle, `delayTimeValue`, `abnormalTrafficType`, `averageSpeed`, `source`
+außerhalb von Warnungen), steht in der Detailantwort als `null`. Vergleichen Sie Listeneintrag
+und Details so, dass fehlend und `null` dasselbe bedeuten.
 
 ---
 
