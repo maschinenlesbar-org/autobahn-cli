@@ -27,6 +27,9 @@ coordinate ordering across services) so Claude doesn't have to rediscover them e
   npm i -g @maschinenlesbar.org/autobahn-cli   # installs the `autobahn` bin
   ```
   No API key is required — the Autobahn App API is free, open, and read-only.
+- **[`jq`](https://jqlang.org/)** (optional) — **autobahn-route-check** filters with it. Without
+  `jq` the skill tells you it is missing and filters with `node -e` instead; it never
+  installs anything.
 
 ## Installation
 
