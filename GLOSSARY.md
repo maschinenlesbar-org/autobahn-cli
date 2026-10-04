@@ -90,7 +90,10 @@ fetch `<id>`.
 
 **Service listing.** The two-step access pattern of the API: `list(roadId)`
 returns the array of items for a service along a motorway; `get(identifier)` then
-fetches one item's full details by its identifier.
+fetches one item's full details by its identifier. A listing can include items of
+**another** motorway where the two meet: 10 of 239 A1 roadworks in October 2026 were
+titled for the A45, A255, A602 or A7 (works at an interchange or a feeder road). Read
+the road from the `title`/`description`, not from the id you queried.
 
 **Listing envelope.** A service-listing response is a JSON object that wraps its
 array under a single key named after the service —

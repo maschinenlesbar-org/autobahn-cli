@@ -89,7 +89,11 @@ sonst `<id>` abrufen.
 
 **Dienstliste.** Das zweistufige Zugriffsmuster der API: `list(roadId)` liefert das Array
 der Einträge eines Dienstes entlang einer Autobahn; `get(identifier)` ruft dann die
-vollständigen Details eines Eintrags über seine Kennung ab.
+vollständigen Details eines Eintrags über seine Kennung ab. Eine Liste kann Einträge
+einer **anderen** Autobahn enthalten, wo sich beide treffen: 10 von 239 Baustellen der
+A1 trugen im Oktober 2026 einen Titel der A45, A255, A602 oder A7 (Arbeiten an einem
+Autobahnkreuz oder Zubringer). Lesen Sie die Autobahn aus `title`/`description`, nicht
+aus der abgefragten Kennung.
 
 **Listenhülle.** Die Antwort einer Dienstliste ist ein JSON-Objekt, das sein Array unter
 einem einzigen, nach dem Dienst benannten Schlüssel ablegt –
