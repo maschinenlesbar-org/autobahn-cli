@@ -15,7 +15,7 @@ coordinate ordering across services) so Claude doesn't have to rediscover them e
 | Skill | What it does | Ask it… |
 |---|---|---|
 | **autobahn-route-check** | Merges warnings + closures + roadworks across one or more roads, separates active from planned, and ranks by severity. | "is the A3 clear?", "any problems on the A1 and A7 before I drive?" |
-| **autobahn-ev-planner** | Lists EV charging stations along a route, orders them along the corridor, and surfaces power / connector / operator detail. | "where can I charge on the A9?", "plan charging stops Munich → Berlin" |
+| **autobahn-ev-planner** | Lists EV charging stations along a route, orders them along the corridor, and surfaces power and connector detail (the operator where the data names it — Deutschlandnetz sites only). | "where can I charge on the A9?", "plan charging stops Munich → Berlin" |
 | **autobahn-map** | Exports any service (roadworks, closures, parking, charging…) as a valid GeoJSON `FeatureCollection` for Leaflet / geojson.io / QGIS. | "map the roadworks on the A99", "export A1 closures as GeoJSON" |
 
 ## Requirements
