@@ -113,12 +113,22 @@ test("a parse error (non-JSON body) maps to exit code 1", async () => {
 });
 
 test("an unexpected (non-Autobahn) error maps to exit code 1", async () => {
+  const cli = makeCli(() => jsonResponse({}));
+  cli.deps.createClient = () => {
+    throw new Error("kaboom");
+  };
+  const code = await run(["roads"], cli.deps);
+  assert.equal(code, 1);
+  assert.match(cli.err.join("\n"), /Unexpected error: kaboom/);
+});
+
+test("an error thrown by an injected transport is a network error, not 'Unexpected error'", async () => {
   const cli = makeCli(() => {
     throw new Error("kaboom");
   });
   const code = await run(["roads"], cli.deps);
   assert.equal(code, 1);
-  assert.match(cli.err.join("\n"), /Unexpected error: kaboom/);
+  assert.equal(cli.err.join("\n"), "Error: Request failed: kaboom");
 });
 
 test("--help exits 0", async () => {

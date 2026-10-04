@@ -6,6 +6,8 @@ import { MAX_TIMEOUT_MS, nodeHttpTransport, type Transport } from "./http.js";
 import { buildQueryString, type QueryParams } from "./query.js";
 import {
   AutobahnApiError,
+  AutobahnError,
+  AutobahnNetworkError,
   AutobahnNotFoundError,
   AutobahnParseError,
   AutobahnValidationError,
@@ -299,13 +301,23 @@ export class RequestEngine {
     let attempt = 0;
     // attempts = initial try + maxRetries
     for (;;) {
-      const response = await this.transport({
-        method,
-        url,
-        headers,
-        timeoutMs: this.timeoutMs,
-        ...(this.maxResponseBytes > 0 ? { maxResponseBytes: this.maxResponseBytes } : {}),
-      });
+      let response: Awaited<ReturnType<Transport>>;
+      try {
+        response = await this.transport({
+          method,
+          url,
+          headers,
+          timeoutMs: this.timeoutMs,
+          ...(this.maxResponseBytes > 0 ? { maxResponseBytes: this.maxResponseBytes } : {}),
+        });
+      } catch (cause) {
+        // The default transport rejects with AutobahnNetworkError only; an injected one
+        // may throw anything. Keep the library's error contract for both: a caller (and
+        // the CLI) can rely on every failure being an AutobahnError.
+        if (cause instanceof AutobahnError) throw cause;
+        const reason = cause instanceof Error ? cause.message : String(cause);
+        throw new AutobahnNetworkError(`Request failed: ${sanitizeServerText(reason)}`, { cause });
+      }
 
       const status = response.status;
       if (isRetryableStatus(status) && attempt < this.maxRetries) {

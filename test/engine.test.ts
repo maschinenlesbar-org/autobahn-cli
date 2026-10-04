@@ -136,6 +136,21 @@ test("a non-JSON body names its Content-Type when that is not JSON", async () =>
   }
 });
 
+test("an error thrown by a custom transport surfaces as AutobahnNetworkError with the cause", async () => {
+  const boom = new Error("boom");
+  for (const [thrown, message] of [[boom, "Request failed: boom"], ["plain string", "Request failed: plain string"]] as const) {
+    const e = new RequestEngine({ transport: async () => { throw thrown; } });
+    await assert.rejects(
+      () => e.getJson("/x"),
+      (err: unknown) => err instanceof AutobahnNetworkError && err.message === message && err.cause === thrown,
+    );
+  }
+  // An AutobahnError from the transport passes through unchanged.
+  const own = new AutobahnNetworkError("Request timed out after 5ms");
+  const e = new RequestEngine({ transport: async () => { throw own; } });
+  await assert.rejects(() => e.getJson("/x"), (err: unknown) => err === own);
+});
+
 test("a retried request that then succeeds resolves", async () => {
   let calls = 0;
   const mt = makeMockTransport(() => {
