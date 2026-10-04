@@ -34,7 +34,7 @@ autobahn --help
 ## Library usage
 
 ```ts
-import { AutobahnClient, AutobahnApiError } from "@maschinenlesbar.org/autobahn-cli";
+import { AutobahnClient, AutobahnApiError, AutobahnNotFoundError } from "@maschinenlesbar.org/autobahn-cli";
 
 const client = new AutobahnClient(); // defaults to https://verkehr.autobahn.de
 
@@ -45,7 +45,11 @@ const detail = await client.warnings.get(works[0]!.identifier!);
 try {
   await client.closures.get("DOES-NOT-EXIST");
 } catch (err) {
-  if (err instanceof AutobahnApiError) console.error(err.status, err.detail);
+  // The API answers an unknown identifier with an empty 200: AutobahnNotFoundError.
+  if (err instanceof AutobahnNotFoundError) console.error("no such closure");
+  // A non-2xx answer (502, 404, …) is an AutobahnApiError.
+  else if (err instanceof AutobahnApiError) console.error(err.status, err.detail);
+  else throw err;
 }
 ```
 
