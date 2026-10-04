@@ -152,7 +152,11 @@ JSON-**String** (`"10"`). Vor dem Sortieren oder Vergleichen in eine Zahl umwand
 Strings sortiert `"5"` vor `"37"`.
 
 **`display_type`.** Ein Typ- bzw. Kategoriehinweis, den die App zur Darstellung des
-Eintrags nutzt.
+Eintrags nutzt, und das beste Signal dafür, was ein Eintrag ist. Live beobachtete Werte:
+`ROADWORKS`, `SHORT_TERM_ROADWORKS`, `WARNING`, `CLOSURE`, `CLOSURE_ENTRY_EXIT`, `PARKING`,
+`ELECTRIC_CHARGING_STATION`, `STRONG_ELECTRIC_CHARGING_STATION`. `CLOSURE_ENTRY_EXIT` ist
+eine gesperrte Auf- oder Abfahrt an einer Anschlussstelle, keine gesperrte Fahrbahn, und
+macht den Großteil der Sperrungen einer Autobahn aus (48 von 54 auf der A1 im Oktober 2026).
 
 **`icon`, `footer`, `routeRecommendation`.** Anzeige-Metadaten: ein Icon-Schlüssel,
 Fußzeilen und etwaige Zeilen mit Umleitungsempfehlungen.

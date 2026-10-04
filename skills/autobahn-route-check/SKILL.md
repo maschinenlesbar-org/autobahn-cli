@@ -68,6 +68,7 @@ Each returns an array of items. The fields that matter for a briefing:
 |---|---|
 | `title` | Human label, usually `A1 \| <from> - <to>` |
 | `subtitle` | Direction, e.g. `Euskirchen -> Dortmund` |
+| `display_type` | What the item is. On closures: `CLOSURE` (the carriageway) or `CLOSURE_ENTRY_EXIT` (only a junction's on/off ramp — usually most of a road's closures) |
 | `isBlocked` | `"true"`/`"false"` string. `"true"` = carriageway blocked **right now**. **Unreliable on closures** — most listed closures carry `"false"` even when shut (see Step 4). Trust it on warnings/roadworks; corroborate it on closures. |
 | `future` | Boolean — `true` means the item is **planned/upcoming**, not active yet. The primary active-vs-planned signal. |
 | `description[]` | Multi-line German detail (start time, cause, length, delay). Often the only place the real time window appears. |
@@ -109,9 +110,14 @@ closures even when the road is shut. Classify like this:
 
 Then rank the **active** items, most severe first:
 
-1. **Closures** that are genuinely shutting the road — `isBlocked === "true"` **or** a
-   `description[]` that says full closure (`Vollsperrung`) / no through traffic. A plain
-   active closure entry without those is partial/lane-level — treat as mid severity.
+1. **Closures** that are genuinely shutting the road — `display_type === "CLOSURE"` with
+   `isBlocked === "true"` **or** a `description[]` that says full closure (`Vollsperrung`) /
+   no through traffic. A plain active `CLOSURE` entry without those is partial/lane-level —
+   treat as mid severity.
+   **Ramp closures** (`display_type === "CLOSURE_ENTRY_EXIT"`) close a junction's on- or
+   off-ramp, not the motorway — 48 of the 54 A1 closures in October 2026. Count them
+   separately, list one only when it is at a junction the user named, and never let them
+   make the road read as shut.
 2. **Warnings** by `delayTimeValue` as a number (higher = worse; it arrives as a string —
    `sort_by(.delayTimeValue | tonumber? // 0) | reverse`); `QUEUING_TRAFFIC` outranks
    `SLOW_TRAFFIC` at equal delay.
@@ -130,7 +136,7 @@ count, never a list — 200+ roadworks is normal and dumping them is useless.
 
 ```
 A1 — ⚠ drivable: no full blockages, a few short jams
-     (47 closures / 256 roadworks listed — none currently blocking)
+     (6 closures + 41 ramp closures / 256 roadworks listed — none currently blocking)
   🐢 +11 min  QUEUING  A1 Osnabrück → Bremen, Krummhörens Kuhlen–Bremen-Hemelingen
   🐢 +7 min   SLOW     A1 Euskirchen → Dortmund, Köln-Nord–Leverkusener Brücke
 
@@ -143,6 +149,8 @@ A7 — ✓ clear (no active closures or warnings; 1 background roadwork)
 ```
 
 Rules:
+- **Ramps are not the road.** Report ramp closures as a count ("41 ramp closures"), apart
+  from the carriageway closures.
 - **Cap enumeration.** List every active *blocking* closure/roadwork, and at most the top
   ~3–5 warnings by delay. Everything else is a number in the verdict line.
 - **Separate planned from active.** Tag upcoming items `(planned)` / with their start time;

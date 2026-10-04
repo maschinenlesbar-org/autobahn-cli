@@ -150,7 +150,12 @@ none: absent from listing items, `null` in the detail response.
 **string** (`"10"`). Convert it to a number before sorting or comparing: as strings,
 `"5"` sorts above `"37"`.
 
-**`display_type`.** A type/category hint the app uses to render the item.
+**`display_type`.** A type/category hint the app uses to render the item, and the
+best signal of what an item is. Values seen live: `ROADWORKS`, `SHORT_TERM_ROADWORKS`,
+`WARNING`, `CLOSURE`, `CLOSURE_ENTRY_EXIT`, `PARKING`, `ELECTRIC_CHARGING_STATION`,
+`STRONG_ELECTRIC_CHARGING_STATION`. `CLOSURE_ENTRY_EXIT` is a closed on- or off-ramp at a
+junction, not a closed carriageway, and makes up most of a road's closures (48 of 54 on
+the A1 in October 2026).
 
 **`icon`, `footer`, `routeRecommendation`.** Display metadata: an icon key,
 footer text lines, and any recommended-route lines.
