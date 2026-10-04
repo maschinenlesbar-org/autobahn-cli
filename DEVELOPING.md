@@ -71,7 +71,7 @@ new AutobahnClient({
 JavaScript typo such as `timeout` for `timeoutMs`) is rejected too — both as an
 `AutobahnValidationError`. The numeric options must be integers in range — `timeoutMs` 0..2³¹−1, `maxRetries`
 0..10 (`MAX_RETRIES`), `retryDelayMs` 0..30 000, `maxResponseBytes` 0..2⁵³−1 — or the
-constructor throws an `AutobahnError` naming the option (a negative or `NaN` timeout
+constructor throws an `AutobahnValidationError` naming the option (a negative or `NaN` timeout
 no longer silently disables the timeout).
 
 `baseUrl` must pass `baseUrlProblem` (exported): an absolute `http:`/`https:` URL with no
@@ -80,7 +80,9 @@ engine appends request paths to the raw string, so `"https://h/ "` would otherwi
 request `/%20/o/autobahn/`. Anything else makes the constructor throw an
 `AutobahnValidationError` (`Invalid option baseUrl: <reason>`) before any request; the
 CLI's `--base-url` parser applies the same function, and its default is
-`DEFAULT_BASE_URL`. Only an omitted (`undefined`) `baseUrl` or `userAgent` selects the
+`DEFAULT_BASE_URL`. The default `userAgent` is `DEFAULT_USER_AGENT`
+(`autobahn-cli/<version> (+https://github.com/maschinenlesbar-org/autobahn-cli)`, both
+exported). Only an omitted (`undefined`) `baseUrl` or `userAgent` selects the
 default; an empty string is rejected like `"  "`, as the CLI rejects `--base-url ""`.
 The reasons never repeat the value, and `run.ts` redacts the
 userinfo of a URL in commander's usage-error text (which echoes the rejected argument),
