@@ -178,7 +178,9 @@ Warnungen, Sperrungen und Baustellen der A1 auf `"false"`, auch bei Vollsperrung
 „frei“.
 
 **`future`.** Boolean – ob sich der Eintrag auf ein künftiges (noch nicht aktives)
-Ereignis bezieht, z. B. eine geplante Baustelle.
+Ereignis bezieht, z. B. eine geplante Baustelle. `true` ist verlässlich, `false` nicht: Bei 35
+von 51 Baustellen und Sperrungen mit `future: false` lagen alle Zeitfenster der Beschreibung
+noch in der Zukunft. Ob etwas jetzt aktiv ist, entscheiden die Zeitfenster der Beschreibung.
 
 **`startTimestamp`.** Beginn des Ereignisses bzw. Eintrags. Eine ISO-Zeit bei Baustellen,
 Warnungen und Sperrungen; bei Ladestationen ein deutsches Datum (`"30.03.2026"`,

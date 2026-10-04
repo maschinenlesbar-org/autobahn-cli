@@ -169,7 +169,9 @@ warnings, closures and roadworks in October 2026, including full closures
 (`Vollsperrung` in the description). Read `"false"` as "not stated", not as "open".
 
 **`future`.** Boolean — whether the item refers to a future (not yet active)
-event, e.g. planned roadworks.
+event, e.g. planned roadworks. `true` is reliable; `false` is not: on 35 of 51 roadworks and
+closures with `future: false`, every window in the description lay ahead. Decide "active now"
+from the description's windows.
 
 **`startTimestamp`.** When the event/item starts. An ISO time on roadworks, warnings
 and closures; a German date on charging stations (`"30.03.2026"`, DD.MM.YYYY, which

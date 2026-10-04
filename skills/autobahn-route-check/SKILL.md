@@ -73,7 +73,7 @@ Each returns an array of items. The fields that matter for a briefing:
 | `subtitle` | Direction, e.g. `" Euskirchen -> Dortmund"` — usually with a **leading space**; trim it before matching or splitting on `" -> "` |
 | `display_type` | What the item is. On closures: `CLOSURE` (the carriageway) or `CLOSURE_ENTRY_EXIT` (only a junction's on/off ramp — usually most of a road's closures) |
 | `isBlocked` | `"true"`/`"false"` string. `"true"` = blocked **right now** (a strong signal), but the API almost never sets it — `"false"` on every item seen in October 2026, `Vollsperrung` closures and accidents included. Read `"false"` as *no information*; judge blocking from `description[]`, `display_type` and `delayTimeValue` (Step 4). |
-| `future` | Boolean — `true` means the item is **planned/upcoming**, not active yet. The primary active-vs-planned signal. |
+| `future` | Boolean — `true` reliably means **planned/upcoming**. `false` does **not** mean active: it was `false` on 35 of 51 roadworks/closures whose windows all lay ahead. The `description[]` window is the active-vs-planned signal (Step 4). |
 | `description[]` | Multi-line German detail (start time, cause, length, delay). Often the only place the real time window appears. |
 | `delayTimeValue` | Minutes of delay (warnings) — use for severity. A JSON **string** (`"10"`, `"5"`): convert before sorting (`tonumber` in jq, `Number()` in node), or `"5"` ranks above `"37"` |
 | `abnormalTrafficType` | `QUEUING_TRAFFIC`, `SLOW_TRAFFIC`, `UNSPECIFIED_ABNORMAL_TRAFFIC` (warnings) — and **absent** on some warnings |
@@ -106,8 +106,8 @@ reporting the **whole road** rather than silently guessing a segment.
 First split every item into **active** vs **planned**, because the briefing leads with what's
 happening now. Classify like this:
 
-- **Planned** if `future === true`, or the `description[]` time window starts in the future
-  (or `startTimestamp`). Set these aside — count them, mention notable ones, but don't
+- **Planned** if `future === true`, or no `description[]` window covers now — check the
+  window even when `future` is `false` (or, without a window, `startTimestamp`). Set these aside — count them, mention notable ones, but don't
   rank them as live disruption. Roadworks and closures state the window in one of **two
   layouts**:
   - `Zeitraum dieser Bauphase:` then `Beginn: DD.MM.YY um HH:MM Uhr` and
