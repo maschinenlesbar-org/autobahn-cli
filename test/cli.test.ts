@@ -447,6 +447,20 @@ test("--timeout accepts up to the largest timer Node supports", async () => {
   assert.match(over.err.join("\n"), /from 0 to 2147483647/);
 });
 
+test("credentials in an http: base URL draw a cleartext warning; https: does not", async () => {
+  for (const [baseUrl, warned] of [
+    ["http://user:s3cret@mirror.example", true],
+    ["https://user:s3cret@mirror.example", false],
+    ["http://mirror.example", false],
+  ] as const) {
+    const cli = makeCli(() => jsonResponse({ roads: ["A1"] }));
+    assert.equal(await run(["--base-url", baseUrl, "roads"], cli.deps), 0, baseUrl);
+    const err = cli.err.join("\n");
+    assert.equal(/credentials in the base URL are sent unencrypted to mirror\.example/.test(err), warned, baseUrl);
+    assert.doesNotMatch(err, /s3cret/, baseUrl);
+  }
+});
+
 test("AUTOBAHN_BASE_URL sets the base URL; --base-url wins; a bad value is a usage error", async () => {
   const runWith = async (env: Record<string, string>, argv: string[]) => {
     const out: string[] = [];
@@ -623,7 +637,10 @@ test("credentials in --base-url are redacted from error messages", async () => {
   assert.equal(code, 1);
   // ...but still sent: the request URL keeps the userinfo (Node turns it into Basic auth).
   assert.equal(cli.mt.last().url, "http://user:s3cret@127.0.0.1:18103/s500/o/autobahn/");
-  assert.equal(cli.err.join("\n"), "Error: HTTP 500 for GET http://***@127.0.0.1:18103/s500/o/autobahn/: boom");
+  assert.deepEqual(cli.err, [
+    "warning: the credentials in the base URL are sent unencrypted to 127.0.0.1:18103 (http:, not https:)",
+    "Error: HTTP 500 for GET http://***@127.0.0.1:18103/s500/o/autobahn/: boom",
+  ]);
 });
 
 test("--max-retries is bounded to 0..10", async () => {
