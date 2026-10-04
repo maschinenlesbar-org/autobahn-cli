@@ -100,6 +100,18 @@ export const MAX_RETRIES = 10;
  */
 const MAX_DETAIL_LENGTH = 500;
 
+/** Why `value` is not a usable HttpResponse, or undefined when it is. */
+function responseProblem(value: unknown): string | undefined {
+  if (typeof value !== "object" || value === null) return "not an object";
+  const r = value as Partial<Record<"status" | "headers" | "body", unknown>>;
+  if (typeof r.status !== "number" || !Number.isInteger(r.status) || r.status < 100 || r.status > 599) {
+    return "status is not an HTTP status code";
+  }
+  if (typeof r.headers !== "object" || r.headers === null || Array.isArray(r.headers)) return "headers is not an object";
+  if (!Buffer.isBuffer(r.body)) return "body is not a Buffer";
+  return undefined;
+}
+
 /** Node error codes of a connection that broke off mid-request (`socket hang up` is ECONNRESET). */
 const TRANSIENT_NETWORK_CODES = new Set(["ECONNRESET", "EPIPE", "ECONNABORTED"]);
 
@@ -394,6 +406,14 @@ export class RequestEngine {
         );
       }
 
+      // An injected transport may resolve with anything; a malformed HttpResponse would
+      // otherwise surface below as a raw TypeError, outside the AutobahnError contract.
+      const invalid = responseProblem(response);
+      if (invalid !== undefined) {
+        throw new AutobahnNetworkError(
+          `${method} ${this.describeUrl(path, options.query)} failed: the transport returned an invalid response (${invalid}).`,
+        );
+      }
       const status = response.status;
       if (isRetryableStatus(status) && attempt < this.maxRetries) {
         attempt += 1;

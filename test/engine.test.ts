@@ -236,6 +236,25 @@ test("describeUrl describes any path without validating it", () => {
   assert.equal(withUser.describeUrl("/o/../x"), "https://***@h.example/api/x");
 });
 
+test("a malformed response from a custom transport is an AutobahnNetworkError, not a TypeError", async () => {
+  for (const [response, problem] of [
+    [{}, "status is not an HTTP status code"],
+    [null, "not an object"],
+    [{ status: 200, body: Buffer.from("{}") }, "headers is not an object"],
+    [{ status: 200, headers: {}, body: '{"roads":["A1"]}' }, "body is not a Buffer"],
+    [{ status: 1000, headers: {}, body: Buffer.alloc(0) }, "status is not an HTTP status code"],
+  ] as const) {
+    const e = new RequestEngine({ transport: async () => response as unknown as HttpResponse });
+    await assert.rejects(
+      () => e.getJson("/x"),
+      (err: unknown) =>
+        err instanceof AutobahnNetworkError &&
+        err.message === `GET https://verkehr.autobahn.de/x failed: the transport returned an invalid response (${problem}).`,
+      problem,
+    );
+  }
+});
+
 test("a retried request that then succeeds resolves", async () => {
   let calls = 0;
   const mt = makeMockTransport(() => {
