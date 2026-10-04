@@ -247,6 +247,7 @@ npm test          # builds, then runs `node --test` over dist/test
 - **`parity.test.ts`** — CLI ↔ library parity: the same input through `run()` and through the library must give the same outcome (both reject without a request with the same reason, or both send the same requests).
 - **`io.test.ts`** — the default I/O seam: EPIPE and other stdout/stderr write errors.
 - **`types.test.ts`** — compile-time checks of exported library types (e.g. `ServiceResource`).
+- **`package.test.ts`** — the published package: `npm pack --dry-run` must list the library, the bin, `version.js` and the licence documents, and no sources, tests, maps, skills or site.
 
 ## Continuous integration
 
