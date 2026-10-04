@@ -59,12 +59,12 @@ class ServiceResource<K extends string> {
     // other 2xx body (an error object, a bare array, a string, a non-array under the
     // key) is not "no items": treating it as [] would read as an all-clear.
     const items = isObject(body) ? body[this.key] : undefined;
-    if (!Array.isArray(items)) throw shapeError(path, `a JSON object with a ${this.key} array`);
+    if (!Array.isArray(items)) throw shapeError(this.engine.describeUrl(path), `a JSON object with a ${this.key} array`);
     // Every item the API lists is an object with a string identifier (the key for
     // get). Anything else would reach callers typed as AutobahnServiceItem and fail
     // later as a TypeError, or be skipped silently by a jq/node pipeline.
     if (!items.every((item) => isObject(item) && typeof item["identifier"] === "string")) {
-      throw shapeError(path, `every ${this.key} item to be a JSON object with a string identifier`);
+      throw shapeError(this.engine.describeUrl(path), `every ${this.key} item to be a JSON object with a string identifier`);
     }
     if (items.length === 0) await this.assertKnownRoad(id);
     return items as AutobahnServiceItem[];
@@ -109,14 +109,14 @@ class ServiceResource<K extends string> {
     const path = `${API_ROOT}/details/${this.service}/${enc(id)}`;
     // The detail endpoint answers an unknown identifier with 200 and an empty body.
     const body = await this.engine.getJson<unknown>(path, undefined, { emptyIsNotFound: true });
-    if (!isObject(body)) throw shapeError(path, "a JSON object");
+    if (!isObject(body)) throw shapeError(this.engine.describeUrl(path), "a JSON object");
     // The API echoes the identifier it resolved (checked live for every service). An
     // answer about another item would otherwise print with exit 0 as if it were the one
     // asked for.
     if (body["identifier"] !== id) {
       const got = typeof body["identifier"] === "string" ? quoteValue(body["identifier"]) : "none";
       throw new AutobahnParseError(
-        `Unexpected response from ${path}: asked for identifier ${quoteValue(id)}, got ${got}.`,
+        `Unexpected response from ${this.engine.describeUrl(path)}: asked for identifier ${quoteValue(id)}, got ${got}.`,
       );
     }
     return body as JsonObject;
@@ -161,7 +161,7 @@ export class AutobahnClient {
     const body = await this.engine.getJson<unknown>(path);
     const roads = isObject(body) ? body["roads"] : undefined;
     if (!Array.isArray(roads) || !roads.every((road) => typeof road === "string")) {
-      throw shapeError(path, "a JSON object with a roads array of strings");
+      throw shapeError(this.engine.describeUrl(path), "a JSON object with a roads array of strings");
     }
     const ids = (roads as RoadsResult["roads"]).map((id) => id.trim()).filter((id) => id !== "");
     return [...new Set(ids)];
@@ -183,6 +183,6 @@ function isObject(value: unknown): value is Record<string, unknown> {
 }
 
 /** The error for a 2xx body that lacks the shape the client relies on. */
-function shapeError(path: string, expected: string): AutobahnParseError {
-  return new AutobahnParseError(`Unexpected response shape from ${path}: expected ${expected}.`);
+function shapeError(url: string, expected: string): AutobahnParseError {
+  return new AutobahnParseError(`Unexpected response shape from ${url}: expected ${expected}.`);
 }

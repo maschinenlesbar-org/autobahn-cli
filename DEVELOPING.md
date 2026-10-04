@@ -170,7 +170,8 @@ characters, `url` keeps it whole), `AutobahnNetworkError`
 `userAgent`, a numeric option out of range or a blank, `.`/`..` or `/`-containing road
 id or identifier throws an `AutobahnValidationError` before any request),
 `AutobahnParseError` (bad JSON, or a 2xx body without the
-expected shape: `Unexpected response shape from <path>: expected …`), all extending
+expected shape: `Unexpected response shape from <url>: expected …`, the full request
+URL with userinfo redacted), all extending
 `AutobahnError`. `AutobahnNotFoundError` (a road id the API does not know; CLI
 exit `4`) extends `AutobahnError` too.
 
@@ -206,7 +207,7 @@ HTTP 200 and an empty body rather than a true `404`. For `get` (the engine's
 not-found: an `AutobahnNotFoundError` naming the status the server really sent (CLI
 exit `4`) — not an `AutobahnApiError` with an invented `404` — instead of a misleading
 parse error. Everywhere else an empty body raises
-`AutobahnParseError` (`Empty response body from <path>`, exit `1`).
+`AutobahnParseError` (`Empty response body from <url>`, exit `1`).
 
 ## Testing
 

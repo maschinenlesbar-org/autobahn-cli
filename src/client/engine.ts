@@ -275,6 +275,15 @@ export class RequestEngine {
     return `${this.baseUrl}${normalizedPath}${qs ? `?${qs}` : ""}`;
   }
 
+  /**
+   * The request URL as error messages show it: absolute (so a message names the host
+   * that gave a bad answer, which matters with a custom base URL), userinfo redacted
+   * and cut at MAX_MESSAGE_VALUE_LENGTH characters.
+   */
+  describeUrl(path: string, query?: QueryParams): string {
+    return cutForMessage(redactUrl(this.buildUrl(path, query)));
+  }
+
   /** Perform a request with Accept negotiation and transient-error retries. */
   async request(
     method: string,
@@ -333,7 +342,7 @@ export class RequestEngine {
     options: { emptyIsNotFound?: boolean } = {},
   ): Promise<T> {
     const res = await this.request("GET", path, { query, accept: "application/json" });
-    const text = decodeBody(res.data, res.contentType, path);
+    const text = decodeBody(res.data, res.contentType, this.describeUrl(path, query));
     if (text.trim() === "") {
       // Only the detail endpoint answers an unknown identifier with HTTP 200 and an
       // *empty* body rather than a 404, so only there (emptyIsNotFound) does an empty
@@ -341,11 +350,11 @@ export class RequestEngine {
       // HTTP 404: the server sent a 2xx, and the message says which. Elsewhere — the
       // road list, a service listing — it is a broken response, not a missing resource.
       if (!options.emptyIsNotFound) {
-        throw new AutobahnParseError(`Empty response body from ${path}`);
+        throw new AutobahnParseError(`Empty response body from ${this.describeUrl(path, query)}`);
       }
       throw new AutobahnNotFoundError(
         `Not found: the API answered HTTP ${res.status} with an empty body for GET ` +
-          cutForMessage(redactUrl(this.buildUrl(path, query))),
+          this.describeUrl(path, query),
       );
     }
     try {
@@ -355,7 +364,9 @@ export class RequestEngine {
       // so it reads as an upstream problem rather than a client bug.
       const type = res.contentType.split(";")[0]?.trim() ?? "";
       const hint = type !== "" && !/json/i.test(type) ? `: expected JSON, got Content-Type "${cleanDetail(type)}"` : "";
-      throw new AutobahnParseError(`Failed to parse JSON response from ${path}${hint}`, { cause });
+      throw new AutobahnParseError(`Failed to parse JSON response from ${this.describeUrl(path, query)}${hint}`, {
+        cause,
+      });
     }
   }
 
@@ -394,13 +405,13 @@ export class RequestEngine {
  * a valid answer into a parse error. An unknown charset label is an
  * AutobahnParseError.
  */
-function decodeBody(body: Buffer, contentType: string, path: string): string {
+function decodeBody(body: Buffer, contentType: string, url: string): string {
   const charset = /;\s*charset\s*=\s*"?([^";\s]+)"?/i.exec(contentType)?.[1] ?? "utf-8";
   let decoder: TextDecoder;
   try {
     decoder = new TextDecoder(charset);
   } catch {
-    throw new AutobahnParseError(`Unsupported response charset "${sanitizeServerText(charset)}" from ${path}.`);
+    throw new AutobahnParseError(`Unsupported response charset "${sanitizeServerText(charset)}" from ${url}.`);
   }
   return decoder.decode(body);
 }

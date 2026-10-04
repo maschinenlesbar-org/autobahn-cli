@@ -123,9 +123,9 @@ test("the error after the last retry says how many retries were made", async () 
 
 test("a non-JSON body names its Content-Type when that is not JSON", async () => {
   for (const [contentType, message] of [
-    ["text/html; charset=utf-8", 'Failed to parse JSON response from /x: expected JSON, got Content-Type "text/html"'],
-    ["application/json", "Failed to parse JSON response from /x"],
-    ["", "Failed to parse JSON response from /x"],
+    ["text/html; charset=utf-8", 'Failed to parse JSON response from https://verkehr.autobahn.de/x: expected JSON, got Content-Type "text/html"'],
+    ["application/json", "Failed to parse JSON response from https://verkehr.autobahn.de/x"],
+    ["", "Failed to parse JSON response from https://verkehr.autobahn.de/x"],
   ] as const) {
     const e = new RequestEngine({ transport: makeMockTransport(() => rawResponse("<html>maintenance</html>", contentType)).transport });
     await assert.rejects(
@@ -163,7 +163,7 @@ test("getJson drops a leading BOM and decodes by the Content-Type charset", asyn
   });
   await assert.rejects(
     () => e3.getJson("/x"),
-    (err: unknown) => err instanceof AutobahnParseError && err.message === 'Unsupported response charset "x-bogus" from /x.',
+    (err: unknown) => err instanceof AutobahnParseError && err.message === 'Unsupported response charset "x-bogus" from https://verkehr.autobahn.de/x.',
   );
 });
 

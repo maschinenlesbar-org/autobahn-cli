@@ -168,7 +168,7 @@ test("an empty listing for a road id the API does not know raises AutobahnNotFou
 test("a failing road-list check after an empty listing names the check, not just the road list endpoint", async () => {
   const cases: Array<[unknown, number, (cause: unknown) => boolean, string]> = [
     [{ message: "maintenance" }, 503, (c) => c instanceof AutobahnApiError && c.status === 503, "HTTP 503 for GET https://verkehr.autobahn.de/o/autobahn/: maintenance (after 2 retries)"],
-    [{ roads: ["A1", null] }, 200, (c) => c instanceof AutobahnParseError, "Unexpected response shape from /o/autobahn/: expected a JSON object with a roads array of strings."],
+    [{ roads: ["A1", null] }, 200, (c) => c instanceof AutobahnParseError, "Unexpected response shape from https://verkehr.autobahn.de/o/autobahn/: expected a JSON object with a roads array of strings."],
   ];
   for (const [roadsBody, status, isCause, reason] of cases) {
     const mt = makeMockTransport((req) =>
@@ -199,7 +199,7 @@ test("a listing item that is not an object with a string identifier raises Autob
       (err: unknown) =>
         err instanceof AutobahnParseError &&
         err.message ===
-          "Unexpected response shape from /o/autobahn/A1/services/roadworks: expected every roadworks item to be a JSON object with a string identifier.",
+          "Unexpected response shape from https://verkehr.autobahn.de/o/autobahn/A1/services/roadworks: expected every roadworks item to be a JSON object with a string identifier.",
       JSON.stringify(item),
     );
   }
@@ -218,7 +218,7 @@ test("a 2xx body without the expected envelope raises AutobahnParseError, not []
       (err: unknown) =>
         err instanceof AutobahnParseError &&
         err.message ===
-          "Unexpected response shape from /o/autobahn/A2/services/closure: expected a JSON object with a closure array.",
+          "Unexpected response shape from https://verkehr.autobahn.de/o/autobahn/A2/services/closure: expected a JSON object with a closure array.",
       JSON.stringify(body),
     );
   }
@@ -227,7 +227,7 @@ test("a 2xx body without the expected envelope raises AutobahnParseError, not []
       () => clientWith(constantJson(body)).roads(),
       (err: unknown) =>
         err instanceof AutobahnParseError &&
-        err.message === "Unexpected response shape from /o/autobahn/: expected a JSON object with a roads array of strings.",
+        err.message === "Unexpected response shape from https://verkehr.autobahn.de/o/autobahn/: expected a JSON object with a roads array of strings.",
       JSON.stringify(body),
     );
   }
@@ -256,7 +256,7 @@ test("get() rejects an answer about another item instead of returning it as the 
       assert.ok(err instanceof AutobahnParseError);
       assert.equal(
         (err as Error).message,
-        `Unexpected response from /o/autobahn/details/roadworks/abc: asked for identifier "abc", got ${got}.`,
+        `Unexpected response from https://verkehr.autobahn.de/o/autobahn/details/roadworks/abc: asked for identifier "abc", got ${got}.`,
       );
       return true;
     });
@@ -368,7 +368,7 @@ test("get() raises AutobahnParseError for a 2xx body that is not a JSON object",
       (err: unknown) =>
         err instanceof AutobahnParseError &&
         err.message ===
-          "Unexpected response shape from /o/autobahn/details/parking_lorry/DE-SL-000009: expected a JSON object.",
+          "Unexpected response shape from https://verkehr.autobahn.de/o/autobahn/details/parking_lorry/DE-SL-000009: expected a JSON object.",
       JSON.stringify(body),
     );
   }

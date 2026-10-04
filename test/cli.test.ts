@@ -343,7 +343,7 @@ test("a 2xx body without the service envelope exits 1 instead of printing []", a
   assert.deepEqual(cli.out, []);
   assert.equal(
     cli.err.join("\n"),
-    "Error: Unexpected response shape from /o/autobahn/A1/services/roadworks: expected a JSON object with a roadworks array.",
+    "Error: Unexpected response shape from https://verkehr.autobahn.de/o/autobahn/A1/services/roadworks: expected a JSON object with a roadworks array.",
   );
 });
 
@@ -393,6 +393,16 @@ test("a --base-url with a query, a fragment or surrounding whitespace is a usage
   }
 });
 
+test("parse and shape errors name the host that answered, credentials redacted", async () => {
+  const cli = makeCli(() => rawResponse("<html>maintenance</html>", "text/html"));
+  const code = await run(["--base-url", "https://user:s3cret@mirror.example/api", "roads"], cli.deps);
+  assert.equal(code, 1);
+  assert.equal(
+    cli.err.join("\n"),
+    'Error: Failed to parse JSON response from https://***@mirror.example/api/o/autobahn/: expected JSON, got Content-Type "text/html"',
+  );
+});
+
 test("a --base-url with a path prefix still works", async () => {
   const cli = makeCli(() => jsonResponse({ roads: ["A1"] }));
   assert.equal(await run(["--base-url", "https://mirror.example/autobahn/", "roads"], cli.deps), 0);
@@ -408,7 +418,7 @@ test("schema-violating bodies exit 1 with a parse error, not an 'Unexpected erro
   ] as const) {
     const cli = makeCli(() => jsonResponse(body));
     assert.equal(await run([...argv], cli.deps), 1, argv.join(" "));
-    assert.match(cli.err.join("\n"), /^Error: Unexpected response shape from \/o\/autobahn\//, argv.join(" "));
+    assert.match(cli.err.join("\n"), /^Error: Unexpected response shape from https:\/\/verkehr\.autobahn\.de\/o\/autobahn\//, argv.join(" "));
   }
 });
 
@@ -456,8 +466,8 @@ test("--user-agent that is blank or has control or non-Latin-1 characters is a u
 test("an empty body is not-found (exit 4) only for get; on roads/list it is a parse error (exit 1)", async () => {
   for (const [argv, code, message] of [
     [["roadworks", "get", "x"], 4, /^Error: Not found: the API answered HTTP 20[04] with an empty body for GET \S+\/o\/autobahn\/details\/roadworks\/x$/],
-    [["roads"], 1, /^Error: Empty response body from \/o\/autobahn\/$/],
-    [["roadworks", "list", "A1"], 1, /^Error: Empty response body from \/o\/autobahn\/A1\/services\/roadworks$/],
+    [["roads"], 1, /^Error: Empty response body from https:\/\/verkehr\.autobahn\.de\/o\/autobahn\/$/],
+    [["roadworks", "list", "A1"], 1, /^Error: Empty response body from https:\/\/verkehr\.autobahn\.de\/o\/autobahn\/A1\/services\/roadworks$/],
   ] as const) {
     for (const status of [200, 204]) {
       const cli = makeCli(() => rawResponse("", "application/json", status));
