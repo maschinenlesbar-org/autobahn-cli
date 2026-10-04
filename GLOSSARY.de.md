@@ -84,7 +84,10 @@ Sperrungen nutzen einfache Zeichenketten (`2026-006680--vi-fbm.…`), Parkplätz
 falschen Dienst: `roadworks get DE-SL-000009` liefert diesen Lkw-Parkplatz
 (`"display_type": "PARKING"`) mit Exit `0`. Verwenden Sie den Dienst, unter dem die
 Kennung gelistet war; `display_type` zeigt, was der Eintrag tatsächlich ist.
-Umgebende Leerzeichen werden vor der Anfrage entfernt (keine Kennung enthält welche).
+Die API wiederholt die aufgelöste Kennung; eine Antwort mit einer anderen (oder ohne)
+`identifier` löst `AutobahnParseError` aus (Exit `1`), statt einen anderen Eintrag
+auszugeben. Umgebende Leerzeichen werden vor der Anfrage entfernt (keine Kennung enthält
+welche).
 Eine Kennung mit `/` wird wie eine solche Autobahn-Kennung abgelehnt: `x/../<id>` würde
 sonst `<id>` abrufen.
 

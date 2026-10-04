@@ -10,7 +10,7 @@ import {
   AutobahnValidationError,
 } from "../src/client/errors.js";
 import type { AutobahnServiceItem } from "../src/client/types.js";
-import { makeMockTransport, jsonResponse, constantJson } from "./helpers.js";
+import { makeMockTransport, jsonResponse, constantJson, echoDetail } from "./helpers.js";
 
 function clientWith(mt: ReturnType<typeof makeMockTransport>): AutobahnClient {
   return new AutobahnClient({ transport: mt.transport });
@@ -54,7 +54,7 @@ test("charging.list uses the electric_charging_station service + key", async () 
 });
 
 test("warnings.get builds the details path and url-encodes the identifier", async () => {
-  const mt = constantJson({ identifier: "abc", title: "x" });
+  const mt = echoDetail({ title: "x" });
   await clientWith(mt).warnings.get("a b+c=");
   assert.equal(
     new URL(mt.last().url).pathname,
@@ -244,6 +244,22 @@ test("get() turns an empty 2xx body into AutobahnNotFoundError naming the real s
   }
 });
 
+test("get() rejects an answer about another item instead of returning it as the one asked for", async () => {
+  for (const [served, got] of [[{ identifier: "x" }, '"x"'], [{ title: "no id" }, "none"]] as const) {
+    const mt = constantJson(served);
+    await assert.rejects(() => clientWith(mt).roadworks.get("abc"), (err: unknown) => {
+      assert.ok(err instanceof AutobahnParseError);
+      assert.equal(
+        (err as Error).message,
+        `Unexpected response from /o/autobahn/details/roadworks/abc: asked for identifier "abc", got ${got}.`,
+      );
+      return true;
+    });
+  }
+  const echoed = await clientWith(echoDetail({ title: "t" })).roadworks.get(" abc ");
+  assert.deepEqual(echoed, { identifier: "abc", title: "t" });
+});
+
 test("a 404 raises AutobahnApiError with status 404", async () => {
   const mt = makeMockTransport(() => jsonResponse({ detail: "not found" }, 404));
   await assert.rejects(
@@ -317,7 +333,7 @@ test("an identifier containing / is rejected before any request instead of re-ta
 });
 
 test("ids that merely contain dots are still encoded and sent", async () => {
-  const mt = constantJson({ identifier: "x" });
+  const mt = echoDetail();
   await clientWith(mt).roadworks.get("2026-1.2.3");
   await clientWith(mt).roadworks.get("...");
   await clientWith(mt).roadworks.get("%2e%2e");

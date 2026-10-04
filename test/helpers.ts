@@ -63,6 +63,17 @@ export function constantJson(body: unknown, status = 200): MockTransport {
   return makeMockTransport(() => jsonResponse(body, status));
 }
 
+/**
+ * A transport answering every detail request with an item that echoes the requested
+ * identifier (the last path segment, decoded), as the API does, plus `extra` fields.
+ */
+export function echoDetail(extra: Record<string, unknown> = {}): MockTransport {
+  return makeMockTransport((req) => {
+    const segment = new URL(req.url).pathname.split("/").pop() ?? "";
+    return jsonResponse({ identifier: decodeURIComponent(segment), ...extra });
+  });
+}
+
 /** What the CLI did with one input: exit code, captured output, requests sent. */
 export interface CliOutcome {
   code: number;

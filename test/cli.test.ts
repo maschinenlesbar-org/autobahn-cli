@@ -88,6 +88,14 @@ test("get renders the detail object and exits 0", async () => {
   assert.deepEqual(JSON.parse(cli.out.join("\n")), { identifier: "x", title: "A1 webcam" });
 });
 
+test("get exits 1 when the API answers about another item", async () => {
+  const cli = makeCli(() => jsonResponse({ identifier: "x" }));
+  const code = await run(["webcams", "get", "abc"], cli.deps);
+  assert.equal(code, 1);
+  assert.deepEqual(cli.out, []);
+  assert.match(cli.err.join("\n"), /asked for identifier "abc", got "x"\.$/);
+});
+
 test("a network error maps to exit code 1", async () => {
   const cli = makeCli(() => {
     throw new AutobahnNetworkError("connect ECONNREFUSED");

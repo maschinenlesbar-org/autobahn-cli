@@ -118,7 +118,8 @@ class ServiceResource<K extends string> {
    * identifier the API issues has any, so a stray space from a copy-paste would
    * otherwise read as "not found". An identifier containing "/" is rejected like such a
    * road id (idProblem): `"x/../<id>"` would otherwise resolve to `<id>`. A 2xx body
-   * that is not a JSON object raises AutobahnParseError.
+   * that is not a JSON object, or one whose `identifier` is not the one asked for,
+   * raises AutobahnParseError.
    */
   async get(identifier: string): Promise<JsonObject> {
     const id = assertValid("identifier", requireSegment("identifier", identifier).trim(), idProblem);
@@ -126,6 +127,15 @@ class ServiceResource<K extends string> {
     // The detail endpoint answers an unknown identifier with 200 and an empty body.
     const body = await this.engine.getJson<unknown>(path, undefined, { emptyIsNotFound: true });
     if (!isObject(body)) throw shapeError(path, "a JSON object");
+    // The API echoes the identifier it resolved (checked live for every service). An
+    // answer about another item would otherwise print with exit 0 as if it were the one
+    // asked for.
+    if (body["identifier"] !== id) {
+      const got = typeof body["identifier"] === "string" ? JSON.stringify(body["identifier"]) : "none";
+      throw new AutobahnParseError(
+        `Unexpected response from ${path}: asked for identifier ${JSON.stringify(id)}, got ${got}.`,
+      );
+    }
     return body as JsonObject;
   }
 }
