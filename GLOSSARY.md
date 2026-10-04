@@ -255,6 +255,11 @@ trusted input). The error names the target — `…: redirect to <url> not follo
 or `redirect not followed (no Location header)` — so you can point `--base-url`
 there yourself.
 
+**Credentials in the base URL.** The API needs none, and the client sends none of its own.
+A `user:password@` written into `--base-url` (for a mirror behind a login) is sent to that
+host as HTTP Basic auth, as `curl` does. Because redirects are not followed, it never
+reaches another host, and it is redacted (`https://***@host`) from every message.
+
 **`maxResponseBytes`.** A hard cap on response body size (default 100 MiB; `0`
 disables) that defends against memory exhaustion from a hostile or buggy
 endpoint.

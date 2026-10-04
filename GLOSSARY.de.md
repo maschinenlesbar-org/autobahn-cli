@@ -268,6 +268,12 @@ vertrauenswürdige Eingabe gilt). Die Fehlermeldung nennt das Ziel –
 `…: redirect to <url> not followed` bzw. `redirect not followed (no Location header)` –,
 sodass Sie `--base-url` selbst dorthin richten können.
 
+**Zugangsdaten in der Basis-URL.** Die API braucht keine, und der Client sendet keine
+eigenen. Ein in `--base-url` geschriebenes `user:password@` (für einen Spiegel hinter einem
+Login) wird an diesen Host als HTTP-Basic-Auth gesendet, wie bei `curl`. Da
+Weiterleitungen nicht gefolgt wird, erreicht es nie einen anderen Host, und es wird in jeder
+Meldung unkenntlich gemacht (`https://***@host`).
+
 **`maxResponseBytes`.** Eine feste Obergrenze für die Größe des Antwort-Bodys (Standard
 100 MiB; `0` deaktiviert sie), die vor Speichererschöpfung durch einen böswilligen oder
 fehlerhaften Endpoint schützt.
