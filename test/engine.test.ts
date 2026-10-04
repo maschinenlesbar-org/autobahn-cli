@@ -255,6 +255,18 @@ test("a malformed response from a custom transport is an AutobahnNetworkError, n
   }
 });
 
+test("a transport or sleep that is not a function makes the constructor throw", () => {
+  for (const [options, message] of [
+    [{ transport: "nope" }, "Invalid option transport: expected a function, got string."],
+    [{ sleep: 5 }, "Invalid option sleep: expected a function, got number."],
+  ] as const) {
+    assert.throws(
+      () => new RequestEngine(options as unknown as ConstructorParameters<typeof RequestEngine>[0]),
+      (err: unknown) => err instanceof AutobahnValidationError && err.message === message,
+    );
+  }
+});
+
 test("a retried request that then succeeds resolves", async () => {
   let calls = 0;
   const mt = makeMockTransport(() => {

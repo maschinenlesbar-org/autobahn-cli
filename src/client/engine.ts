@@ -284,6 +284,19 @@ function intOption(name: string, value: number | undefined, fallback: number, ma
   return value;
 }
 
+/**
+ * Read a function option: `undefined` gives the default; anything else that is not a
+ * function throws. A string `transport` used to fail at the first request as a network
+ * error, and a bad `sleep` as a raw TypeError on the first retry.
+ */
+function functionOption<F extends (...args: never[]) => unknown>(name: string, value: F | undefined, fallback: F): F {
+  if (value === undefined) return fallback;
+  if (typeof value !== "function") {
+    throw new AutobahnValidationError(`Invalid option ${name}: expected a function, got ${typeof value}.`);
+  }
+  return value;
+}
+
 export class RequestEngine {
   private readonly baseUrl: string;
   private readonly transport: Transport;
@@ -303,7 +316,7 @@ export class RequestEngine {
     // default transport re-checks the scheme per hop; a custom transport may not.
     const baseUrl = assertValid("option baseUrl", options.baseUrl ?? DEFAULT_BASE_URL, baseUrlProblem);
     this.baseUrl = baseUrl.replace(/\/+$/, "");
-    this.transport = options.transport ?? nodeHttpTransport;
+    this.transport = functionOption("transport", options.transport, nodeHttpTransport);
     // Checked here, not first by Node at request time (as an AutobahnNetworkError).
     this.userAgent = assertValid("option userAgent", options.userAgent ?? DEFAULT_USER_AGENT, headerValueProblem);
     this.timeoutMs = intOption("timeoutMs", options.timeoutMs, 30_000, MAX_TIMEOUT_MS);
@@ -315,7 +328,7 @@ export class RequestEngine {
       DEFAULT_MAX_RESPONSE_BYTES,
       Number.MAX_SAFE_INTEGER,
     );
-    this.sleep = options.sleep ?? realSleep;
+    this.sleep = functionOption("sleep", options.sleep, realSleep);
   }
 
   /**
