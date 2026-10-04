@@ -117,6 +117,24 @@ function responseProblem(value: unknown): string | undefined {
   return undefined;
 }
 
+/**
+ * The response headers as a plain record. A transport built on `fetch` naturally returns
+ * its `Headers` object, which passes as an object but has no plain properties: the
+ * engine then saw no Retry-After and no Content-Type at all. Such an object (anything
+ * with `get` and `forEach`) is copied into a record; `Headers` already lower-cases names.
+ */
+function plainHeaders(headers: object): Record<string, string | string[] | undefined> {
+  const h = headers as { get?: unknown; forEach?: unknown };
+  if (typeof h.get === "function" && typeof h.forEach === "function") {
+    const record: Record<string, string> = {};
+    (h.forEach as (cb: (value: string, name: string) => void) => void).call(headers, (value, name) => {
+      record[name.toLowerCase()] = value;
+    });
+    return record;
+  }
+  return headers as Record<string, string | string[] | undefined>;
+}
+
 /** Node error codes of a connection that broke off mid-request (`socket hang up` is ECONNRESET). */
 const TRANSIENT_NETWORK_CODES = new Set(["ECONNRESET", "EPIPE", "ECONNABORTED"]);
 
@@ -465,12 +483,13 @@ export class RequestEngine {
         );
       }
       const status = response.status;
+      const responseHeaders = plainHeaders(response.headers);
       if (isRetryableStatus(status) && attempt < this.maxRetries) {
         attempt += 1;
         // Honour a Retry-After header when present, clamped to MAX_RETRY_AFTER_MS
         // so a pathological/hostile value can't hang the CLI; otherwise fall back
         // to linear backoff.
-        const retryAfter = parseRetryAfter(response.headers["retry-after"]);
+        const retryAfter = parseRetryAfter(responseHeaders["retry-after"]);
         const delay =
           retryAfter !== undefined
             ? Math.min(retryAfter, MAX_RETRY_AFTER_MS)
@@ -481,12 +500,13 @@ export class RequestEngine {
         continue;
       }
 
-      const contentType = String(response.headers["content-type"] ?? "");
+      const contentType = String(responseHeaders["content-type"] ?? "");
       if (status < 200 || status >= 300) {
-        throw this.toApiError(method, url, status, response.body, response.headers["location"], attempt);
+        const location = responseHeaders["location"];
+        throw this.toApiError(method, url, status, response.body, typeof location === "string" ? location : undefined, attempt);
       }
 
-      const contentEncoding = String(response.headers["content-encoding"] ?? "").trim();
+      const contentEncoding = String(responseHeaders["content-encoding"] ?? "").trim();
       return { data: response.body, contentType, contentEncoding, status };
     }
   }
