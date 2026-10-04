@@ -326,6 +326,12 @@ export class RequestEngine {
         `Invalid path segment "${dotSegment}" in ${normalizedPath}: "." and ".." cannot be used as an id.`,
       );
     }
+    return this.joinUrl(normalizedPath, query);
+  }
+
+  /** Base URL + path + query string, without buildUrl's validation. */
+  private joinUrl(path: string, query?: QueryParams): string {
+    const normalizedPath = path.startsWith("/") ? path : `/${path}`;
     const qs = query ? buildQueryString(query) : "";
     return `${this.baseUrl}${normalizedPath}${qs ? `?${qs}` : ""}`;
   }
@@ -333,10 +339,11 @@ export class RequestEngine {
   /**
    * The request URL as error messages show it: absolute (so a message names the host
    * that gave a bad answer, which matters with a custom base URL), userinfo redacted
-   * and cut at MAX_MESSAGE_VALUE_LENGTH characters.
+   * and cut at MAX_MESSAGE_VALUE_LENGTH characters. It never throws: describing a URL
+   * for a message or a log line does not validate it (buildUrl does).
    */
   describeUrl(path: string, query?: QueryParams): string {
-    return cutForMessage(redactUrl(this.buildUrl(path, query)));
+    return cutForMessage(redactUrl(this.joinUrl(path, query)));
   }
 
   /** Perform a request with Accept negotiation and transient-error retries. */

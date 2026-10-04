@@ -226,6 +226,16 @@ test("the default User-Agent names the client, its version and the project URL",
   assert.equal(DEFAULT_USER_AGENT, mt.last().headers?.["User-Agent"]);
 });
 
+test("describeUrl describes any path without validating it", () => {
+  const e = new RequestEngine({ baseUrl: "https://h.example/api" });
+  assert.equal(e.describeUrl("/o/./x"), "https://h.example/api/o/./x");
+  assert.equal(e.describeUrl("o/autobahn/"), "https://h.example/api/o/autobahn/");
+  assert.throws(() => e.buildUrl("/o/./x"), AutobahnValidationError);
+  // With userinfo the URL is redacted (and so normalised by URL parsing), still no throw.
+  const withUser = new RequestEngine({ baseUrl: "https://user:s3cret@h.example/api" });
+  assert.equal(withUser.describeUrl("/o/../x"), "https://***@h.example/api/x");
+});
+
 test("a retried request that then succeeds resolves", async () => {
   let calls = 0;
   const mt = makeMockTransport(() => {
