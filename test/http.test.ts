@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import http from "node:http";
+import net from "node:net";
 import { nodeHttpTransport } from "../src/client/http.js";
 import { RequestEngine } from "../src/client/engine.js";
 import { AutobahnNetworkError } from "../src/client/errors.js";
@@ -80,6 +81,22 @@ test("a reset connection is retried by the engine; a refused one is not", async 
   });
   await assert.rejects(() => refused.getJson("/o/autobahn/"), AutobahnNetworkError);
   assert.equal(calls, 1);
+});
+
+test("a malformed HTTP response is named as such, with the parser's text", async () => {
+  // Answer after the request arrives; answering at connect races the request write.
+  const server = net.createServer((socket) => socket.once("data", () => socket.end("garbage\r\n\r\n")));
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const addr = server.address() as net.AddressInfo;
+  try {
+    await assert.rejects(
+      () => nodeHttpTransport({ method: "GET", url: `http://127.0.0.1:${addr.port}/` }),
+      (err: unknown) =>
+        err instanceof AutobahnNetworkError && /^the server sent a malformed HTTP response \(.+\)$/.test(err.message),
+    );
+  } finally {
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+  }
 });
 
 test("rejects an unsupported protocol with AutobahnNetworkError", async () => {

@@ -148,7 +148,15 @@ export const nodeHttpTransport: Transport = (request) =>
 
     req.on("error", (err) => {
       // A timeout/deadline destroy already passes an AutobahnNetworkError; don't double-wrap.
-      settleReject(err instanceof AutobahnNetworkError ? err : new AutobahnNetworkError(err.message, { cause: err }));
+      if (err instanceof AutobahnNetworkError) return settleReject(err);
+      // Node's HTTP parser errors (code HPE_*) read "Parse Error: Expected HTTP/, RTSP/ or
+      // ICE/"; say what that means and keep the parser's text in brackets.
+      const code = (err as { code?: unknown }).code;
+      const message =
+        typeof code === "string" && code.startsWith("HPE_")
+          ? `the server sent a malformed HTTP response (${err.message})`
+          : err.message;
+      settleReject(new AutobahnNetworkError(message, { cause: err }));
     });
 
     if (request.body !== undefined) req.write(request.body);
