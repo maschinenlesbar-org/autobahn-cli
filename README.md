@@ -184,7 +184,7 @@ These apply to every command and may be given **before or after** it:
 
 | Option | Description |
 | --- | --- |
-| `-V, --version` | Print the version number (`-v` works too) |
+| `-V, --version` | Print the version number (`-v` works too, before the command only) |
 | `-h, --help` | Show help for the program or a command |
 | `--compact` | Print JSON on a single line instead of pretty-printed |
 | `--base-url <url>` | API base URL (default `https://verkehr.autobahn.de`); a `user:password@` in it is sent as HTTP Basic auth |

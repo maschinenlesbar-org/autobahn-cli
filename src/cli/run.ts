@@ -90,6 +90,8 @@ export interface ArgvScan {
   unknownCommand: boolean;
   /** Indexes of the help/version flags (DISPLAY_FLAGS) — never an option's value. */
   displayFlags: number[];
+  /** The hidden `-v` version alias follows a command (`autobahn roads -v`). */
+  versionAliasAfterCommand: boolean;
 }
 
 /**
@@ -103,13 +105,14 @@ export interface ArgvScan {
 export function scanArgv(program: Command, argv: string[]): ArgvScan {
   let command: Command | undefined = program;
   const path: Command[] = [program];
-  const scan: ArgvScan = { unknownCommand: false, displayFlags: [] };
+  const scan: ArgvScan = { unknownCommand: false, displayFlags: [], versionAliasAfterCommand: false };
   for (let i = 0; i < argv.length; i++) {
     const token = argv[i]!;
     if (token === "--") break;
     if (token.startsWith("-")) {
       if (DISPLAY_FLAGS.has(token)) {
         scan.displayFlags.push(i);
+        if (token === "-v" && path.length > 1) scan.versionAliasAfterCommand = true;
         continue;
       }
       if (token.includes("=")) continue;
@@ -147,6 +150,16 @@ export async function run(argv: string[], deps: CliDeps = defaultDeps): Promise<
   // drop the flag so commander reports `unknown command '<name>'` (exit 1) instead of
   // showing help or printing the version (exit 0) — a false success for a script.
   const scan = scanArgv(program, argv);
+  // `-v` is kept only as the old spelling of -V; after a command it is more likely a
+  // "verbose" guess, and printing the version would drop the command silently.
+  if (scan.versionAliasAfterCommand && !scan.unknownCommand) {
+    deps.io.err(
+      "error: -v is the version flag (use -V or --version); it only works before the command, " +
+        "and this CLI has no verbose mode",
+    );
+    deps.io.err('(run "autobahn --help" for usage)');
+    return 1;
+  }
   const args = scan.unknownCommand ? argv.filter((_, i) => !scan.displayFlags.includes(i)) : argv;
 
   try {

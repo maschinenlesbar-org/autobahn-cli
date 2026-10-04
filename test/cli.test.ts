@@ -161,6 +161,22 @@ test("list help names what it lists, and --max-retries help names the fallback b
   assert.match(cli.out.join("\n").replace(/\s+/g, " "), /else a short linear backoff from 200 ms/);
 });
 
+test("-v after a command is a usage error, not the version instead of the command", async () => {
+  for (const argv of [["roads", "-v"], ["roadworks", "list", "A1", "-v"], ["--compact", "roads", "-v"]]) {
+    const cli = makeCli(() => jsonResponse({ roads: ["A1"] }));
+    assert.equal(await run(argv, cli.deps), 1, argv.join(" "));
+    assert.equal(cli.out.length, 0, argv.join(" "));
+    assert.equal(cli.mt.calls.length, 0, argv.join(" "));
+    assert.match(cli.err.join("\n"), /^error: -v is the version flag \(use -V or --version\)/, argv.join(" "));
+  }
+  // Before the command it still prints the version; -V and --version work anywhere.
+  for (const argv of [["-v"], ["-v", "roads"], ["roads", "-V"], ["roads", "--version"]]) {
+    const cli = makeCli(() => jsonResponse({}));
+    assert.equal(await run(argv, cli.deps), 0, argv.join(" "));
+    assert.match(cli.out.join("\n"), /^\d+\.\d+\.\d+/, argv.join(" "));
+  }
+});
+
 test("-V, --version and the old -v all print the version; help shows -V", async () => {
   for (const flag of ["-V", "--version", "-v"]) {
     const cli = makeCli(() => jsonResponse({}));
