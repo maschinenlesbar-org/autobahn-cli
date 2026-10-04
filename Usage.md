@@ -165,7 +165,7 @@ Global options may be given **before or after** the command — both
 
 | Option | Description |
 | --- | --- |
-| `-v, --version` | Print the version number |
+| `-V, --version` | Print the version number (`-v` works too) |
 | `--base-url <url>` | API base URL (default `https://verkehr.autobahn.de`) |
 | `--timeout <ms>` | Per-request timeout in milliseconds (`0` disables) |
 | `--user-agent <ua>` | `User-Agent` header value |

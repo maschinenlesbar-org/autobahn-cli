@@ -143,6 +143,19 @@ test("list help names what it lists, and --max-retries help names the fallback b
   assert.match(cli.out.join("\n").replace(/\s+/g, " "), /else a short linear backoff from 200 ms/);
 });
 
+test("-V, --version and the old -v all print the version; help shows -V", async () => {
+  for (const flag of ["-V", "--version", "-v"]) {
+    const cli = makeCli(() => jsonResponse({}));
+    assert.equal(await run([flag], cli.deps), 0, flag);
+    assert.match(cli.out.join("\n"), /^\d+\.\d+\.\d+/, flag);
+    assert.equal(cli.mt.calls.length, 0, flag);
+  }
+  const help = makeCli(() => jsonResponse({}));
+  await run(["--help"], help.deps);
+  assert.match(help.out.join("\n"), /-V, --version/);
+  assert.doesNotMatch(help.out.join("\n"), /-v\b/);
+});
+
 test("--version exits 0", async () => {
   const cli = makeCli(() => jsonResponse({}));
   const code = await run(["--version"], cli.deps);

@@ -2,9 +2,10 @@
 // CliDeps so the entire CLI can be driven in tests with a mocked client and
 // captured output.
 
+import type { EventEmitter } from "node:events";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { Command } from "commander";
+import { Command, Option } from "commander";
 import type { CliDeps } from "./io.js";
 import { defaultIO } from "./io.js";
 import { AutobahnClient } from "../client/client.js";
@@ -47,7 +48,10 @@ export function buildProgram(deps: CliDeps = defaultDeps): Command {
       "CLI for the open Autobahn App API - roadworks, traffic warnings, " +
         "closures, lorry parking, webcams and charging stations.",
     )
-    .version(VERSION, "-v, --version", "output the version number")
+    // `-V, --version` as in the other maschinenlesbar CLIs (commander's default); `-v`,
+    // this CLI's flag up to 0.1.0, keeps working as a hidden alias.
+    .version(VERSION, "-V, --version", "output the version number")
+    .addOption(new Option("-v", "output the version number").hideHelp())
     .option("--base-url <url>", "API base URL", parseBaseUrl, DEFAULT_BASE_URL)
     .option(
       "--timeout <ms>",
@@ -67,6 +71,9 @@ export function buildProgram(deps: CliDeps = defaultDeps): Command {
       parseBoundedInt(0, Number.MAX_SAFE_INTEGER),
     )
     .option("--compact", "print JSON on a single line instead of pretty-printed");
+
+  // Command is an EventEmitter at runtime; commander's typings only expose on().
+  program.on("option:v", () => (program as unknown as EventEmitter).emit("option:version"));
 
   registerRoadsCommand(program, deps);
   registerServiceCommands(program, deps);
