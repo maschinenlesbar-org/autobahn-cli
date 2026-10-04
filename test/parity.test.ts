@@ -28,7 +28,7 @@ test("parity: a base URL with surrounding whitespace is rejected by CLI and libr
       () => jsonResponse({ roads: ["A1"] }),
     );
     const label = JSON.stringify(baseUrl);
-    assert.equal(cli.code, 1, label);
+    assert.equal(cli.code, 2, label);
     assert.deepEqual(cli.requests, [], label);
     assert.equal(lib.ok, false, label);
     assert.deepEqual(lib.requests, [], label);
@@ -49,7 +49,7 @@ test("parity: a blank, dot or slash road id or identifier is rejected by CLI and
         () => jsonResponse({ roadworks: [{ identifier: "a" }], identifier: "a" }),
       );
       const label = `${name}=${JSON.stringify(id)}`;
-      assert.equal(cli.code, 1, label);
+      assert.equal(cli.code, 2, label);
       assert.deepEqual(cli.requests, [], label);
       assert.equal(lib.ok, false, label);
       assert.deepEqual(lib.requests, [], label);
@@ -96,7 +96,7 @@ test("parity: CLI and library reject a bad base URL with the same reason, and ne
       () => jsonResponse({ roads: ["A1"] }),
     );
     const label = JSON.stringify(baseUrl);
-    assert.equal(cli.code, 1, label);
+    assert.equal(cli.code, 2, label);
     assert.deepEqual(cli.requests, [], label);
     assert.equal(lib.ok, false, label);
     assert.deepEqual(lib.requests, [], label);
@@ -119,7 +119,7 @@ test("parity: an empty baseUrl or userAgent is rejected by CLI and library alike
         () => jsonResponse({ roads: ["A1"] }),
       );
       const label = `${option}=${JSON.stringify(value)}`;
-      assert.equal(cli.code, 1, label);
+      assert.equal(cli.code, 2, label);
       assert.deepEqual(cli.requests, [], label);
       assert.equal(lib.ok, false, label);
       assert.deepEqual(lib.requests, [], label);

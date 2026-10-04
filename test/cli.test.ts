@@ -164,12 +164,12 @@ test("list help names what it lists, and --max-retries help names the fallback b
 test("combined short flags are read like separate ones by the -v and unknown-command rules", async () => {
   for (const argv of [["roads", "-vh"], ["roads", "-hv"]]) {
     const cli = makeCli(() => jsonResponse({ roads: ["A1"] }));
-    assert.equal(await run(argv, cli.deps), 1, argv.join(" "));
+    assert.equal(await run(argv, cli.deps), 2, argv.join(" "));
     assert.equal(cli.out.length, 0, argv.join(" "));
     assert.match(cli.err.join("\n"), /^error: the version flag \(-V, --version, or -v\) only works before the command/, argv.join(" "));
   }
   const unknown = makeCli(() => jsonResponse({}));
-  assert.equal(await run(["bogus", "-hV"], unknown.deps), 1);
+  assert.equal(await run(["bogus", "-hV"], unknown.deps), 2);
   assert.match(unknown.err.join("\n"), /unknown command 'bogus'/);
 });
 
@@ -183,7 +183,7 @@ test("a version flag after a command is a usage error, not the version instead o
     ["--user-agent", "-v", "roads", "-V"],
   ]) {
     const cli = makeCli(() => jsonResponse({ roads: ["A1"] }));
-    assert.equal(await run(argv, cli.deps), 1, argv.join(" "));
+    assert.equal(await run(argv, cli.deps), 2, argv.join(" "));
     assert.equal(cli.out.length, 0, argv.join(" "));
     assert.equal(cli.mt.calls.length, 0, argv.join(" "));
     assert.match(cli.err.join("\n"), /^error: the version flag \(-V, --version, or -v\) only works before the command/, argv.join(" "));
@@ -274,10 +274,10 @@ test("a bare command group prints its help to stdout, exit 0", async () => {
   assert.match(cli.out.join("\n"), /list|get/);
 });
 
-test("an unknown command still errors on stderr with exit 1", async () => {
+test("an unknown command still errors on stderr with exit 2", async () => {
   const cli = makeCli(() => jsonResponse({}));
   const code = await run(["bogus"], cli.deps);
-  assert.equal(code, 1);
+  assert.equal(code, 2);
   assert.equal(cli.out.length, 0);
   assert.match(cli.err.join("\n"), /unknown command 'bogus'/);
 });
@@ -285,7 +285,7 @@ test("an unknown command still errors on stderr with exit 1", async () => {
 test("a help or version flag that is an option's value is kept", async () => {
   for (const flag of ["-h", "--help", "-V"]) {
     const cli = makeCli(() => jsonResponse({}));
-    assert.equal(await run(["--user-agent", flag, "bogus"], cli.deps), 1, flag);
+    assert.equal(await run(["--user-agent", flag, "bogus"], cli.deps), 2, flag);
     assert.equal(cli.out.length, 0, flag);
     assert.match(cli.err.join("\n"), /unknown command 'bogus'/, flag);
   }
@@ -294,16 +294,16 @@ test("a help or version flag that is an option's value is kept", async () => {
   assert.equal(known.mt.last().headers?.["User-Agent"], "-h");
 });
 
-test("an unknown command with a version flag is an unknown command (exit 1), not the version", async () => {
+test("an unknown command with a version flag is an unknown command (exit 2), not the version", async () => {
   for (const argv of [["services", "--version"], ["bogus", "-V"], ["-v", "services"], ["roadworks", "foo", "-V"]]) {
     const cli = makeCli(() => jsonResponse({}));
-    assert.equal(await run(argv, cli.deps), 1, argv.join(" "));
+    assert.equal(await run(argv, cli.deps), 2, argv.join(" "));
     assert.equal(cli.out.length, 0, argv.join(" "));
     assert.match(cli.err.join("\n"), /unknown command '(services|bogus|foo)'/, argv.join(" "));
   }
 });
 
-test("an unknown command with --help is still an unknown command (exit 1), not help", async () => {
+test("an unknown command with --help is still an unknown command (exit 2), not help", async () => {
   for (const argv of [
     ["services", "--help"],
     ["-h", "services"],
@@ -312,7 +312,7 @@ test("an unknown command with --help is still an unknown command (exit 1), not h
   ]) {
     const cli = makeCli(() => jsonResponse({}));
     const code = await run(argv, cli.deps);
-    assert.equal(code, 1, argv.join(" "));
+    assert.equal(code, 2, argv.join(" "));
     assert.match(cli.err.join("\n"), /unknown command '(services|foo)'/, argv.join(" "));
   }
   for (const argv of [["roadworks", "--help"], ["--base-url", "https://example.test", "roads", "--help"]]) {
@@ -341,7 +341,7 @@ test("help suggests the closest command for a typo, like commander does", async 
     [["roadworks", "help", "gte"], "(Did you mean get?)"],
   ] as const) {
     const cli = makeCli(() => jsonResponse({}));
-    assert.equal(await run([...argv], cli.deps), 1, argv.join(" "));
+    assert.equal(await run([...argv], cli.deps), 2, argv.join(" "));
     assert.equal(cli.err.join("\n").split("\n")[1], hint, argv.join(" "));
   }
   const far = makeCli(() => jsonResponse({}));
@@ -366,12 +366,12 @@ test("help walks the whole command path and rejects an unknown name", async () =
     [["roadworks", "help", "list", "extra"], "error: 'autobahn roadworks list' has no subcommands (got 'extra')"],
   ] as const) {
     const cli = makeCli(() => jsonResponse({}));
-    assert.equal(await run([...argv], cli.deps), 1, argv.join(" "));
+    assert.equal(await run([...argv], cli.deps), 2, argv.join(" "));
     assert.equal(cli.err.join("\n").split("\n")[0], message, argv.join(" "));
   }
   for (const argv of [["help", "foo"], ["help", "roadworks", "bogus"], ["roadworks", "help", "bogus"]]) {
     const cli = makeCli(() => jsonResponse({}));
-    assert.equal(await run(argv, cli.deps), 1, argv.join(" "));
+    assert.equal(await run(argv, cli.deps), 2, argv.join(" "));
     assert.match(cli.err.join("\n"), /^error: unknown command '(foo|bogus)'/, argv.join(" "));
   }
   const root = makeCli(() => jsonResponse({}));
@@ -386,7 +386,7 @@ test("a usage error is the error plus a one-line pointer to the command's help, 
     [["bogus"], '(run "autobahn --help" for usage)'],
   ] as const) {
     const cli = makeCli(() => jsonResponse({}));
-    assert.equal(await run([...argv], cli.deps), 1, argv.join(" "));
+    assert.equal(await run([...argv], cli.deps), 2, argv.join(" "));
     const lines = cli.err.join("\n").split("\n");
     assert.equal(lines.length, 2, argv.join(" "));
     assert.match(lines[0]!, /^error: /, argv.join(" "));
@@ -418,7 +418,7 @@ test("--timeout accepts up to the largest timer Node supports", async () => {
 
   // Commander parse errors exit 1 in this CLI.
   const over = makeCli(() => jsonResponse({ roads: [] }));
-  assert.equal(await run(["--timeout", "2147483648", "roads"], over.deps), 1);
+  assert.equal(await run(["--timeout", "2147483648", "roads"], over.deps), 2);
   assert.equal(over.mt.calls.length, 0);
   assert.match(over.err.join("\n"), /from 0 to 2147483647/);
 });
@@ -460,19 +460,19 @@ test("global options flow through to the client engine", async () => {
   assert.equal(new URL(mt.last().url).origin, "https://example.test");
 });
 
-test("a road id of .. exits 1 without a request instead of printing another endpoint's answer", async () => {
+test("a road id of .. exits 2 without a request instead of printing another endpoint's answer", async () => {
   const cli = makeCli(() => jsonResponse({ roadworks: [] }));
   const code = await run(["--compact", "roadworks", "list", ".."], cli.deps);
-  assert.equal(code, 1);
+  assert.equal(code, 2);
   assert.equal(cli.mt.calls.length, 0);
   assert.deepEqual(cli.out, []);
   assert.match(cli.err.join("\n"), /^error: command-argument value '\.\.' is invalid for argument 'roadId'\. "\." and "\.\." are not ids\./);
 });
 
-test("a road id with / exits 1 without a request instead of printing another road's data", async () => {
+test("a road id with / exits 2 without a request instead of printing another road's data", async () => {
   const cli = makeCli(() => jsonResponse({ roadworks: [{ identifier: "a" }] }));
   const code = await run(["--compact", "roadworks", "list", "A1/../A2"], cli.deps);
-  assert.equal(code, 1);
+  assert.equal(code, 2);
   assert.equal(cli.mt.calls.length, 0);
   assert.deepEqual(cli.out, []);
   assert.match(cli.err.join("\n"), /is invalid for argument 'roadId'\. An id cannot contain "\/"/);
@@ -529,7 +529,7 @@ test("a --base-url with a query, a fragment or surrounding whitespace is a usage
   ] as const) {
     const cli = makeCli(() => jsonResponse({ roads: ["A1"] }));
     const code = await run(["--base-url", baseUrl, "roads"], cli.deps);
-    assert.equal(code, 1, baseUrl);
+    assert.equal(code, 2, baseUrl);
     assert.equal(cli.mt.calls.length, 0, baseUrl);
     assert.match(cli.err.join("\n"), message, baseUrl);
   }
@@ -574,7 +574,7 @@ test("credentials in --base-url are redacted from error messages", async () => {
 });
 
 test("--max-retries is bounded to 0..10", async () => {
-  for (const [value, code] of [["0", 0], ["10", 0], ["11", 1], ["9007199254740991", 1]] as const) {
+  for (const [value, code] of [["0", 0], ["10", 0], ["11", 2], ["9007199254740991", 2]] as const) {
     const cli = makeCli(() => jsonResponse({ roads: ["A1"] }));
     assert.equal(await run(["--max-retries", value, "roads"], cli.deps), code, value);
     if (code !== 0) {
@@ -596,7 +596,7 @@ test("--user-agent that is blank or has control or non-Latin-1 characters is a u
   ] as const) {
     const cli = makeCli(() => jsonResponse({ roads: ["A1"] }));
     const code = await run(["--user-agent", ua, "roads"], cli.deps);
-    assert.equal(code, 1, JSON.stringify(ua));
+    assert.equal(code, 2, JSON.stringify(ua));
     assert.equal(cli.mt.calls.length, 0, JSON.stringify(ua));
     assert.match(cli.err.join("\n"), message, JSON.stringify(ua));
   }
@@ -632,7 +632,7 @@ test("bidi formatting characters in server data are escaped in the JSON output",
   }
 });
 
-test("an AutobahnValidationError raised in an action is a usage error: exit 1, 'Error: <message>'", async () => {
+test("an AutobahnValidationError raised in an action is a usage error: exit 2, 'Error: <message>'", async () => {
   const out: string[] = [];
   const err: string[] = [];
   const client = new AutobahnClient({ transport: makeMockTransport(() => jsonResponse({})).transport });
@@ -643,7 +643,7 @@ test("an AutobahnValidationError raised in an action is a usage error: exit 1, '
     io: { out: (s) => out.push(s), err: (s) => err.push(s) },
     createClient: () => client,
   });
-  assert.equal(code, 1);
+  assert.equal(code, 2);
   assert.deepEqual(out, []);
   assert.deepEqual(err, ["Error: Invalid roadId: Expected a non-empty value."]);
 });
@@ -655,7 +655,7 @@ test("commander's 'Did you mean' hint stays on its own line", async () => {
     [["roadworks", "lst", "A1"], "error: unknown command 'lst'", "(Did you mean list?)"],
   ] as const) {
     const cli = makeCli(() => jsonResponse({}));
-    assert.equal(await run([...argv], cli.deps), 1, argv.join(" "));
+    assert.equal(await run([...argv], cli.deps), 2, argv.join(" "));
     const lines = cli.err.join("\n").split("\n");
     assert.deepEqual(lines.slice(0, 2), [first, hint], argv.join(" "));
     assert.doesNotMatch(cli.err.join("\n"), /\\u000a/, argv.join(" "));
@@ -671,7 +671,7 @@ test("ids echoed in error messages carry no raw control, C1 or bidi characters",
   const ESC = String.fromCharCode(0x1b);
   // Rejected by the parser: commander repeats the argument.
   const rejected = makeCli(() => jsonResponse({ roadworks: [] }));
-  assert.equal(await run(["roadworks", "list", `A1/${RLO}x\nError: forged${ESC}[2J`], rejected.deps), 1);
+  assert.equal(await run(["roadworks", "list", `A1/${RLO}x\nError: forged${ESC}[2J`], rejected.deps), 2);
   const rejectedErr = rejected.err.join("\n");
   assert.match(rejectedErr, /value 'A1\/\\u202ex\\u000aError: forged\\u001b\[2J' is invalid/);
   // Accepted, then echoed by the library (an identifier the API answers about another item).
@@ -694,7 +694,7 @@ test("redactUserinfo hides the userinfo of every URL in a line and leaves other 
 
 test("a rejected --base-url keeps its usage error but not its credentials", async () => {
   const cli = makeCli(() => jsonResponse({ roads: ["A1"] }));
-  assert.equal(await run(["--base-url", "ftp://user:s3cret@h.example", "roads"], cli.deps), 1);
+  assert.equal(await run(["--base-url", "ftp://user:s3cret@h.example", "roads"], cli.deps), 2);
   assert.equal(cli.mt.calls.length, 0);
   assert.equal(
     cli.err[0],

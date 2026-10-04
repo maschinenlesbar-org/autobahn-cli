@@ -196,7 +196,7 @@ message `Invalid <name>: <reason>`; a method that returns a promise rejects with
 CLI's option and argument parsers call the same `…Problem` functions (`parseId` wraps
 `idProblem` for the `<roadId>`/`<identifier>` arguments), so an input gets the same
 outcome on both sides, and `run.ts` reports an `AutobahnValidationError` raised in an
-action as a usage error (`Error: <message>`, exit `1`).
+action as a usage error (`Error: <message>`, exit `2`, like commander's own parse errors).
 
 **Retry / backoff.** Transient `429` (rate-limited), `503` (service
 unavailable) and the gateway errors `502`/`504` are retried automatically with backoff, up to `maxRetries`

@@ -294,8 +294,9 @@ Meldung unkenntlich gemacht (`https://***@host`).
 fehlerhaften Endpoint schützt.
 
 **Exit-Codes.** `0` bei Erfolg (inkl. `--help`/`--version`); `4` bei „nicht gefunden“
-(ein `get` mit Antwort `404` oder leerem Body, oder eine unbekannte Autobahn-Kennung); `1`
-bei jedem anderen API-, Netzwerk- oder Parse-Fehler sowie bei Bedienfehlern – auch bei
+(ein `get` mit Antwort `404` oder leerem Body, oder eine unbekannte Autobahn-Kennung); `2`
+bei einem Bedienfehler (ein Befehl, eine Option oder ein Argument, vor jeder Anfrage
+abgelehnt); `1` bei jedem anderen API-, Netzwerk- oder Parse-Fehler – auch bei
 einem `404` der Autobahnliste oder einer Dienstliste, die auf eine gültige Anfrage nie
 `404` antworten; er bedeutet eine falsche Basis-URL.
 

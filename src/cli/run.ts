@@ -147,6 +147,13 @@ export function scanArgv(program: Command, argv: string[]): ArgvScan {
   return scan;
 }
 
+/**
+ * Exit code of a usage error — a command, option or argument the CLI rejects before any
+ * request. Distinct from 1 (an API, network or parse failure), so a script or skill can
+ * tell "fix the command" from "the upstream failed" without reading stderr.
+ */
+export const USAGE_ERROR = 2;
+
 export async function run(argv: string[], deps: CliDeps = defaultDeps): Promise<number> {
   const program = buildProgram(deps);
   const sink: OutputSink = { out: [], err: [] };
@@ -176,7 +183,7 @@ export async function run(argv: string[], deps: CliDeps = defaultDeps): Promise<
         "(`autobahn --version`); this CLI has no verbose mode",
     );
     deps.io.err('(run "autobahn --help" for usage)');
-    return 1;
+    return USAGE_ERROR;
   }
   // `help <path> --help` asks for the help of <path>, which the help command prints;
   // left in, commander would answer the --help with the help command's own help.
@@ -193,12 +200,13 @@ export async function run(argv: string[], deps: CliDeps = defaultDeps): Promise<
       // help from an explicit `--help` ("commander.helpDisplayed") or from a bare
       // invocation / global-flag-only / bare command group ("commander.help"), or
       // the version from `--version` — so we exit 0. Help written for those bare
-      // forms lands on writeErr, so route it to stdout to match `--help`. Genuine
-      // parse errors keep their own non-zero exit code and stay on stderr.
+      // forms lands on writeErr, so route it to stdout to match `--help`. Every other
+      // commander error is a usage error (unknown command or option, a rejected or
+      // missing argument): exit 2, on stderr.
       const isHelp =
         err.code === "commander.help" || err.code === "commander.helpDisplayed";
       flush(isHelp);
-      return isHelp ? 0 : err.exitCode;
+      return isHelp || err.exitCode === 0 ? 0 : USAGE_ERROR;
     }
     flush(false);
     if (err instanceof AutobahnApiError) {
@@ -209,9 +217,9 @@ export async function run(argv: string[], deps: CliDeps = defaultDeps): Promise<
     }
     if (err instanceof AutobahnValidationError) {
       // An input the library rejected before any request: a usage error, which
-      // exits 1 here like commander's own parse errors.
+      // exits 2 like commander's own parse errors.
       deps.io.err(`Error: ${err.message}`);
-      return 1;
+      return USAGE_ERROR;
     }
     if (err instanceof AutobahnNotFoundError) {
       // e.g. an unknown road id: not found, like a 404.

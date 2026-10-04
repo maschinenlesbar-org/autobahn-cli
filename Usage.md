@@ -183,5 +183,6 @@ Commands: `roads`, and the six service groups `roadworks`, `webcams`,
 
 Exit codes: `0` success, `4` not found (`get` matched nothing or answered `404` /
 unknown road id in `list`),
-`1` any other API, network, parse, or usage error — including a `404` from `roads` or
+`2` usage error (a command, option or argument rejected before any request),
+`1` any other API, network or parse error — including a `404` from `roads` or
 a `list`, which means a wrong `--base-url`.

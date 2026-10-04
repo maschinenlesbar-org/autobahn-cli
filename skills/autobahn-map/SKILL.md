@@ -29,7 +29,7 @@ key, **one motorway + one service per call**. Always `--compact`. Services: `roa
 road id (ids are case-sensitive) exits `4` with `Unknown road id …` instead. Any other
 non-zero exit (`1`: an HTTP error, a timeout, a parse error) means that road/service could
 not be fetched: retry it once, and if it fails again leave it out of the file **and tell
-the user which layer is missing** — never present the export as complete. A **usage error** is exit `1` too, but its stderr starts with lowercase `error:` (`error: command-argument value 'A1/' is invalid …`) — that is a bad input, not an upstream failure: fix the command, don't retry it or report the service as unavailable.
+the user which layer is missing** — never present the export as complete. Exit `2` is a **usage error** (`error: command-argument value 'A1/' is invalid …`) — a bad input, not an upstream failure: fix the command, don't retry it or report the service as unavailable.
 
 ## Step 1 — Fetch
 
