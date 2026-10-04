@@ -66,7 +66,7 @@ Each returns an array of items. The fields that matter for a briefing:
 
 | Field | Meaning |
 |---|---|
-| `title` | Human label, usually `A1 \| <from> - <to>` |
+| `title` | Human label, often `A1 \| <from> - <to>` (its `description[]` repeats the stretch as `A1: <direction>, zwischen … und …`). About a quarter of roadworks titles have **no `\|`**: they name a project or an interchange (`AK Leverkusen`, `A45 - Ersatzneubau Kreuzungsbauwerk A1-A45 …`), mostly ramp works (`Auffahrt auf die A45: …` / `Abfahrt von der A1: …` in `description[]`), and carry no from–to stretch. Label those by the title plus a non-empty `subtitle`; don't split on `\|` or invent a stretch |
 | `subtitle` | Direction, e.g. `" Euskirchen -> Dortmund"` — usually with a **leading space**; trim it before matching or splitting on `" -> "` |
 | `display_type` | What the item is. On closures: `CLOSURE` (the carriageway) or `CLOSURE_ENTRY_EXIT` (only a junction's on/off ramp — usually most of a road's closures) |
 | `isBlocked` | `"true"`/`"false"` string. `"true"` = carriageway blocked **right now**, but the API almost never sets it: in October 2026 it was `"false"` on **all** 306 A1 warnings, closures and roadworks, including `Vollsperrung` closures and 37-minute queues. Take `"true"` as a strong signal and `"false"` as *no information* — judge blocking from `description[]`, `display_type` and `delayTimeValue` (see Step 4). |
