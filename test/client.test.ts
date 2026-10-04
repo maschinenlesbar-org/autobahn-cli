@@ -280,6 +280,8 @@ test("get() rejects an answer about another item instead of returning it as the 
       return true;
     });
   }
+  const spaced = await clientWith(constantJson({ identifier: "abc ", title: "t" })).roadworks.get("abc");
+  assert.equal(spaced.identifier, "abc "); // accepted, and passed on as sent
   const echoed = await clientWith(echoDetail({ title: "t" })).roadworks.get(" abc ");
   assert.deepEqual(echoed, { identifier: "abc", title: "t" });
 });

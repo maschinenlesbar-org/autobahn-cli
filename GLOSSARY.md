@@ -86,8 +86,8 @@ resolves an identifier **regardless of the service** in its path, so a `get` und
 the wrong service still succeeds: `roadworks get DE-SL-000009` returns that lorry
 parking area (`"display_type": "PARKING"`) with exit `0`. Use the service the
 identifier was listed under; `display_type` shows what the item really is.
-The API echoes the identifier it resolved; an answer with any other `identifier` (or
-none) raises `AutobahnParseError` (exit `1`) instead of printing another item.
+The API echoes the identifier it resolved; an answer with any other `identifier`
+(compared without surrounding whitespace), or none, raises `AutobahnParseError` (exit `1`) instead of printing another item.
 Identifiers of warnings, roadworks and closures embed a timestamp and are **re-issued**
 as the data updates: the A3 event `NLW_2026_002954` was
 `NLW_2026_002954--vi-hind.2026-10-04_19-01-00-323.de0` at 21:10 and `…20-35-00-430.de0` at

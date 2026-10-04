@@ -121,7 +121,10 @@ class ServiceResource<K extends string> {
     // The API echoes the identifier it resolved (checked live for every service). An
     // answer about another item would otherwise print with exit 0 as if it were the one
     // asked for.
-    if (body["identifier"] !== id) {
+    // Compared trimmed, as get() trims its input: the API emits ids with a stray
+    // trailing space elsewhere ("A60 " in the road list), which is no other item.
+    const answered = body["identifier"];
+    if (typeof answered !== "string" || answered.trim() !== id) {
       const got = describeIdentifier(body["identifier"]);
       throw new AutobahnParseError(
         `Unexpected response from ${this.engine.describeUrl(path)}: asked for identifier ${quoteValue(id)}, got ${got}.`,

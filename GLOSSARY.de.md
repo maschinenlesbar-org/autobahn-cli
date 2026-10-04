@@ -86,8 +86,8 @@ Sperrungen nutzen einfache Zeichenketten (`2026-006680--vi-fbm.…`), Parkplätz
 falschen Dienst: `roadworks get DE-SL-000009` liefert diesen Lkw-Parkplatz
 (`"display_type": "PARKING"`) mit Exit `0`. Verwenden Sie den Dienst, unter dem die
 Kennung gelistet war; `display_type` zeigt, was der Eintrag tatsächlich ist.
-Die API wiederholt die aufgelöste Kennung; eine Antwort mit einer anderen (oder ohne)
-`identifier` löst `AutobahnParseError` aus (Exit `1`), statt einen anderen Eintrag
+Die API wiederholt die aufgelöste Kennung; eine Antwort mit einer anderen (ohne umgebende
+Leerzeichen verglichen) oder ohne `identifier` löst `AutobahnParseError` aus (Exit `1`), statt einen anderen Eintrag
 auszugeben. Die Kennungen von Warnungen, Baustellen und Sperrungen enthalten einen
 Zeitstempel und werden bei Datenänderungen **neu vergeben**: Das A3-Ereignis
 `NLW_2026_002954` hieß um 21:10 Uhr `NLW_2026_002954--vi-hind.2026-10-04_19-01-00-323.de0`
