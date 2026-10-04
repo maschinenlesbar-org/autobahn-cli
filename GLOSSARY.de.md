@@ -88,7 +88,12 @@ falschen Dienst: `roadworks get DE-SL-000009` liefert diesen Lkw-Parkplatz
 Kennung gelistet war; `display_type` zeigt, was der Eintrag tatsächlich ist.
 Die API wiederholt die aufgelöste Kennung; eine Antwort mit einer anderen (oder ohne)
 `identifier` löst `AutobahnParseError` aus (Exit `1`), statt einen anderen Eintrag
-auszugeben. Umgebende Leerzeichen werden vor der Anfrage entfernt (keine Kennung enthält
+auszugeben. Die Kennungen von Warnungen, Baustellen und Sperrungen enthalten einen
+Zeitstempel und werden bei Datenänderungen **neu vergeben**: Das A3-Ereignis
+`NLW_2026_002954` hieß um 21:10 Uhr `NLW_2026_002954--vi-hind.2026-10-04_19-01-00-323.de0`
+und um 22:44 Uhr `…20-35-00-430.de0`; ein `get` mit der älteren Kennung meldete „nicht
+gefunden“ (Exit `4`). Verwenden Sie eine Kennung aus einem frischen `list`; der Teil vor
+`--` (oder die Zeile `Ereignisnummer:`) ist der stabile Schlüssel des Ereignisses. Umgebende Leerzeichen werden vor der Anfrage entfernt (keine Kennung enthält
 welche).
 Eine Kennung mit `/` wird wie eine solche Autobahn-Kennung abgelehnt: `x/../<id>` würde
 sonst `<id>` abrufen.
