@@ -218,6 +218,28 @@ test("an empty road list makes the road check fail (AutobahnError), not report t
   });
 });
 
+test("a listing item whose typed field has the wrong type raises AutobahnParseError", async () => {
+  for (const [item, problem] of [
+    [{ identifier: "a", description: "not an array" }, '"description" as an array of strings'],
+    [{ identifier: "a", coordinate: "x" }, '"coordinate" as an object'],
+    [{ identifier: "a", future: "false" }, '"future" as a boolean'],
+    [{ identifier: "a", point: 49.3 }, '"point" as a string or null'],
+  ] as const) {
+    const mt = constantJson({ roadworks: [{ identifier: "ok" }, item] });
+    await assert.rejects(
+      () => clientWith(mt).roadworks.list("A1"),
+      (err: unknown) =>
+        err instanceof AutobahnParseError &&
+        err.message ===
+          `Unexpected response shape from https://verkehr.autobahn.de/o/autobahn/A1/services/roadworks: expected roadworks item 1 to have ${problem}.`,
+      problem,
+    );
+  }
+  // null where null is allowed, and unknown extra fields, pass.
+  const ok = constantJson({ roadworks: [{ identifier: "a", point: null, geometry: null, extra: 1 }] });
+  assert.equal((await clientWith(ok).roadworks.list("A1")).length, 1);
+});
+
 test("a non-empty listing is returned without consulting the road list", async () => {
   const mt = roadsAnd({ warning: [{ identifier: "w" }] });
   assert.equal((await clientWith(mt).warnings.list("X9")).length, 1);

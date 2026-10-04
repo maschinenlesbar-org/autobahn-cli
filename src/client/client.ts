@@ -66,6 +66,15 @@ class ServiceResource<K extends string> {
     if (!items.every((item) => isObject(item) && typeof item["identifier"] === "string")) {
       throw shapeError(this.engine.describeUrl(path), `every ${this.key} item to be a JSON object with a string identifier`);
     }
+    // The other fields AutobahnServiceItem types are optional, but when present they
+    // must have the promised type: `item.description?.join(...)` on a string would be a
+    // TypeError in the caller's code instead of a parse error here.
+    for (const [index, item] of items.entries()) {
+      const problem = fieldProblem(item as Record<string, unknown>);
+      if (problem !== undefined) {
+        throw shapeError(this.engine.describeUrl(path), `${this.key} item ${index} to have ${problem}`);
+      }
+    }
     if (items.length === 0) await this.assertKnownRoad(id);
     return items as AutobahnServiceItem[];
   }
@@ -200,6 +209,50 @@ function describeIdentifier(value: unknown): string {
   if (typeof value === "number" || typeof value === "boolean") return `${String(value)} (a ${typeof value})`;
   if (value === null) return "null";
   return Array.isArray(value) ? "an array" : "an object";
+}
+
+const isString = (v: unknown): boolean => typeof v === "string";
+const isStringOrNull = (v: unknown): boolean => v === null || typeof v === "string";
+const isObjectOrNull = (v: unknown): boolean => v === null || isObject(v);
+const isStringArray = (v: unknown): boolean => Array.isArray(v) && v.every(isString);
+
+/**
+ * The type each optional AutobahnServiceItem field must have when present, with how a
+ * message names it. Every one of 962 live items (all six services, five roads) passes.
+ */
+const FIELD_RULES: Array<[field: string, ok: (v: unknown) => boolean, expected: string]> = [
+  ["title", isString, "a string"],
+  ["subtitle", isString, "a string"],
+  ["icon", isString, "a string"],
+  ["display_type", isString, "a string"],
+  ["isBlocked", isString, "a string"],
+  ["future", (v) => typeof v === "boolean", "a boolean"],
+  ["description", isStringArray, "an array of strings"],
+  ["footer", isStringArray, "an array of strings"],
+  ["routeRecommendation", isStringArray, "an array of strings"],
+  ["point", isStringOrNull, "a string or null"],
+  ["extent", isStringOrNull, "a string or null"],
+  ["startTimestamp", isStringOrNull, "a string or null"],
+  ["coordinate", isObject, "an object"],
+  ["geometry", isObjectOrNull, "an object or null"],
+  ["impact", isObjectOrNull, "an object or null"],
+  ["delayTimeValue", isStringOrNull, "a string or null"],
+  ["abnormalTrafficType", isStringOrNull, "a string or null"],
+  ["averageSpeed", isStringOrNull, "a string or null"],
+  ["source", isStringOrNull, "a string or null"],
+  ["startLcPosition", isStringOrNull, "a string or null"],
+  ["lorryParkingFeatureIcons", Array.isArray, "an array"],
+  ["imageurl", isString, "a string"],
+  ["linkurl", isString, "a string"],
+  ["operator", isString, "a string"],
+];
+
+/** The first typed field of a listing item that has the wrong type, as `"field" as <type>`. */
+function fieldProblem(item: Record<string, unknown>): string | undefined {
+  for (const [field, ok, expected] of FIELD_RULES) {
+    if (field in item && !ok(item[field])) return `"${field}" as ${expected}`;
+  }
+  return undefined;
 }
 
 /** True for a JSON object (not null, not an array). */

@@ -113,7 +113,9 @@ array under a single key named after the service —
 the bare array. The API sends the key even when a road has no items (`{ "webcam": [] }`);
 any other 2xx body — an error object, a bare array, a string, a non-array under the
 key — raises `AutobahnParseError` (exit `1`) rather than passing for "no items". So
-does an item that is not a JSON object with a string `identifier`. The same holds for
+does an item that is not a JSON object with a string `identifier`, or one whose typed
+field has the wrong type (`description` that is not an array of strings, `future` that is
+not a boolean, …). The same holds for
 the `roads` array of the motorway list (strings only).
 
 ---
