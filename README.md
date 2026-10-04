@@ -161,7 +161,8 @@ A `list` returning zero items for a known road is not an error — it exits `0` 
 ## Troubleshooting
 
 - **`command not found: autobahn`** — the global npm bin directory isn't on
-  your `PATH`. Run `npm bin -g` to find it and add it, or run via
+  your `PATH`. Run `npm prefix -g` and add its `bin` directory (on Windows, the prefix
+  itself) to `PATH`, or run via
   `npx @maschinenlesbar.org/autobahn-cli …`.
 - **Exit `4` / "not found"** from `get` — the identifier doesn't exist or has
   changed. Re-fetch it from a fresh `list` result; identifiers are opaque strings
