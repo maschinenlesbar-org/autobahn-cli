@@ -6,6 +6,7 @@ import { MAX_TIMEOUT_MS, nodeHttpTransport, type Transport } from "./http.js";
 import { buildQueryString, type QueryParams } from "./query.js";
 import {
   AutobahnApiError,
+  AutobahnNotFoundError,
   AutobahnParseError,
   AutobahnValidationError,
   isRetryableStatus,
@@ -298,7 +299,8 @@ export class RequestEngine {
 
   /**
    * Perform a GET expecting JSON and parse it into `T`. An empty (or whitespace-only)
-   * body is an AutobahnParseError, or with `emptyIsNotFound` a synthetic 404.
+   * body is an AutobahnParseError, or with `emptyIsNotFound` an AutobahnNotFoundError
+   * that names the status the server really sent.
    */
   async getJson<T>(
     path: string,
@@ -310,18 +312,16 @@ export class RequestEngine {
     if (text.trim() === "") {
       // Only the detail endpoint answers an unknown identifier with HTTP 200 and an
       // *empty* body rather than a 404, so only there (emptyIsNotFound) does an empty
-      // body mean "not found" (a 404 AutobahnApiError, exit 4). Elsewhere — the road
-      // list, a service listing — it is a broken response, not a missing resource.
+      // body mean "not found" (AutobahnNotFoundError, exit 4). It is not reported as an
+      // HTTP 404: the server sent a 2xx, and the message says which. Elsewhere — the
+      // road list, a service listing — it is a broken response, not a missing resource.
       if (!options.emptyIsNotFound) {
         throw new AutobahnParseError(`Empty response body from ${path}`);
       }
-      throw new AutobahnApiError({
-        status: 404,
-        url: this.buildUrl(path, query),
-        method: "GET",
-        body: text,
-        detail: "Not found (empty response body)",
-      });
+      throw new AutobahnNotFoundError(
+        `Not found: the API answered HTTP ${res.status} with an empty body for GET ` +
+          redactUrl(this.buildUrl(path, query)),
+      );
     }
     try {
       return JSON.parse(text) as T;

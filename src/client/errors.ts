@@ -87,8 +87,9 @@ export class AutobahnApiError extends AutobahnError {
 
 /**
  * Something the caller named does not exist, although the API answered 2xx — a road
- * id that is not in the API's road list (a typo, or `a1` for `A1`). The API answers
- * such an id with an empty listing, which would otherwise read as "no items".
+ * id that is not in the API's road list (a typo, or `a1` for `A1`; the API answers
+ * such an id with an empty listing, which would otherwise read as "no items"), or an
+ * identifier the detail endpoint answers with an empty body (`get`).
  */
 export class AutobahnNotFoundError extends AutobahnError {}
 

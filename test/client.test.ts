@@ -228,6 +228,22 @@ test("a 2xx body without the expected envelope raises AutobahnParseError, not []
   }
 });
 
+test("get() turns an empty 2xx body into AutobahnNotFoundError naming the real status", async () => {
+  for (const status of [200, 204]) {
+    const mt = makeMockTransport(() => ({ status, headers: {}, body: Buffer.alloc(0) }));
+    await assert.rejects(() => clientWith(mt).roadworks.get("nope"), (err: unknown) => {
+      assert.ok(err instanceof AutobahnNotFoundError, String(status));
+      assert.ok(!(err instanceof AutobahnApiError), String(status));
+      assert.equal(
+        (err as Error).message,
+        `Not found: the API answered HTTP ${status} with an empty body for GET ` +
+          "https://verkehr.autobahn.de/o/autobahn/details/roadworks/nope",
+      );
+      return true;
+    });
+  }
+});
+
 test("a 404 raises AutobahnApiError with status 404", async () => {
   const mt = makeMockTransport(() => jsonResponse({ detail: "not found" }, 404));
   await assert.rejects(

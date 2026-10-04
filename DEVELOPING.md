@@ -198,11 +198,12 @@ socket-inactivity timeout *and* an overall wall-clock deadline armed at request
 start. The deadline stops a slow-drip endpoint that resets the inactivity timer
 forever (one byte at a time) from holding the CLI open under the size cap.
 
-**Empty-body 404.** The detail endpoint answers an unknown identifier with
+**Empty-body not-found.** The detail endpoint answers an unknown identifier with
 HTTP 200 and an empty body rather than a true `404`. For `get` (the engine's
 `getJson(..., { emptyIsNotFound: true })`) an empty (or whitespace-only) body is
-not-found: a synthetic `AutobahnApiError` with status `404` (CLI exit `4`),
-instead of a misleading parse error. Everywhere else an empty body raises
+not-found: an `AutobahnNotFoundError` naming the status the server really sent (CLI
+exit `4`) — not an `AutobahnApiError` with an invented `404` — instead of a misleading
+parse error. Everywhere else an empty body raises
 `AutobahnParseError` (`Empty response body from <path>`, exit `1`).
 
 ## Testing

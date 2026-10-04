@@ -188,10 +188,11 @@ varies and is not fully specified.
 
 ## Behaviour, errors & limits
 
-**Empty-body 404.** The detail endpoint answers an **unknown identifier with
+**Empty-body not-found.** The detail endpoint answers an **unknown identifier with
 HTTP 200 and an empty body** rather than a `404`. The client treats an empty (or
-whitespace-only) body as not-found and raises a synthetic `404`
-`AutobahnApiError` (CLI exit code `4`), instead of a misleading JSON parse error.
+whitespace-only) body as not-found and raises an `AutobahnNotFoundError` (CLI exit
+code `4`) that names the status really sent — `Not found: the API answered HTTP 200 with
+an empty body for GET <url>` — instead of a misleading JSON parse error.
 This applies to `get` only: an empty body from the road list or a service listing
 is a broken response, not a missing resource, and raises `AutobahnParseError`
 (exit `1`).

@@ -196,10 +196,12 @@ Details variiert und nicht vollständig spezifiziert ist.
 
 ## Verhalten, Fehler & Grenzen
 
-**404 bei leerem Body.** Der Detail-Endpoint beantwortet eine **unbekannte Kennung mit
-HTTP 200 und leerem Body** statt mit `404`. Der Client wertet einen leeren (oder nur aus
-Leerraum bestehenden) Body als „nicht gefunden“ und löst einen synthetischen `404`
-`AutobahnApiError` aus (CLI-Exit-Code `4`), statt eines irreführenden JSON-Parse-Fehlers.
+**„Nicht gefunden“ bei leerem Body.** Der Detail-Endpoint beantwortet eine **unbekannte
+Kennung mit HTTP 200 und leerem Body** statt mit `404`. Der Client wertet einen leeren
+(oder nur aus Leerraum bestehenden) Body als „nicht gefunden“ und löst einen
+`AutobahnNotFoundError` aus (CLI-Exit-Code `4`), der den tatsächlich gesendeten Status
+nennt – `Not found: the API answered HTTP 200 with an empty body for GET <url>` –, statt
+eines irreführenden JSON-Parse-Fehlers.
 Das gilt nur für `get`: Ein leerer Body von der Autobahnliste oder einer Dienstliste ist
 eine fehlerhafte Antwort, keine fehlende Ressource, und löst `AutobahnParseError` aus
 (Exit `1`).

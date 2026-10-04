@@ -378,7 +378,7 @@ test("--user-agent that is blank or has control or non-Latin-1 characters is a u
 
 test("an empty body is not-found (exit 4) only for get; on roads/list it is a parse error (exit 1)", async () => {
   for (const [argv, code, message] of [
-    [["roadworks", "get", "x"], 4, /^Error: HTTP 404 for GET \S+\/o\/autobahn\/details\/roadworks\/x: Not found \(empty response body\)$/],
+    [["roadworks", "get", "x"], 4, /^Error: Not found: the API answered HTTP 20[04] with an empty body for GET \S+\/o\/autobahn\/details\/roadworks\/x$/],
     [["roads"], 1, /^Error: Empty response body from \/o\/autobahn\/$/],
     [["roadworks", "list", "A1"], 1, /^Error: Empty response body from \/o\/autobahn\/A1\/services\/roadworks$/],
   ] as const) {
