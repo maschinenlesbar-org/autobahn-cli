@@ -32,7 +32,7 @@ export {
   isRetryableStatus,
   redactUrl,
 } from "./errors.js";
-export { assertValid, baseUrlProblem, idProblem } from "./validate.js";
+export { assertValid, baseUrlProblem, idProblem, roadIdProblem } from "./validate.js";
 export type { Problem } from "./validate.js";
 
 export * from "./types.js";

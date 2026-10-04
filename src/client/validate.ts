@@ -44,6 +44,20 @@ export function idProblem(value: string): string | undefined {
 }
 
 /**
+ * Why `value` cannot be a road id, or undefined when it can: idProblem, and then only
+ * letters, digits, spaces, dashes and underscores. Every road id the API lists matches
+ * `A<number>[letter]`; spaces, dashes and underscores stay allowed so that `A 1` or `A-1`
+ * reaches the did-you-mean. Anything else (`%`, `~`, `A1;x`) cannot name a road and used
+ * to cost two requests (the listing and the road-list check) before "Unknown road id".
+ */
+export function roadIdProblem(value: string): string | undefined {
+  const problem = idProblem(value);
+  if (problem !== undefined) return problem;
+  if (!/^[A-Za-z0-9 _-]+$/.test(value.trim())) return "Not a road id: road ids look like A1 or A64a.";
+  return undefined;
+}
+
+/**
  * Why `value` cannot be used as the base URL, or undefined when it can. The engine
  * appends every request path to the base URL as a string, so the rules guard the
  * request URL it builds:

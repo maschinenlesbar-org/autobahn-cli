@@ -9,7 +9,7 @@
 
 import { quoteValue, RequestEngine, type EngineOptions } from "./engine.js";
 import { AutobahnApiError, AutobahnError, AutobahnNotFoundError, AutobahnParseError } from "./errors.js";
-import { assertValid, idProblem } from "./validate.js";
+import { assertValid, idProblem, roadIdProblem } from "./validate.js";
 import type {
   RoadsResult,
   AutobahnServiceItem,
@@ -52,7 +52,7 @@ export class ServiceResource<K extends string> {
     // Trim surrounding whitespace: the upstream API itself emits a few ids with a
     // trailing space (e.g. "A60 "), and copying such an id straight back in would
     // otherwise URL-encode the space and miss the road. Validate after trimming.
-    const id = assertValid("roadId", roadId, idProblem).trim();
+    const id = assertValid("roadId", roadId, roadIdProblem).trim();
     const path = `${API_ROOT}/${enc(id)}/services/${this.service}`;
     const body = await getListing(this.engine, path);
     // The API answers every road, even an empty one, with `{ "<key>": [...] }`. Any

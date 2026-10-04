@@ -5,7 +5,7 @@ import type { Command } from "commander";
 import { InvalidArgumentError } from "commander";
 import type { CliDeps } from "./io.js";
 import { headerValueProblem, isBidiControl, type EngineOptions } from "../client/engine.js";
-import { baseUrlProblem, idProblem } from "../client/validate.js";
+import { baseUrlProblem, idProblem, roadIdProblem } from "../client/validate.js";
 
 /**
  * commander value-parser: a plain non-negative decimal integer.
@@ -71,6 +71,13 @@ export function parseBaseUrl(value: string): string {
  */
 export function parseId(value: string): string {
   const problem = idProblem(value);
+  if (problem !== undefined) throw new InvalidArgumentError(problem);
+  return value;
+}
+
+/** commander value-parser for a `<roadId>` argument: the library's `roadIdProblem` rule. */
+export function parseRoadId(value: string): string {
+  const problem = roadIdProblem(value);
   if (problem !== undefined) throw new InvalidArgumentError(problem);
   return value;
 }

@@ -384,6 +384,21 @@ test("a road id or identifier of . or .. is rejected before any request instead 
   }
 });
 
+test("a road id with characters no road id has is rejected before any request", async () => {
+  for (const roadId of ["%", "~", "A1;x", "A1 ..", "Ä1"]) {
+    const mt = constantJson({ roadworks: [] });
+    await assert.rejects(() => clientWith(mt).roadworks.list(roadId), (err: unknown) => {
+      assert.ok(err instanceof AutobahnValidationError, roadId);
+      assert.equal((err as Error).message, "Invalid roadId: Not a road id: road ids look like A1 or A64a.", roadId);
+      return true;
+    });
+    assert.equal(mt.calls.length, 0, roadId);
+  }
+  // Spaces, dashes and leading zeros still reach the did-you-mean.
+  const near = roadsAnd({ roadworks: [] }, ["A1"]);
+  await assert.rejects(() => clientWith(near).roadworks.list("A 1"), /did you mean "A1"/);
+});
+
 test("a road id containing / is rejected before any request instead of re-targeting the road", async () => {
   for (const roadId of ["A1/../A2", "A2/", "/A1", "A1/x"]) {
     const mt = constantJson({ roadworks: [{ identifier: "a" }] });

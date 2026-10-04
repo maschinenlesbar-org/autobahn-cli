@@ -4,7 +4,7 @@
 
 import type { Command } from "commander";
 import type { CliDeps } from "../io.js";
-import { action, parseId, renderJson } from "../shared.js";
+import { action, parseId, parseRoadId, renderJson } from "../shared.js";
 import type { AutobahnClient } from "../../client/client.js";
 
 type ServiceKey =
@@ -57,7 +57,7 @@ export function registerServiceCommands(program: Command, deps: CliDeps): void {
     group
       .command("list")
       .description(`List ${spec.noun} along a motorway (e.g. A1)`)
-      .argument("<roadId>", "motorway id from `autobahn roads`, e.g. A1 (case-sensitive)", parseId)
+      .argument("<roadId>", "motorway id from `autobahn roads`, e.g. A1 (case-sensitive)", parseRoadId)
       .action(
         action(deps, async ({ client, global }, [roadId]) => {
           const resource = client[spec.resource] as AutobahnClient[ServiceKey];
