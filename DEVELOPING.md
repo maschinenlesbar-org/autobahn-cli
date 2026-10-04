@@ -254,7 +254,7 @@ npm test          # builds, then runs `node --test` over dist/test
 GitHub Actions workflows under `.github/workflows/`:
 
 - **ci.yml** — type-check, build and test on Node 20/22/24 for every push and PR.
-- **release.yml** — on a `v*` tag: verify the tag matches `package.json`, test, `npm pack`, and create a GitHub Release with the tarball. The release notes come from the Conventional-Commit subjects since the previous tag (`.github/scripts/changelog.mjs`); mark a change a script or library caller must adapt to with `type!:` or a `BREAKING CHANGE: <what to do>` footer, and it is also listed under **Behaviour changes** at the top.
+- **release.yml** — on a `v*` tag: verify the tag matches `package.json`, test, `npm pack`, and create a GitHub Release with the tarball. The release notes come from the Conventional-Commit subjects since the previous tag (`.github/scripts/changelog.mjs`); mark a change a script or library caller must adapt to with `type!:` or a `BREAKING CHANGE: <what to do>` footer, and it is also listed under **Behaviour changes** at the top. A change that wasn't marked when committed can still be listed: put a `BREAKING CHANGE:` footer per change into the release commit (the bare `npm version` commit is left out of the type groups, but its footers are read).
 - **publish.yml** — manual dispatch: publish to npm via OIDC **Trusted Publishing** (no stored `NPM_TOKEN`) with provenance.
 - **docs.yml** — build the project website (`site/`, English and German) with the TypeDoc API docs
   under `/api/`, and deploy both to GitHub Pages on each `v*` tag.
