@@ -3,7 +3,7 @@
 Echte Beispiele für die Claude-Code-Skills des Plugins `autobahn`, eines pro Skill: eine
 Anfrage, die `autobahn`-Befehle, die der Skill ausgeführt hat, und Claudes Antwort.
 
-Jedes Beispiel lief am 15. September 2026 mit `autobahn` 0.0.7 gegen die Live-API.
+Jedes Beispiel lief gegen die Live-API; jeder Abschnitt nennt Datum und `autobahn`-Version.
 Die Daten ändern sich, Ihre Ergebnisse werden also abweichen; mit den gezeigten IDs und
 Schlüsseln können Sie die Anfragen selbst ausprobieren. Lange Listen sind gekürzt.
 
@@ -13,20 +13,23 @@ Skills: [autobahn-ev-planner](#autobahn-ev-planner) · [autobahn-map](#autobahn-
 
 ## autobahn-ev-planner
 
+Lief am 4. Oktober 2026 mit `autobahn`, gebaut aus `main` nach 0.1.0.
+
 > Mit dem E-Auto über die A7 von Hamburg nach Göttingen – wo gibt es unterwegs Schnelllader?
 
 ```bash
 autobahn --compact roads
 autobahn --compact charging list A7
-autobahn --compact charging get RUxFQ1RSSUNfQ0hBUkdJTkdfU1RBVElPTl9fMTE5NDc=   # Base64-ID funktioniert auch
+autobahn --compact charging get RUxFQ1RSSUNfQ0hBUkdJTkdfU1RBVElPTl9fMTE5NDg=   # Base64-ID funktioniert auch
 ```
 
 Die A7 lieferte 65 Standorte, von Ellund an der dänischen Grenze bis Rottachtal im Allgäu. Der
 Skill sortierte sie nach Breitengrad und behielt die 17 zwischen Hamburg und Göttingen. Der
-mittlere Teil jedes `title` nennt die Fahrtrichtung (`Hannover`/`Kassel`/`Reutte` bei den
+mittlere Teil jedes `title` nennt die Fahrtrichtung (`Hannover`/`Göttingen`/`Kassel`/`Reutte` bei den
 West-Anlagen, `Hamburg`/`Appenrade` bei den Ost-Anlagen), deshalb zeigt er die Seite Richtung
 Süden. 16 der 17 tragen `STRONG_ELECTRIC_CHARGING_STATION`, auch reine 50-kW-Standorte – die
-Ladeleistung las der Skill deshalb aus den kW-Zeilen in `description[]`.
+Ladeleistung las der Skill deshalb aus den kW-Zeilen in `description[]`, jede Zeile zuvor getrimmt
+(Wolfsgrund W sendet die Zahl der Ladepunkte als `"4 Ladepunkte "`).
 
 ```
 Laden an der A7, Hamburg → Göttingen (Richtung Süden) – 17 Standorte auf der Strecke, keiner außer Betrieb
@@ -54,9 +57,11 @@ Wolfsgrund O, Hannover-Wülferode Ost …): 7 weitere Standorte für die Rückfa
 ```
 
 Als Nächstes angeboten: alle Details zu einem Standort (`autobahn charging get <identifier>`) oder
-Live-Verfügbarkeit und Tarife aus dem Ladesäulenregister.
+Betreiber, Stecker und Leistung je Ladepunkt aus dem Ladesäulenregister (die CLI `ladesaeulen`).
 
 ## autobahn-map
+
+Lief am 15. September 2026 mit `autobahn` 0.0.7.
 
 > Für die Lkw-Disposition auf der A8: Lkw-Parkplätze und aktuelle Verkehrswarnungen als GeoJSON-Datei für QGIS.
 
@@ -91,6 +96,8 @@ Als Nächstes angeboten: die Datei auf https://geojson.io ziehen oder eingerück
 
 ## autobahn-route-check
 
+Lief am 4. Oktober 2026 um 21:10 Uhr mit `autobahn`, gebaut aus `main` nach 0.1.0.
+
 > Heute Abend auf der A3 von Frankfurt nach Köln – gibt es etwas zu beachten?
 
 ```bash
@@ -101,25 +108,25 @@ autobahn --compact roadworks list A3
 ```
 
 Die A3 reicht bis Passau, deshalb behielt der Skill nur Einträge in einem Rechteck um beide
-Städte (Breite 50,0–51,0, Länge 6,9–8,75). Die Sperrung an der AS Idstein hat `future: false`,
-ihr Zeitfenster in `description[]` liegt aber am 02.10.2026 – sie zählt daher als geplant, nicht
-als aktiv.
+Städte (Breite 50,0–51,0, Länge 6,9–8,75). Darin liegt keine Fahrbahnsperrung
+(`display_type: "CLOSURE"`), nur drei Sperrungen von Auf- oder Abfahrten (`CLOSURE_ENTRY_EXIT`),
+die der Skill getrennt von der Autobahn zählt. Die Auffahrt an der AS Montabaur hat
+`future: false`, ihre Zeitfenster unter `Die Baustelle ist zu folgenden Zeiträumen gültig:`
+beginnen aber morgen um 19:00 Uhr – sie zählt daher als geplant. Die einzige Warnung hat weder
+`delayTimeValue` noch `abnormalTrafficType` (eine `Ereignismeldung`), ist also ein Hinweis, kein
+Stau. 10 der 72 Baustellen im Rechteck tragen den Namen eines Projekts statt `A3 | …` (Neubau
+Offenbacher Kreuz, AK Bonn/Siegburg – Siebengebirge); sie sind mitgezählt.
 
 ```
-A3 Frankfurt → Köln – ✓ befahrbar: derzeit nichts gesperrt oder blockiert, einige zähe Abschnitte
-     (dieser Abschnitt: 5 Warnungen / 5 Sperrungen / 67 Baustellen – alle Sperrungen geplant,
-      keine Baustelle blockiert; gesamte A3: 8 / 18 / 198)
-  🐢 +11 min  SLOW  A3 Frankfurt → Oberhausen, Köln-Heumar – Leverkusen (falls es hinter Heumar weitergeht)
-  🐢 +3 min   SLOW  A3 Frankfurt → Köln, Kelsterbach – Mönchhof-Dreieck, seit 17:07
-  🐢 +3 min   SLOW  A3 Frankfurt → Würzburg, Frankfurt am Main-Süd – Offenbacher Kreuz (nicht auf der Route)
-  ⓘ  A3 Köln → Frankfurt, Limburg-Süd – Idstein: Fahrbahnschäden seit 09.09. (Gegenfahrbahn, keine Verzögerung)
+A3 Frankfurt → Köln – ✓ heute Abend frei: keine Sperrungen, keine blockierenden Baustellen, kein Stau
+     (dieser Abschnitt: 1 Warnung / 0 Sperrungen + 3 Rampensperrungen / 72 Baustellen – 42 aktiv,
+      keine blockiert; gesamte A3: 1 / 1 + 24 Rampen / 171)
+  ⓘ  A3 Köln → Frankfurt, Limburg-Süd – Idstein: Fahrbahnschäden seit 09.09.
+     (Gegenfahrbahn, keine Verzögerung angegeben)
 
-Geplant (heute Abend nicht aktiv):
-  🚧 AS Siebengebirge, Frankfurt → Köln: Ausfahrt gesperrt 17.09. 20:00–24:00,
-     Auffahrt gesperrt 17.09. 20:00 – 18.09. 05:00
-  🚧 AD Dernbach, A3 → A48 Richtung Koblenz, beide Richtungen: 25.09. 20:00 – 28.09. 05:00
-     (A48 Brückeninstandsetzung)
-  🚧 AS Idstein, Ausfahrt aus Richtung Bad Camberg: 02.10. 09:00–14:00
+Geplante Rampensperrungen (heute Abend keine aktiv):
+  🚧 AS Montabaur, Auffahrt aus Richtung Montabaur: 05.10. 19:00 – 06.10. 05:00 und 12.10. 20:00 – 13.10. 05:00
+  🚧 AS Siebengebirge, Auf- und Abfahrt der Fahrbahn Köln → Frankfurt: 05.10. 05:00 – 16.10. 05:00
 Für keinen dieser Einträge wurde eine Umleitungsempfehlung veröffentlicht.
 ```
 

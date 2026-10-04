@@ -3,7 +3,7 @@
 Real examples for the Claude Code skills of the `autobahn` plugin, one per skill: a request,
 the `autobahn` commands the skill ran, and the answer Claude gave.
 
-Every example ran against the live API on 15 September 2026 with `autobahn` 0.0.7.
+Every example ran against the live API; each section says when and with which `autobahn`.
 The data changes, so your results will differ; the ids and keys shown work for trying the
 requests yourself. Long lists are shortened.
 
@@ -13,19 +13,22 @@ Skills: [autobahn-ev-planner](#autobahn-ev-planner) · [autobahn-map](#autobahn-
 
 ## autobahn-ev-planner
 
+Ran on 4 October 2026 with `autobahn` built from `main` after 0.1.0.
+
 > I'm driving my EV from Hamburg down to Göttingen on the A7. Where can I fast-charge on the way?
 
 ```bash
 autobahn --compact roads
 autobahn --compact charging list A7
-autobahn --compact charging get RUxFQ1RSSUNfQ0hBUkdJTkdfU1RBVElPTl9fMTE5NDc=   # base64 id works too
+autobahn --compact charging get RUxFQ1RSSUNfQ0hBUkdJTkdfU1RBVElPTl9fMTE5NDg=   # base64 id works too
 ```
 
 The A7 returned 65 sites, from Ellund at the Danish border to Rottachtal in the Allgäu; the skill sorted them by latitude and kept the
 17 between Hamburg and Göttingen. The middle part of each `title` names the direction of travel
-(`Hannover`/`Kassel`/`Reutte` on the West sites, `Hamburg`/`Appenrade` on the Ost sites), so it
+(`Hannover`/`Göttingen`/`Kassel`/`Reutte` on the West sites, `Hamburg`/`Appenrade` on the Ost sites), so it
 listed the southbound side. 16 of the 17 carry `STRONG_ELECTRIC_CHARGING_STATION`, including plain
-50 kW sites, so it judged speed by the kW lines in `description[]` instead.
+50 kW sites, so it judged speed by the kW lines in `description[]` instead, trimming each line
+first (Wolfsgrund W sends its point count as `"4 Ladepunkte "`).
 
 ```
 EV charging on the A7, Hamburg → Göttingen (southbound) — 17 sites in the stretch, none out of service
@@ -52,10 +55,12 @@ Northbound counterparts (Seevetal Ost, Lüneburger Heide Ost 4× 350 kW, Brunaut
 Wolfsgrund O, Hannover-Wülferode Ost …) are 7 more sites for the way back.
 ```
 
-Next steps offered: full detail for one site (`autobahn charging get <identifier>`), or live
-availability and tariffs from the Ladesäulenregister.
+Next steps offered: full detail for one site (`autobahn charging get <identifier>`), or operator,
+connector and power per charging point from the Ladesäulenregister (the `ladesaeulen` CLI).
 
 ## autobahn-map
+
+Ran on 15 September 2026 with `autobahn` 0.0.7.
 
 > I dispatch lorries on the A8. Give me the truck parking areas and the current traffic warnings as a GeoJSON file for QGIS.
 
@@ -90,6 +95,8 @@ Next steps offered: drag the file onto https://geojson.io, or re-export pretty-p
 
 ## autobahn-route-check
 
+Ran on 4 October 2026 at 21:10 with `autobahn` built from `main` after 0.1.0.
+
 > I'm driving from Frankfurt to Köln on the A3 this evening. Anything I should know about?
 
 ```bash
@@ -100,24 +107,24 @@ autobahn --compact roadworks list A3
 ```
 
 The A3 runs to Passau, so the skill kept only items inside a box around the two cities (lat
-50.0–51.0, lon 6.9–8.75). The AS Idstein closure has `future: false`, but its window in
-`description[]` is 02.10.26, so it was counted as planned, not active.
+50.0–51.0, lon 6.9–8.75). That box holds no carriageway closure (`display_type: "CLOSURE"`), only
+three ramp closures (`CLOSURE_ENTRY_EXIT`), which the skill counts apart from the road. The AS
+Montabaur ramp has `future: false`, but its `Die Baustelle ist zu folgenden Zeiträumen gültig:`
+windows start tomorrow at 19:00, so it counts as planned. The one warning has no
+`delayTimeValue` and no `abnormalTrafficType` (an `Ereignismeldung`), so it is information,
+not a jam. 10 of the 72 roadworks in the box are titled for a project rather than `A3 | …`
+(the Offenbacher Kreuz rebuild, AK Bonn/Siegburg – Siebengebirge); they are in the count.
 
 ```
-A3 Frankfurt → Köln — ✓ drivable: nothing closed or blocked right now, a few slow patches
-     (this stretch: 5 warnings / 5 closures / 67 roadworks — all closures planned, no roadwork
-      blocking; whole A3: 8 / 18 / 198)
-  🐢 +11 min  SLOW  A3 Frankfurt → Oberhausen, Köln-Heumar – Leverkusen (if you carry on past Heumar)
-  🐢 +3 min   SLOW  A3 Frankfurt → Köln, Kelsterbach – Mönchhof-Dreieck, since 17:07
-  🐢 +3 min   SLOW  A3 Frankfurt → Würzburg, Frankfurt am Main-Süd – Offenbacher Kreuz (not on your way)
-  ⓘ  A3 Köln → Frankfurt, Limburg-Süd – Idstein: Fahrbahnschäden since 09.09. (other carriageway, no delay)
+A3 Frankfurt → Köln — ✓ clear tonight: no closures, no blocking roadworks, no jams
+     (this stretch: 1 warning / 0 closures + 3 ramp closures / 72 roadworks — 42 active,
+      none blocking; whole A3: 1 / 1 + 24 ramp / 171)
+  ⓘ  A3 Köln → Frankfurt, Limburg-Süd – Idstein: Fahrbahnschäden since 09.09.
+     (other carriageway, no delay stated)
 
-Planned (not active tonight):
-  🚧 AS Siebengebirge, Frankfurt → Köln: exit closed 17.09. 20:00–24:00,
-     on-ramp closed 17.09. 20:00 – 18.09. 05:00
-  🚧 AD Dernbach, A3 → A48 towards Koblenz, both directions: 25.09. 20:00 – 28.09. 05:00
-     (A48 Brückeninstandsetzung)
-  🚧 AS Idstein, exit from Bad Camberg: 02.10. 09:00–14:00
+Planned ramp closures (none active tonight):
+  🚧 AS Montabaur, on-ramp from Montabaur: 05.10. 19:00 – 06.10. 05:00 and 12.10. 20:00 – 13.10. 05:00
+  🚧 AS Siebengebirge, on- and off-ramp of the Köln → Frankfurt carriageway: 05.10. 05:00 – 16.10. 05:00
 No detour recommendations were published for any of these.
 ```
 
