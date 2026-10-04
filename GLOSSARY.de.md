@@ -152,7 +152,9 @@ Warnungen, Sperrungen und Baustellen der A1 auf `"false"`, auch bei Vollsperrung
 **`future`.** Boolean – ob sich der Eintrag auf ein künftiges (noch nicht aktives)
 Ereignis bezieht, z. B. eine geplante Baustelle.
 
-**`startTimestamp`.** Beginn des Ereignisses bzw. Eintrags (eine ISO-Zeit). Lkw-Parkplätze
+**`startTimestamp`.** Beginn des Ereignisses bzw. Eintrags. Eine ISO-Zeit bei Baustellen,
+Warnungen und Sperrungen; bei Ladestationen ein deutsches Datum (`"30.03.2026"`,
+TT.MM.JJJJ, das `Date.parse` nicht lesen kann), das dort auch fehlen kann. Lkw-Parkplätze
 haben keinen: Er fehlt in den Listeneinträgen und ist in der Detailantwort `null`.
 
 **`delayTimeValue`.** Die Verzögerung in Minuten bei einer Verkehrswarnung, gesendet als

@@ -71,7 +71,11 @@ export interface AutobahnServiceItem {
   display_type?: string;
   footer?: string[];
   routeRecommendation?: string[];
-  /** ISO start time; on lorry parking absent from listings, `null` in the detail response. */
+  /**
+   * Start time. ISO 8601 on roadworks, warnings and closures; a German date
+   * (`"30.03.2026"`, DD.MM.YYYY) on charging stations, where it can also be absent;
+   * on lorry parking absent from listings, `null` in the detail response.
+   */
   startTimestamp?: string | null;
   // Webcam-specific
   imageurl?: string;

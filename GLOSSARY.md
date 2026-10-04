@@ -149,8 +149,10 @@ warnings, closures and roadworks in October 2026, including full closures
 **`future`.** Boolean — whether the item refers to a future (not yet active)
 event, e.g. planned roadworks.
 
-**`startTimestamp`.** When the event/item starts (an ISO time). Lorry parking has
-none: absent from listing items, `null` in the detail response.
+**`startTimestamp`.** When the event/item starts. An ISO time on roadworks, warnings
+and closures; a German date on charging stations (`"30.03.2026"`, DD.MM.YYYY, which
+`Date.parse` cannot read), where it can also be missing. Lorry parking has none: absent
+from listing items, `null` in the detail response.
 
 **`delayTimeValue`.** The delay in minutes on a traffic warning, sent as a JSON
 **string** (`"10"`). Convert it to a number before sorting or comparing: as strings,
