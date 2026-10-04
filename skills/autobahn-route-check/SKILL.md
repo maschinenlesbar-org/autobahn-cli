@@ -118,6 +118,9 @@ happening now. Classify like this:
     extra `Uhr`) and `DD.MM.YY von HH:MM bis HH:MM Uhr` (within one day). An end time of
     `24:00 Uhr` means midnight at the end of that day: write it as `00:00` on the next day
     before parsing — jq's `fromdateiso8601` and most strict parsers reject hour 24.
+    A third form repeats weekly: `Jeden Tag zwischen dem DD.MM.YY und dem DD.MM.YY von HH:MM
+    bis HH:MM Uhr.`, or with weekdays instead of `Tag` (`Jeden Montag, Dienstag und Mittwoch
+    zwischen dem …`) — active on those days inside the date range, during that daily time.
   Either layout can add `Die Baustelle gilt nicht an folgenden Tagen:` followed by
   `DD.MM.YY` lines — days inside the window when the site is **not** active (the list can
   be empty). Check today against it before calling an item active.
