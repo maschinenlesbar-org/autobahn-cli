@@ -356,6 +356,12 @@ test("a 404 from the road list or a listing is a base-URL problem (AutobahnError
   }
 });
 
+test("a base URL that already ends in /o/autobahn gets the exact fix in the 404 message", async () => {
+  const mt = makeMockTransport(() => rawResponse("Cannot GET", "text/html", 404));
+  const client = new AutobahnClient({ baseUrl: "https://verkehr.autobahn.de/o/autobahn", transport: mt.transport });
+  await assert.rejects(() => client.roads(), /probably wrong \(it already ends in \/o\/autobahn: drop that part\)\.$/);
+});
+
 test("a client with a file: base URL throws before its custom transport sees a request", () => {
   const mt = makeMockTransport(() => jsonResponse({}));
   assert.throws(

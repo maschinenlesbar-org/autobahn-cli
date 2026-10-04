@@ -212,8 +212,11 @@ async function getListing(engine: RequestEngine, path: string): Promise<unknown>
     return await engine.getJson<unknown>(path);
   } catch (cause) {
     if (cause instanceof AutobahnApiError && cause.status === 404) {
+      // A base URL that already ends in the API root doubles it: name the exact fix.
+      const doubled = cause.url.includes(`${API_ROOT}${API_ROOT}/`);
       throw new AutobahnError(
-        `${cause.message} — the road list and the service listings never answer 404, so the base URL is probably wrong.`,
+        `${cause.message} — the road list and the service listings never answer 404, so the base URL is probably wrong` +
+          (doubled ? ` (it already ends in ${API_ROOT}: drop that part).` : "."),
         { cause },
       );
     }
