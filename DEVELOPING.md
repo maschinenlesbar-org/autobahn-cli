@@ -122,6 +122,7 @@ src/
     errors.ts    # AutobahnError / AutobahnApiError / AutobahnNetworkError / AutobahnParseError / AutobahnValidationError
     validate.ts  # the Problem type + assertValid(): input rules shared by library and CLI
     client.ts    # AutobahnClient — a generic ServiceResource per service group
+    version.ts   # VERSION from package.json (the CLI's --version and the default User-Agent)
   cli/
     io.ts        # injectable I/O seam (stdout/stderr)
     shared.ts    # option parsers, global-option resolver, JSON renderer
