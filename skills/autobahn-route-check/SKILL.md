@@ -139,10 +139,14 @@ Then rank the **active** items, most severe first:
    off-ramp, not the motorway — 48 of the 54 A1 closures in October 2026. Count them
    separately, list one only when it is at a junction the user named, and never let them
    make the road read as shut.
-2. **Warnings** by `delayTimeValue` as a number (higher = worse; it arrives as a string —
+2. **Warnings.** First read the event text in `description[]`: an `Unfall` (accident),
+   `Falschfahrer` (wrong-way driver), `Gefahr`/`Gegenstände auf der Fahrbahn` (hazard) or a
+   `gesperrt` carriageway ranks with the blocking closures, **whatever its delay** — such
+   warnings often carry no `delayTimeValue` and no `abnormalTrafficType` at all. Rank the
+   rest by `delayTimeValue` as a number (higher = worse; it arrives as a string —
    `sort_by(.delayTimeValue | tonumber? // 0) | reverse`). At equal delay:
    `QUEUING_TRAFFIC` > `SLOW_TRAFFIC` > `UNSPECIFIED_ABNORMAL_TRAFFIC` > no
-   `abnormalTrafficType` at all (show such a warning by its `description[]`).
+   `abnormalTrafficType` (show such a warning by its `description[]`).
 3. **Roadworks** — background unless they're blocking (`isBlocked === "true"`, or a
    `description[]` that says `Vollsperrung` / the carriageway is closed); those few rank
    with closures.
