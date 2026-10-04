@@ -52,7 +52,7 @@ Each item is a charging site. The fields that matter:
 | `description[]` | German detail in one of **two layouts** (see below) |
 | `coordinate` | `{ lat, long }`, **strings** here — `Number()` them (see quirk below) |
 | `identifier` | Deutschlandnetz sites have a plain numeric id (`30388`); all other sites a base64 id (`RUxFQ1RSSUNfQ0hBUkdJTkdfU1RBVElPTl9fMTkyMzE=`, which decodes to `ELECTRIC_CHARGING_STATION__19231`). `charging get <id>` accepts both. |
-| `isBlocked` | `"true"` = out of service |
+| `isBlocked` | `"true"` would mean out of service, but the API practically never sets it (0 of 118 sites on the A1/A7/A9 in October 2026) — `"false"` does not confirm a working charger |
 
 Power, connector, point count and operator are not separate fields — parse them from
 `description[]`, which comes in two layouts. **Trim each line first**: some carry trailing
@@ -112,7 +112,9 @@ Rules:
 - Lead with totals and how many are **fast** — count sites by their best kW line (e.g.
   ≥150 kW), not by `STRONG_*`, which nearly every site carries.
 - Show **power, connector, point count, operator** per stop; flag `Deutschlandnetz` sites.
-- Mark `isBlocked === "true"` stations as out of service (or omit, but say you did).
+- Mark `isBlocked === "true"` stations as out of service (or omit, but say you did); since
+  the flag is almost never set, don't call the others "working" — this data has no live
+  availability.
 - Give a tappable map link from `coordinate` (format `?q=lat,long`).
 - If the user wants full detail on one site, offer `autobahn charging get <identifier>`.
 - **Optional enrichment:** the Bundesnetzagentur *Ladesäulenregister* carries the same
