@@ -330,6 +330,25 @@ test("numeric engine options must be integers in range; a bad one throws instead
   }
 });
 
+test("every input the library rejects before a request is an AutobahnValidationError", async () => {
+  const mt = constantJson({ roadworks: [] });
+  const client = clientWith(mt);
+  for (const [label, call] of [
+    ["blank roadId", () => client.roadworks.list("  ")],
+    ["non-string roadId", () => client.roadworks.list(42 as unknown as string)],
+    ["blank identifier", () => client.roadworks.get("")],
+    ["dot roadId", () => client.roadworks.list("..")],
+    ["dot identifier", () => client.roadworks.get(".")],
+    ["timeoutMs -1", async () => new AutobahnClient({ timeoutMs: -1 })],
+    ["retryDelayMs 1.5", async () => new AutobahnClient({ retryDelayMs: 1.5 })],
+    ["maxRetries 11", async () => new AutobahnClient({ maxRetries: 11 })],
+    ["maxResponseBytes NaN", async () => new AutobahnClient({ maxResponseBytes: Number.NaN })],
+  ] as const) {
+    await assert.rejects(call, AutobahnValidationError, label);
+  }
+  assert.equal(mt.calls.length, 0);
+});
+
 test("startTimestamp is typed to allow the null that lorry parking returns", async () => {
   // Live on 2026-09-26: `parking get DE-SL-000009` carried "startTimestamp": null.
   const items = await clientWith(

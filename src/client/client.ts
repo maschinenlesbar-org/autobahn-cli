@@ -8,7 +8,12 @@
 //   client.chargingStations.get(identifier)
 
 import { RequestEngine, type EngineOptions } from "./engine.js";
-import { AutobahnError, AutobahnNotFoundError, AutobahnParseError } from "./errors.js";
+import {
+  AutobahnError,
+  AutobahnNotFoundError,
+  AutobahnParseError,
+  AutobahnValidationError,
+} from "./errors.js";
 import { assertValid, idProblem } from "./validate.js";
 import type {
   RoadsResult,
@@ -29,7 +34,7 @@ const enc = encodeURIComponent;
  */
 function requireSegment(name: string, value: string): string {
   if (typeof value !== "string" || value.trim() === "") {
-    throw new AutobahnError(`Invalid ${name}: must be a non-empty string`);
+    throw new AutobahnValidationError(`Invalid ${name}: must be a non-empty string`);
   }
   return value;
 }

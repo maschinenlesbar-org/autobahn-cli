@@ -166,8 +166,9 @@ subprocess.
 (non-2xx, carries `status`/`detail`/`url`/`body`; `detail` is sanitised and cut at
 500 characters, `body` is the full text), `AutobahnNetworkError`
 (transport failure/timeout — never a configuration error: a bad `baseUrl` or
-`userAgent` makes the constructor throw an `AutobahnValidationError`, a bad numeric
-option a plain `AutobahnError`), `AutobahnParseError` (bad JSON, or a 2xx body without the
+`userAgent`, a numeric option out of range or a blank, `.`/`..` or `/`-containing road
+id or identifier throws an `AutobahnValidationError` before any request),
+`AutobahnParseError` (bad JSON, or a 2xx body without the
 expected shape: `Unexpected response shape from <path>: expected …`), all extending
 `AutobahnError`. `AutobahnNotFoundError` (a road id the API does not know; CLI
 exit `4`) extends `AutobahnError` too.

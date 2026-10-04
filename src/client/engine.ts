@@ -6,8 +6,8 @@ import { MAX_TIMEOUT_MS, nodeHttpTransport, type Transport } from "./http.js";
 import { buildQueryString, type QueryParams } from "./query.js";
 import {
   AutobahnApiError,
-  AutobahnError,
   AutobahnParseError,
+  AutobahnValidationError,
   isRetryableStatus,
   redactUrl,
 } from "./errors.js";
@@ -25,7 +25,7 @@ export interface RawResponse {
 /**
  * Options for {@link RequestEngine} and the client. The numeric options must be
  * integers within their documented range; anything else (negative, fractional,
- * NaN, Infinity, too large) makes the constructor throw an AutobahnError.
+ * NaN, Infinity, too large) makes the constructor throw an AutobahnValidationError.
  */
 export interface EngineOptions {
   /** Base URL of the API. Defaults to https://verkehr.autobahn.de */
@@ -186,7 +186,7 @@ export function parseRetryAfter(value: string | string[] | undefined): number | 
 function intOption(name: string, value: number | undefined, fallback: number, max: number): number {
   if (value === undefined) return fallback;
   if (!Number.isSafeInteger(value) || value < 0 || value > max) {
-    throw new AutobahnError(
+    throw new AutobahnValidationError(
       `Invalid option ${name}: expected an integer from 0 to ${max}, got ${String(value)}.`,
     );
   }
@@ -230,7 +230,7 @@ export class RequestEngine {
   /**
    * Build a fully-qualified URL from a path and optional query parameters.
    *
-   * Throws an AutobahnError for a path with a "." or ".." segment. The client puts
+   * Throws an AutobahnValidationError for a path with a "." or ".." segment. The client puts
    * road ids and identifiers into the path with `encodeURIComponent`, which leaves
    * those two unchanged, and URL parsing then resolves them: `roadworks list ..`
    * would request `/o/services/roadworks` and report "no roadworks" with exit 0.
@@ -241,7 +241,7 @@ export class RequestEngine {
     const normalizedPath = path.startsWith("/") ? path : `/${path}`;
     const dotSegment = normalizedPath.split("/").find((s) => s === "." || s === "..");
     if (dotSegment !== undefined) {
-      throw new AutobahnError(
+      throw new AutobahnValidationError(
         `Invalid path segment "${dotSegment}" in ${normalizedPath}: "." and ".." cannot be used as an id.`,
       );
     }
