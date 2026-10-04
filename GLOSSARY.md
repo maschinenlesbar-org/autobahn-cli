@@ -155,7 +155,8 @@ best signal of what an item is. Values seen live: `ROADWORKS`, `SHORT_TERM_ROADW
 `WARNING`, `CLOSURE`, `CLOSURE_ENTRY_EXIT`, `PARKING`, `ELECTRIC_CHARGING_STATION`,
 `STRONG_ELECTRIC_CHARGING_STATION`. `CLOSURE_ENTRY_EXIT` is a closed on- or off-ramp at a
 junction, not a closed carriageway, and makes up most of a road's closures (48 of 54 on
-the A1 in October 2026).
+the A1 in October 2026). The service does not fix the type: a warnings listing can carry
+a real-time `CLOSURE` that the closures listing does not have.
 
 **`icon`, `footer`, `routeRecommendation`.** Display metadata: an icon key,
 footer text lines, and any recommended-route lines.

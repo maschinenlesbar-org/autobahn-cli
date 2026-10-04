@@ -114,6 +114,11 @@ closures even when the road is shut. Classify like this:
   Warnings carry only a `Beginn:` line. Times are German local time.
 - **Active** otherwise.
 
+Classify by **`display_type`, not by the command** that returned an item: `warnings list`
+also carries real-time closures (`display_type: "CLOSURE"`, e.g. an `INRIX--vi-zus.…`
+identifier) that `closures list` does not have. Rank those with the closures and count
+them there.
+
 Then rank the **active** items, most severe first:
 
 1. **Closures** that are genuinely shutting the road — `display_type === "CLOSURE"` with

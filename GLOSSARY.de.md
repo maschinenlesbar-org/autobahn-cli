@@ -157,6 +157,8 @@ Eintrags nutzt, und das beste Signal dafür, was ein Eintrag ist. Live beobachte
 `ELECTRIC_CHARGING_STATION`, `STRONG_ELECTRIC_CHARGING_STATION`. `CLOSURE_ENTRY_EXIT` ist
 eine gesperrte Auf- oder Abfahrt an einer Anschlussstelle, keine gesperrte Fahrbahn, und
 macht den Großteil der Sperrungen einer Autobahn aus (48 von 54 auf der A1 im Oktober 2026).
+Der Dienst legt den Typ nicht fest: Eine Warnungsliste kann eine Echtzeit-`CLOSURE`
+enthalten, die in der Sperrungsliste fehlt.
 
 **`icon`, `footer`, `routeRecommendation`.** Anzeige-Metadaten: ein Icon-Schlüssel,
 Fußzeilen und etwaige Zeilen mit Umleitungsempfehlungen.
