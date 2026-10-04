@@ -13,7 +13,7 @@ Skills: [autobahn-ev-planner](#autobahn-ev-planner) · [autobahn-map](#autobahn-
 
 ## autobahn-ev-planner
 
-Lief am 4. Oktober 2026 mit `autobahn`, gebaut aus `main` nach 0.1.0.
+Lief am 4. Oktober 2026 mit dem Build, der am selben Abend als `autobahn` 0.2.0 veröffentlicht wurde.
 
 > Mit dem E-Auto über die A7 von Hamburg nach Göttingen – wo gibt es unterwegs Schnelllader?
 
@@ -96,7 +96,7 @@ Als Nächstes angeboten: die Datei auf https://geojson.io ziehen oder eingerück
 
 ## autobahn-route-check
 
-Lief am 4. Oktober 2026 um 21:10 Uhr mit `autobahn`, gebaut aus `main` nach 0.1.0.
+Lief am 4. Oktober 2026 um 21:10 Uhr mit dem Build, der am selben Abend als `autobahn` 0.2.0 veröffentlicht wurde.
 
 > Heute Abend auf der A3 von Frankfurt nach Köln – gibt es etwas zu beachten?
 

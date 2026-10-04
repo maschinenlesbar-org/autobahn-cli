@@ -13,7 +13,7 @@ Skills: [autobahn-ev-planner](#autobahn-ev-planner) · [autobahn-map](#autobahn-
 
 ## autobahn-ev-planner
 
-Ran on 4 October 2026 with `autobahn` built from `main` after 0.1.0.
+Ran on 4 October 2026 with the build released as `autobahn` 0.2.0 later that evening.
 
 > I'm driving my EV from Hamburg down to Göttingen on the A7. Where can I fast-charge on the way?
 
@@ -95,7 +95,7 @@ Next steps offered: drag the file onto https://geojson.io, or re-export pretty-p
 
 ## autobahn-route-check
 
-Ran on 4 October 2026 at 21:10 with `autobahn` built from `main` after 0.1.0.
+Ran on 4 October 2026 at 21:10 with the build released as `autobahn` 0.2.0 later that evening.
 
 > I'm driving from Frankfurt to Köln on the A3 this evening. Anything I should know about?
 
