@@ -170,8 +170,9 @@ subprocess.
 (non-2xx, carries `status`/`detail`/`url`/`body`; `detail` is sanitised and cut at
 500 characters, `body` is the full text; the message also cuts the URL at 500
 characters, `url` keeps it whole), `AutobahnNetworkError`
-(transport failure/timeout, including anything an injected transport throws, wrapped as
-`Request failed: <reason>` with the original as `cause` — never a configuration error: a bad `baseUrl` or
+(transport failure/timeout, including anything an injected transport throws, raised as
+`GET <url> failed: <reason>` — the URL redacted, `(after N retries)` when a reset was
+retried — with the original as `cause` — never a configuration error: a bad `baseUrl` or
 `userAgent`, a numeric option out of range or a blank, `.`/`..` or `/`-containing road
 id or identifier throws an `AutobahnValidationError` before any request),
 `AutobahnParseError` (bad JSON, or a 2xx body without the

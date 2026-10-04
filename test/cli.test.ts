@@ -102,7 +102,7 @@ test("a network error maps to exit code 1", async () => {
   });
   const code = await run(["roads"], cli.deps);
   assert.equal(code, 1);
-  assert.match(cli.err.join("\n"), /Error: connect ECONNREFUSED/);
+  assert.match(cli.err.join("\n"), /^Error: GET https:\/\/verkehr\.autobahn\.de\/o\/autobahn\/ failed: connect ECONNREFUSED$/);
 });
 
 test("a parse error (non-JSON body) maps to exit code 1", async () => {
@@ -128,7 +128,7 @@ test("an error thrown by an injected transport is a network error, not 'Unexpect
   });
   const code = await run(["roads"], cli.deps);
   assert.equal(code, 1);
-  assert.equal(cli.err.join("\n"), "Error: Request failed: kaboom");
+  assert.equal(cli.err.join("\n"), "Error: GET https://verkehr.autobahn.de/o/autobahn/ failed: kaboom");
 });
 
 test("--help exits 0", async () => {

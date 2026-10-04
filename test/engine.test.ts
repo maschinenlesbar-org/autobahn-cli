@@ -138,17 +138,46 @@ test("a non-JSON body names its Content-Type when that is not JSON", async () =>
 
 test("an error thrown by a custom transport surfaces as AutobahnNetworkError with the cause", async () => {
   const boom = new Error("boom");
-  for (const [thrown, message] of [[boom, "Request failed: boom"], ["plain string", "Request failed: plain string"]] as const) {
+  for (const [thrown, message] of [
+    [boom, "GET https://verkehr.autobahn.de/x failed: boom"],
+    ["plain string", "GET https://verkehr.autobahn.de/x failed: plain string"],
+  ] as const) {
     const e = new RequestEngine({ transport: async () => { throw thrown; } });
     await assert.rejects(
       () => e.getJson("/x"),
       (err: unknown) => err instanceof AutobahnNetworkError && err.message === message && err.cause === thrown,
     );
   }
-  // An AutobahnError from the transport passes through unchanged.
+  // A network error from the transport is re-raised naming the request, original as cause.
   const own = new AutobahnNetworkError("Request timed out after 5ms");
   const e = new RequestEngine({ transport: async () => { throw own; } });
-  await assert.rejects(() => e.getJson("/x"), (err: unknown) => err === own);
+  await assert.rejects(
+    () => e.getJson("/x"),
+    (err: unknown) =>
+      err instanceof AutobahnNetworkError &&
+      err.cause === own &&
+      err.message === "GET https://verkehr.autobahn.de/x failed: Request timed out after 5ms",
+  );
+  // Any other AutobahnError passes through unchanged.
+  const parse = new AutobahnParseError("odd");
+  const p = new RequestEngine({ transport: async () => { throw parse; } });
+  await assert.rejects(() => p.getJson("/x"), (err: unknown) => err === parse);
+});
+
+test("a network error names the request URL (credentials redacted) and the retries made", async () => {
+  const reset = Object.assign(new Error("socket hang up"), { code: "ECONNRESET" });
+  const e = new RequestEngine({
+    baseUrl: "https://user:s3cret@mirror.example/api",
+    maxRetries: 2,
+    sleep: async () => {},
+    transport: async () => { throw new AutobahnNetworkError(reset.message, { cause: reset }); },
+  });
+  await assert.rejects(
+    () => e.getJson("/o/autobahn/"),
+    (err: unknown) =>
+      err instanceof AutobahnNetworkError &&
+      err.message === "GET https://***@mirror.example/api/o/autobahn/ failed: socket hang up (after 2 retries)",
+  );
 });
 
 test("a timed-out request is not retried", async () => {

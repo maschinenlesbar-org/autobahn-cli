@@ -351,10 +351,17 @@ export class RequestEngine {
         }
         // The default transport rejects with AutobahnNetworkError only; an injected one
         // may throw anything. Keep the library's error contract for both: a caller (and
-        // the CLI) can rely on every failure being an AutobahnError.
-        if (cause instanceof AutobahnError) throw cause;
+        // the CLI) can rely on every failure being an AutobahnError. A network error is
+        // re-raised naming the request (Node's text — "socket hang up" — says nothing
+        // about which host failed), with the original as `cause`; any other
+        // AutobahnError passes through.
+        if (cause instanceof AutobahnError && !(cause instanceof AutobahnNetworkError)) throw cause;
         const reason = cause instanceof Error ? cause.message : String(cause);
-        throw new AutobahnNetworkError(`Request failed: ${sanitizeServerText(reason)}`, { cause });
+        const retried = attempt > 0 ? ` (after ${attempt} ${attempt === 1 ? "retry" : "retries"})` : "";
+        throw new AutobahnNetworkError(
+          `${method} ${this.describeUrl(path, options.query)} failed: ${sanitizeServerText(reason)}${retried}`,
+          { cause },
+        );
       }
 
       const status = response.status;
