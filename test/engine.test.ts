@@ -308,6 +308,10 @@ test("null options mean the defaults, like no options", async () => {
   assert.doesNotThrow(() => new AutobahnClient(null as unknown as undefined));
 });
 
+test("an unknown option whose value is undefined is ignored", () => {
+  assert.doesNotThrow(() => new RequestEngine({ timeoutMs: 1000, proxy: undefined } as unknown as ConstructorParameters<typeof RequestEngine>[0]));
+});
+
 test("an unknown option name makes the constructor throw, with a hint when one is close", () => {
   for (const [options, message] of [
     [{ timeout: 1 }, 'Unknown option "timeout" (did you mean timeoutMs?).'],

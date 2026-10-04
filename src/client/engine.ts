@@ -331,8 +331,9 @@ const OPTION_NAMES = [
  * catches it at compile time, JavaScript does not.
  */
 function assertKnownOptions(options: object): void {
-  for (const key of Object.keys(options)) {
-    if ((OPTION_NAMES as readonly string[]).includes(key)) continue;
+  for (const [key, value] of Object.entries(options)) {
+    // An unset key (`proxy: undefined` from a spread config) changes nothing: skip it.
+    if (value === undefined || (OPTION_NAMES as readonly string[]).includes(key)) continue;
     const lower = key.toLowerCase();
     const hint = OPTION_NAMES.find((name) => name.toLowerCase().includes(lower) || lower.includes(name.toLowerCase()));
     throw new AutobahnValidationError(
