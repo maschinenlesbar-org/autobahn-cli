@@ -176,7 +176,9 @@ Ereignis bezieht, z. B. eine geplante Baustelle.
 **`startTimestamp`.** Beginn des Ereignisses bzw. Eintrags. Eine ISO-Zeit bei Baustellen,
 Warnungen und Sperrungen; bei Ladestationen ein deutsches Datum (`"30.03.2026"`,
 TT.MM.JJJJ, das `Date.parse` nicht lesen kann), das dort auch fehlen kann. Lkw-Parkplätze
-haben keinen: Er fehlt in den Listeneinträgen und ist in der Detailantwort `null`. Die
+und **Tagesbaustellen** (`SHORT_TERM_ROADWORKS`, alle 203 geprüften auf A7/A9) haben keinen:
+Er fehlt in den Listeneinträgen und ist in der Detailantwort `null` – ihre Zeit steht nur in
+den Zeitfenster-Zeilen der Beschreibung. Die
 ISO-Zeiten mischen Zeitzonen, und darüber entscheidet die Datenquelle, nicht der Dienst:
 INRIX-Warnungen (`source: "inrix"`) nutzen UTC (`2026-10-04T15:24:00Z`), Warnungen der
 Verkehrszentralen (`source: "eva"`) sowie Baustellen und Sperrungen deutsche Ortszeit

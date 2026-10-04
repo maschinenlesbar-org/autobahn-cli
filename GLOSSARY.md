@@ -168,8 +168,10 @@ event, e.g. planned roadworks.
 
 **`startTimestamp`.** When the event/item starts. An ISO time on roadworks, warnings
 and closures; a German date on charging stations (`"30.03.2026"`, DD.MM.YYYY, which
-`Date.parse` cannot read), where it can also be missing. Lorry parking has none: absent
-from listing items, `null` in the detail response. The ISO times mix offsets, and the
+`Date.parse` cannot read), where it can also be missing. Lorry parking and **short-term
+roadworks** (`SHORT_TERM_ROADWORKS`, all 203 on the A7/A9 checked) have none: absent from
+listing items, `null` in the detail response — their time is only in the description's
+window lines. The ISO times mix offsets, and the
 data source decides which, not the service: INRIX warnings (`source: "inrix"`) use UTC
 (`2026-10-04T15:24:00Z`), warnings from the traffic centres (`source: "eva"`) and the
 roadworks and closures German local time (`2026-10-04T20:57:00+02:00`). Compare them as
