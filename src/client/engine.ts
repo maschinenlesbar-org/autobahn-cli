@@ -498,8 +498,8 @@ export class RequestEngine {
       if (isRetryableStatus(status) && attempt < this.maxRetries) {
         attempt += 1;
         // Honour a Retry-After header when present, clamped to MAX_RETRY_AFTER_MS
-        // so a pathological/hostile value can't hang the CLI; otherwise fall back
-        // to linear backoff.
+        // so a pathological/hostile value can't hang the CLI; otherwise back off:
+        // doubling from 1 s for a 429, linear from retryDelayMs for 502/503/504.
         const retryAfter = parseRetryAfter(responseHeaders["retry-after"]);
         const delay =
           retryAfter !== undefined
