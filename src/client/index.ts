@@ -17,7 +17,7 @@ export { MAX_TIMEOUT_MS, nodeHttpTransport } from "./http.js";
 export { VERSION } from "./version.js";
 export type { Transport, HttpRequest, HttpResponse } from "./http.js";
 export { buildQueryString } from "./query.js";
-export type { QueryParams, QueryValue } from "./query.js";
+export type { QueryParams, QueryPrimitive, QueryValue } from "./query.js";
 export {
   AutobahnError,
   AutobahnApiError,
