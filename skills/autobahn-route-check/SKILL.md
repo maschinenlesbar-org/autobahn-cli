@@ -115,7 +115,9 @@ closures even when the road is shut. Classify like this:
   - `Die Baustelle ist zu folgenden Zeiträumen gültig:` then one or more window lines in
     two forms: `DD.MM.YY HH:MM bis zum DD.MM.YY HH:MM Uhr.` (across midnight; night
     closures often list several; sometimes written `DD.MM.YY HH:MM Uhr bis zum …`, with an
-    extra `Uhr`) and `DD.MM.YY von HH:MM bis HH:MM Uhr` (within one day).
+    extra `Uhr`) and `DD.MM.YY von HH:MM bis HH:MM Uhr` (within one day). An end time of
+    `24:00 Uhr` means midnight at the end of that day: write it as `00:00` on the next day
+    before parsing — jq's `fromdateiso8601` and most strict parsers reject hour 24.
   Either layout can add `Die Baustelle gilt nicht an folgenden Tagen:` followed by
   `DD.MM.YY` lines — days inside the window when the site is **not** active (the list can
   be empty). Check today against it before calling an item active.
