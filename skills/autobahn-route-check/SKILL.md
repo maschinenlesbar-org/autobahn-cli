@@ -149,7 +149,10 @@ Then rank the **active** items, most severe first:
    rest by `delayTimeValue` as a number (higher = worse; it arrives as a string —
    `sort_by(.delayTimeValue | tonumber? // 0) | reverse`). At equal delay:
    `QUEUING_TRAFFIC` > `SLOW_TRAFFIC` > `UNSPECIFIED_ABNORMAL_TRAFFIC` > no
-   `abnormalTrafficType` (show such a warning by its `description[]`).
+   `abnormalTrafficType` (show such a warning by its `description[]`). INRIX's delay-less
+   event lines — `Angespannte Verkehrslage` (heavy traffic), `Zusammengesetzte
+   Verkehrsinformation` (a combined traffic report) — still describe a disruption: list
+   them by that text after the delayed warnings instead of dropping them as "no delay".
 3. **Roadworks** — background unless they're blocking (`isBlocked === "true"`, or a
    `description[]` that says `Vollsperrung` / the carriageway is closed); those few rank
    with closures.
