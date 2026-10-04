@@ -193,5 +193,7 @@ Rules:
   warning ids embed a refresh timestamp and are re-issued within hours, so an older one answers
   exit `4` although the event persists (match warnings across runs on the part before `--`).
   Roadwork and closure ids stay stable.
-- Don't invent severity the data doesn't support; if `isBlocked` is false and there's no
-  delay value, it's informational.
+- Don't invent severity the data doesn't support: an item with no delay value and no event
+  text that says otherwise (Step 4: `Unfall`, `Falschfahrer`, `Gefahr`, `gesperrt`,
+  `Vollsperrung`) is informational. `isBlocked: "false"` alone proves nothing — accidents
+  carry it too.
