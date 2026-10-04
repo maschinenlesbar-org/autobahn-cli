@@ -159,7 +159,7 @@ test("list help names what it lists, and --max-retries help names the fallback b
   }
   const cli = makeCli(() => jsonResponse({}));
   assert.equal(await run(["--help"], cli.deps), 0);
-  assert.match(cli.out.join("\n").replace(/\s+/g, " "), /else a short linear backoff from 200 ms/);
+  assert.match(cli.out.join("\n").replace(/\s+/g, " "), /waits Retry-After, else backs off — up to 3–5 min in total at 10; details in README/);
 });
 
 test("combined short flags are read like separate ones by the -v and unknown-command rules", async () => {
