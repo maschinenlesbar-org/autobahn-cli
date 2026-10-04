@@ -89,6 +89,36 @@ export function buildProgram(deps: CliDeps = defaultDeps): Command {
 }
 
 /**
+ * The closest of `names` to a mistyped `word`, as commander suggests for an unknown
+ * command: an edit distance (insert, delete, substitute, swap neighbours) of at most 2
+ * that changes less than 60 % of the word. Undefined when nothing is that close.
+ */
+export function suggestCommand(word: string, names: string[]): string | undefined {
+  let best: { name: string; distance: number } | undefined;
+  for (const name of names) {
+    const distance = editDistance(word, name);
+    const similar = (Math.max(word.length, name.length) - distance) / Math.max(word.length, name.length) > 0.4;
+    if (distance <= 2 && similar && (best === undefined || distance < best.distance)) best = { name, distance };
+  }
+  return best?.name;
+}
+
+/** Optimal-string-alignment distance between `a` and `b`. */
+function editDistance(a: string, b: string): number {
+  const d: number[][] = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array<number>(b.length).fill(0)]);
+  for (let j = 1; j <= b.length; j++) d[0]![j] = j;
+  for (let i = 1; i <= a.length; i++) {
+    for (let j = 1; j <= b.length; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      let v = Math.min(d[i - 1]![j]! + 1, d[i]![j - 1]! + 1, d[i - 1]![j - 1]! + cost);
+      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) v = Math.min(v, d[i - 2]![j - 2]! + 1);
+      d[i]![j] = v;
+    }
+  }
+  return d[a.length]![b.length]!;
+}
+
+/**
  * Replace commander's built-in `help [command]` on every command that has subcommands.
  * The built-in one only looks one level down and shows help for anything it cannot
  * find: `autobahn help roadworks list` printed the `roadworks` help, and
@@ -111,7 +141,11 @@ function addHelpCommands(command: Command): void {
       for (const name of names) {
         const sub = target.commands.find((c) => c.name() === name || c.aliases().includes(name));
         if (sub === undefined) {
-          target.error(`error: unknown command '${name}'`, { exitCode: 1, code: "commander.unknownCommand" });
+          const hint = suggestCommand(name, target.commands.filter((c) => c.name() !== "help").map((c) => c.name()));
+          target.error(`error: unknown command '${name}'${hint === undefined ? "" : `\n(Did you mean ${hint}?)`}`, {
+            exitCode: 1,
+            code: "commander.unknownCommand",
+          });
         }
         target = sub;
       }

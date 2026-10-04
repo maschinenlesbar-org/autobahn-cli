@@ -254,6 +254,21 @@ test("an unknown command with --help is still an unknown command (exit 1), not h
   }
 });
 
+test("help suggests the closest command for a typo, like commander does", async () => {
+  for (const [argv, hint] of [
+    [["help", "roadwork"], "(Did you mean roadworks?)"],
+    [["help", "roadworks", "lst"], "(Did you mean list?)"],
+    [["roadworks", "help", "gte"], "(Did you mean get?)"],
+  ] as const) {
+    const cli = makeCli(() => jsonResponse({}));
+    assert.equal(await run([...argv], cli.deps), 1, argv.join(" "));
+    assert.equal(cli.err.join("\n").split("\n")[1], hint, argv.join(" "));
+  }
+  const far = makeCli(() => jsonResponse({}));
+  await run(["help", "zzzzzz"], far.deps);
+  assert.doesNotMatch(far.err.join("\n"), /Did you mean/);
+});
+
 test("help walks the whole command path and rejects an unknown name", async () => {
   for (const [argv, usage] of [
     [["help"], "Usage: autobahn [options] [command]"],
