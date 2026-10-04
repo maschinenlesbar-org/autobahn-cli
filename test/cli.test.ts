@@ -217,6 +217,12 @@ test("get help says where an identifier comes from", async () => {
   assert.match(help, /autobahn parking list A1 \| jq -r '\.\[0\]\.identifier'/);
 });
 
+test("--max-retries help states its default", async () => {
+  const cli = makeCli(() => jsonResponse({}));
+  await run(["--help"], cli.deps);
+  assert.match(cli.out.join("\n").replace(/\s+/g, " "), /--max-retries <n> retries for transient .*\(default 2, 0\.\.10;/);
+});
+
 test("--user-agent help shows the real default", async () => {
   const cli = makeCli(() => jsonResponse({}));
   await run(["--help"], cli.deps);
