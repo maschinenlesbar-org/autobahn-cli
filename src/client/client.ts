@@ -27,7 +27,7 @@ const enc = encodeURIComponent;
  *
  * @typeParam K - the envelope key the listing endpoint wraps its array in.
  */
-class ServiceResource<K extends string> {
+export class ServiceResource<K extends string> {
   constructor(
     private readonly engine: RequestEngine,
     /** Path segment of the service, e.g. "roadworks", "electric_charging_station". */

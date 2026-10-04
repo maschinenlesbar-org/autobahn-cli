@@ -1,6 +1,8 @@
 // Public entry point for the API client library.
 
 export { AutobahnClient } from "./client.js";
+// The type of `client.roadworks`, `client.warnings`, …, for helpers that take any of them.
+export type { ServiceResource } from "./client.js";
 export {
   RequestEngine,
   DEFAULT_BASE_URL,
