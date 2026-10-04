@@ -117,7 +117,9 @@ the API populates a different subset of fields per service type.
 
 **`title` / `subtitle`.** Short human-readable labels for the item. On lorry
 parking the upstream `title` is broken (`A8 | undefined`); the area name is in
-`subtitle`.
+`subtitle`. On roadworks, warnings and closures the `subtitle` is the direction and
+usually starts with a space (`" Saarbrücken -> Trier"`); trim it before matching or
+splitting on `" -> "`. The client passes it on unchanged.
 
 **`description`.** An array of descriptive text lines.
 

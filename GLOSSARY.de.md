@@ -119,7 +119,10 @@ die API befüllt je Diensttyp eine andere Teilmenge der Felder.
 
 **`title` / `subtitle`.** Kurze, menschenlesbare Bezeichnungen des Eintrags. Bei den
 Lkw-Parkplätzen ist `title` upstream fehlerhaft (`A8 | undefined`); der Name des
-Parkplatzes steht in `subtitle`.
+Parkplatzes steht in `subtitle`. Bei Baustellen, Warnungen und Sperrungen ist `subtitle`
+die Fahrtrichtung und beginnt meist mit einem Leerzeichen (`" Saarbrücken -> Trier"`);
+vor dem Vergleichen oder Aufteilen an `" -> "` trimmen. Der Client gibt es unverändert
+weiter.
 
 **`description`.** Ein Array beschreibender Textzeilen.
 
