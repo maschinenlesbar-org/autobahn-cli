@@ -229,6 +229,17 @@ test("a value given to a flag that takes none is explained", async () => {
   assert.equal(await run(["--timeout=5000", "roads"], ok.deps), 0);
 });
 
+test("subcommand help leaves the version flag out of its global options", async () => {
+  const cli = makeCli(() => jsonResponse({}));
+  await run(["roads", "--help"], cli.deps);
+  const global = cli.out.join("\n").split("Global Options:")[1] ?? "";
+  assert.match(global, /--compact/);
+  assert.doesNotMatch(global, /--version/);
+  const root = makeCli(() => jsonResponse({}));
+  await run(["--help"], root.deps);
+  assert.match(root.out.join("\n"), /-V, --version/);
+});
+
 test("subcommand help lists the global options", async () => {
   for (const argv of [["roads", "--help"], ["roadworks", "list", "--help"], ["help", "charging", "get"]]) {
     const cli = makeCli(() => jsonResponse({}));

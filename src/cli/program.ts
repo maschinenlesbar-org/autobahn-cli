@@ -3,7 +3,7 @@
 // captured output.
 
 import type { EventEmitter } from "node:events";
-import { Command, Option } from "commander";
+import { Command, Help, Option } from "commander";
 import type { CliDeps } from "./io.js";
 import { defaultIO } from "./io.js";
 import { AutobahnClient } from "../client/client.js";
@@ -84,7 +84,14 @@ export function buildProgram(deps: CliDeps = defaultDeps): Command {
  * `visibleCommands`).
  */
 function showGlobalOptions(command: Command): void {
-  command.configureHelp({ ...command.configureHelp(), showGlobalOptions: true });
+  // The version flag is a usage error after a command, so a subcommand's help leaves it
+  // out of its global options (the root's own help still lists it).
+  const base = Object.assign(new Help(), { showGlobalOptions: true });
+  command.configureHelp({
+    ...command.configureHelp(),
+    showGlobalOptions: true,
+    visibleGlobalOptions: (cmd: Command) => base.visibleGlobalOptions(cmd).filter((o) => o.long !== "--version"),
+  });
   for (const sub of command.commands) showGlobalOptions(sub);
 }
 
