@@ -51,12 +51,17 @@ export interface EngineOptions {
    * Defaults to 30 000. A request that times out is not retried.
    */
   timeoutMs?: number;
-  /** Number of automatic retries for transient (429/502/503/504) responses, 0..`MAX_RETRIES` (10). */
+  /**
+   * Number of automatic retries for transient 429/502/503/504 responses and reset
+   * connections (`isTransientNetworkError`), 0..`MAX_RETRIES` (10); defaults to 2.
+   * Timeouts are not retried.
+   */
   maxRetries?: number;
   /**
-   * Base backoff between retries in milliseconds. Grows linearly per attempt,
-   * unless the response carries a `Retry-After` header, which takes precedence.
-   * At most 30 000 (the Retry-After ceiling).
+   * Base backoff between retries in milliseconds (default 200). Grows linearly per
+   * attempt for 502/503/504 and reset connections. A 429 waits at least 1 s, doubling
+   * per attempt (from this value when larger), at most 30 s. A `Retry-After` header
+   * takes precedence over both. At most 30 000 (the Retry-After ceiling).
    */
   retryDelayMs?: number;
   /**
