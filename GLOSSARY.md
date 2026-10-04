@@ -141,7 +141,10 @@ roadworks, warnings and closures, `"long,lat,long,lat"` for charging (a single s
 both positions are equal). Like `point`, it is absent from lorry-parking listings and
 `null` in their detail response.
 
-**`isBlocked`.** A string flag indicating whether the segment/item is blocked.
+**`isBlocked`.** A string flag (`"true"`/`"false"`) indicating whether the
+segment/item is blocked. The API rarely sets it: it was `"false"` on all 306 A1
+warnings, closures and roadworks in October 2026, including full closures
+(`Vollsperrung` in the description). Read `"false"` as "not stated", not as "open".
 
 **`future`.** Boolean — whether the item refers to a future (not yet active)
 event, e.g. planned roadworks.

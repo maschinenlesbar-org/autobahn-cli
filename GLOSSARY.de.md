@@ -143,7 +143,11 @@ Baustelle umfasst): zwei Positionen in einer Zeichenkette, in derselben Reihenfo
 gleich). Wie `point` fehlt sie in den Listeneinträgen der Lkw-Parkplätze und ist in deren
 Detailantwort `null`.
 
-**`isBlocked`.** Ein String-Flag, das angibt, ob der Abschnitt bzw. Eintrag blockiert ist.
+**`isBlocked`.** Ein String-Flag (`"true"`/`"false"`), das angibt, ob der Abschnitt bzw.
+Eintrag blockiert ist. Die API setzt es selten: Im Oktober 2026 stand es bei allen 306
+Warnungen, Sperrungen und Baustellen der A1 auf `"false"`, auch bei Vollsperrungen
+(`Vollsperrung` in der Beschreibung). Lesen Sie `"false"` als „nicht angegeben“, nicht als
+„frei“.
 
 **`future`.** Boolean – ob sich der Eintrag auf ein künftiges (noch nicht aktives)
 Ereignis bezieht, z. B. eine geplante Baustelle.

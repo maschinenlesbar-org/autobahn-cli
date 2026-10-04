@@ -69,7 +69,7 @@ Each returns an array of items. The fields that matter for a briefing:
 | `title` | Human label, usually `A1 \| <from> - <to>` |
 | `subtitle` | Direction, e.g. `Euskirchen -> Dortmund` |
 | `display_type` | What the item is. On closures: `CLOSURE` (the carriageway) or `CLOSURE_ENTRY_EXIT` (only a junction's on/off ramp — usually most of a road's closures) |
-| `isBlocked` | `"true"`/`"false"` string. `"true"` = carriageway blocked **right now**. **Unreliable on closures** — most listed closures carry `"false"` even when shut (see Step 4). Trust it on warnings/roadworks; corroborate it on closures. |
+| `isBlocked` | `"true"`/`"false"` string. `"true"` = carriageway blocked **right now**, but the API almost never sets it: in October 2026 it was `"false"` on **all** 306 A1 warnings, closures and roadworks, including `Vollsperrung` closures and 37-minute queues. Take `"true"` as a strong signal and `"false"` as *no information* — judge blocking from `description[]`, `display_type` and `delayTimeValue` (see Step 4). |
 | `future` | Boolean — `true` means the item is **planned/upcoming**, not active yet. The primary active-vs-planned signal. |
 | `description[]` | Multi-line German detail (start time, cause, length, delay). Often the only place the real time window appears. |
 | `delayTimeValue` | Minutes of delay (warnings) — use for severity. A JSON **string** (`"10"`, `"5"`): convert before sorting (`tonumber` in jq, `Number()` in node), or `"5"` ranks above `"37"` |
@@ -135,8 +135,9 @@ Then rank the **active** items, most severe first:
 2. **Warnings** by `delayTimeValue` as a number (higher = worse; it arrives as a string —
    `sort_by(.delayTimeValue | tonumber? // 0) | reverse`); `QUEUING_TRAFFIC` outranks
    `SLOW_TRAFFIC` at equal delay.
-3. **Roadworks** — background unless they're blocking (`isBlocked === "true"`); those few
-   rank with closures.
+3. **Roadworks** — background unless they're blocking (`isBlocked === "true"`, or a
+   `description[]` that says `Vollsperrung` / the carriageway is closed); those few rank
+   with closures.
 
 Drop obvious duplicates (a closure and a warning describing the same spot — match on
 near-identical `extent`/`point` and direction). Exclude anything already past its window.
