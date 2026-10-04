@@ -104,6 +104,8 @@ export interface ArgvScan {
   versionFlagAfterCommand: boolean;
   /** Indexes of -h/--help after the `help` command (`help roadworks list --help`). */
   helpFlagsOnHelpCommand: number[];
+  /** A flag that takes no value, given one (`--compact=1`). */
+  valueOnBooleanFlag?: string;
 }
 
 /**
@@ -133,7 +135,12 @@ export function scanArgv(program: Command, argv: string[]): ArgvScan {
         }
         continue;
       }
-      if (token.includes("=")) continue;
+      if (token.includes("=")) {
+        const name = token.slice(0, token.indexOf("="));
+        const flag = path.flatMap((c) => c.options).find((o) => o.long === name);
+        if (flag !== undefined && !flag.required && !flag.optional) scan.valueOnBooleanFlag ??= token;
+        continue;
+      }
       const option = path.flatMap((c) => c.options).find((o) => o.short === token || o.long === token);
       if (option?.required) i++;
       continue;
@@ -182,6 +189,14 @@ export async function run(argv: string[], deps: CliDeps = defaultDeps): Promise<
       "error: the version flag (-V, --version, or -v) only works before the command " +
         "(`autobahn --version`); this CLI has no verbose mode",
     );
+    deps.io.err('(run "autobahn --help" for usage)');
+    return USAGE_ERROR;
+  }
+  // Commander answers `--compact=1` with "unknown option … (Did you mean --compact?)",
+  // which doesn't say why; `--timeout=…` works, so say that this flag takes no value.
+  if (scan.valueOnBooleanFlag !== undefined) {
+    const name = scan.valueOnBooleanFlag.slice(0, scan.valueOnBooleanFlag.indexOf("="));
+    deps.io.err(`error: option '${name}' takes no value (got '${escapeTerminalText(scan.valueOnBooleanFlag)}')`);
     deps.io.err('(run "autobahn --help" for usage)');
     return USAGE_ERROR;
   }

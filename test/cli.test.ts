@@ -217,6 +217,18 @@ test("get help says where an identifier comes from", async () => {
   assert.match(help, /autobahn parking list A1 \| jq -r '\.\[0\]\.identifier'/);
 });
 
+test("a value given to a flag that takes none is explained", async () => {
+  for (const argv of [["--compact=1", "roads"], ["roads", "--compact=true"]]) {
+    const cli = makeCli(() => jsonResponse({ roads: ["A1"] }));
+    assert.equal(await run(argv, cli.deps), 2, argv.join(" "));
+    assert.equal(cli.mt.calls.length, 0, argv.join(" "));
+    assert.match(cli.err.join("\n"), /^error: option '--compact' takes no value \(got '--compact=(1|true)'\)/, argv.join(" "));
+  }
+  // An option that takes a value still accepts the = form.
+  const ok = makeCli(() => jsonResponse({ roads: ["A1"] }));
+  assert.equal(await run(["--timeout=5000", "roads"], ok.deps), 0);
+});
+
 test("subcommand help lists the global options", async () => {
   for (const argv of [["roads", "--help"], ["roadworks", "list", "--help"], ["help", "charging", "get"]]) {
     const cli = makeCli(() => jsonResponse({}));
