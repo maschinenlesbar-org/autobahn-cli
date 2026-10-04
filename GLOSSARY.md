@@ -69,6 +69,9 @@ from the `roads` command. The upstream API itself emits a few ids with a
 trailing space next to their trimmed twin (e.g. `"A60"` and `"A60 "`), so the
 client trims surrounding whitespace before use, and `client.roads()` (so also the
 `roads` command) trims the list, drops blank ids and removes the duplicates.
+A road id containing `/` is rejected (`AutobahnValidationError`, exit `1`) before any
+request: the API decodes the client's `%2F` back to `/` and resolves `..`, so
+`A1/../A2` would otherwise print the A2 data under an A1 command.
 
 **`identifier`.** The opaque id of a single service item, present as the
 `identifier` field on every listed item. It is the value you pass to a

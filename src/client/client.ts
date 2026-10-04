@@ -9,6 +9,7 @@
 
 import { RequestEngine, type EngineOptions } from "./engine.js";
 import { AutobahnError, AutobahnNotFoundError, AutobahnParseError } from "./errors.js";
+import { assertValid, idProblem } from "./validate.js";
 import type {
   RoadsResult,
   AutobahnServiceItem,
@@ -63,7 +64,7 @@ class ServiceResource<K extends string> {
     // Trim surrounding whitespace: the upstream API itself emits a few ids with a
     // trailing space (e.g. "A60 "), and copying such an id straight back in would
     // otherwise URL-encode the space and miss the road. Validate after trimming.
-    const id = requireSegment("roadId", roadId).trim();
+    const id = assertValid("roadId", requireSegment("roadId", roadId).trim(), idProblem);
     const path = `${API_ROOT}/${enc(id)}/services/${this.service}`;
     const body = await this.engine.getJson<unknown>(path);
     // The API answers every road, even an empty one, with `{ "<key>": [...] }`. Any

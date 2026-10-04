@@ -250,6 +250,15 @@ test("a road id of .. exits 1 without a request instead of printing another endp
   assert.match(cli.err.join("\n"), /^Error: Invalid path segment "\.\."/);
 });
 
+test("a road id with / exits 1 without a request instead of printing another road's data", async () => {
+  const cli = makeCli(() => jsonResponse({ roadworks: [{ identifier: "a" }] }));
+  const code = await run(["--compact", "roadworks", "list", "A1/../A2"], cli.deps);
+  assert.equal(code, 1);
+  assert.equal(cli.mt.calls.length, 0);
+  assert.deepEqual(cli.out, []);
+  assert.match(cli.err.join("\n"), /Invalid roadId: An id cannot contain "\/"/);
+});
+
 test("a 2xx body without the service envelope exits 1 instead of printing []", async () => {
   const cli = makeCli(() => jsonResponse({ roadworks: "oops", error: "down" }));
   const code = await run(["--compact", "roadworks", "list", "A1"], cli.deps);

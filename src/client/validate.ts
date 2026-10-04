@@ -22,6 +22,17 @@ export function assertValid<T>(name: string, value: T, problem: Problem<T>): T {
 }
 
 /**
+ * Why `value` cannot be put into a request path as a road id, or undefined when it can.
+ * The client percent-encodes the id, but the upstream decodes `%2F` back to `/` and
+ * resolves `..` before routing, so `"A1/../A2"` would fetch the A2 data (exit 0) and
+ * `"A2/"` would pass for `"A2"`. No id the API issues contains a `/`.
+ */
+export function idProblem(value: string): string | undefined {
+  if (value.includes("/")) return 'An id cannot contain "/": the API reads it as a path separator.';
+  return undefined;
+}
+
+/**
  * Why `value` cannot be used as the base URL, or undefined when it can. The engine
  * appends every request path to the base URL as a string, so the rules guard the
  * request URL it builds:

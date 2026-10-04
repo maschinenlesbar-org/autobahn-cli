@@ -7,6 +7,7 @@ import {
   AutobahnNetworkError,
   AutobahnNotFoundError,
   AutobahnParseError,
+  AutobahnValidationError,
 } from "../src/client/errors.js";
 import type { AutobahnServiceItem } from "../src/client/types.js";
 import { makeMockTransport, jsonResponse, constantJson } from "./helpers.js";
@@ -236,6 +237,22 @@ test("a road id or identifier of . or .. is rejected before any request instead 
       return true;
     });
     assert.equal(mt.calls.length, 0, name);
+  }
+});
+
+test("a road id containing / is rejected before any request instead of re-targeting the road", async () => {
+  for (const roadId of ["A1/../A2", "A2/", "/A1", "A1/x"]) {
+    const mt = constantJson({ roadworks: [{ identifier: "a" }] });
+    await assert.rejects(() => clientWith(mt).roadworks.list(roadId), (err: unknown) => {
+      assert.ok(err instanceof AutobahnValidationError, roadId);
+      assert.equal(
+        (err as Error).message,
+        'Invalid roadId: An id cannot contain "/": the API reads it as a path separator.',
+        roadId,
+      );
+      return true;
+    });
+    assert.equal(mt.calls.length, 0, roadId);
   }
 });
 

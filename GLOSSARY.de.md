@@ -67,7 +67,9 @@ dem Befehl `roads`. Die Upstream-API selbst liefert einige IDs mit nachgestellte
 Leerzeichen neben ihrem bereinigten Gegenstück (z. B. `"A60"` und `"A60 "`). Deshalb
 entfernt der Client vor der Verwendung umgebende Leerzeichen, und `client.roads()`
 (also auch der Befehl `roads`) bereinigt die Liste, lässt leere IDs weg und entfernt
-die Duplikate.
+die Duplikate. Eine Autobahn-Kennung mit `/` wird vor jeder Anfrage abgelehnt
+(`AutobahnValidationError`, Exit `1`): Die API decodiert das `%2F` des Clients zurück zu
+`/` und löst `..` auf, sonst gäbe `A1/../A2` unter einem A1-Befehl die Daten der A2 aus.
 
 **`identifier`.** Die opake ID eines einzelnen Dienst-Eintrags, die in jedem gelisteten
 Eintrag als Feld `identifier` steht. Diesen Wert übergeben Sie einem
