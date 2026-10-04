@@ -30,6 +30,15 @@ test("assertValid inside an async method rejects instead of throwing synchronous
   await assert.rejects(pending, AutobahnValidationError);
 });
 
+test("the library root exports the retry and message helpers", async () => {
+  const engine = await import("../src/client/engine.js");
+  const errors = await import("../src/client/errors.js");
+  assert.equal(library.isTransientNetworkError, engine.isTransientNetworkError);
+  assert.equal(library.quoteValue, engine.quoteValue);
+  assert.equal(library.cutForMessage, errors.cutForMessage);
+  assert.equal(library.MAX_MESSAGE_VALUE_LENGTH, 500);
+});
+
 test("the library root exports the validation layer", () => {
   assert.equal(library.AutobahnValidationError, AutobahnValidationError);
   assert.equal(library.assertValid, assertValid);

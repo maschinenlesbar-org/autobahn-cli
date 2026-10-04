@@ -10,6 +10,8 @@ export {
   MAX_RETRIES,
   headerValueProblem,
   isBidiControl,
+  isTransientNetworkError,
+  quoteValue,
   sanitizeServerText,
 } from "./engine.js";
 export type { EngineOptions, RawResponse } from "./engine.js";
@@ -25,6 +27,8 @@ export {
   AutobahnNotFoundError,
   AutobahnParseError,
   AutobahnValidationError,
+  MAX_MESSAGE_VALUE_LENGTH,
+  cutForMessage,
   isRetryableStatus,
   redactUrl,
 } from "./errors.js";
