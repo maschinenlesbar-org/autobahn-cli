@@ -55,7 +55,8 @@ Each item is a charging site. The fields that matter:
 | `isBlocked` | `"true"` = out of service |
 
 Power, connector, point count and operator are not separate fields — parse them from
-`description[]`, which comes in two layouts:
+`description[]`, which comes in two layouts. **Trim each line first**: some carry trailing
+spaces (`"4 Ladepunkte "`), so an exact match on the layout below would miss them.
 
 - **Deutschlandnetz sites** (numeric `identifier`): the title, a point count
   (`4 Ladepunkte`), one connector line (`DC Kupplung Combo (CCS)`), one power line
