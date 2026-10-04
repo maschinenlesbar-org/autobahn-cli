@@ -210,7 +210,8 @@ value cannot hang the CLI; otherwise using linear backoff — except a `429`, wh
 from 1 s, doubling per retry (at most 30 s).
 `AutobahnApiError.isRetryable` reflects this. A reset connection
 (`isTransientNetworkError`: `ECONNRESET`/`EPIPE`/`ECONNABORTED` as the network error's
-`cause`) is retried with the linear backoff too.
+`cause`) is retried with the linear backoff too. Only `GET` and `HEAD` are retried: a
+caller of the public `RequestEngine.request` with another method gets one attempt.
 
 **`maxResponseBytes`.** A hard cap on response body size (default 100 MiB;
 `0` disables) that defends against memory exhaustion from a hostile or buggy

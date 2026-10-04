@@ -445,6 +445,9 @@ export class RequestEngine {
       "User-Agent": this.userAgent,
     };
 
+    // Only an idempotent request is sent again: request() is public, and a POST re-sent
+    // after a reset or a 503 may be applied twice. The client itself sends GETs only.
+    const idempotent = /^(GET|HEAD)$/i.test(method);
     let attempt = 0;
     // attempts = initial try + maxRetries
     for (;;) {
@@ -461,7 +464,7 @@ export class RequestEngine {
         // A connection the server (or a gateway) reset is the network-level twin of a
         // 502: retry the GET like a transient status. Timeouts are not retried — a slow
         // upstream should not be asked again at once, and --timeout bounds each attempt.
-        if (isTransientNetworkError(cause) && attempt < this.maxRetries) {
+        if (idempotent && isTransientNetworkError(cause) && attempt < this.maxRetries) {
           attempt += 1;
           await this.sleep(this.retryDelayMs * attempt);
           continue;
@@ -495,7 +498,7 @@ export class RequestEngine {
       // (HttpResponse types the body as Buffer; a JavaScript transport may not.)
       const raw: Uint8Array = response.body;
       const body = Buffer.isBuffer(raw) ? raw : Buffer.from(raw.buffer, raw.byteOffset, raw.byteLength);
-      if (isRetryableStatus(status) && attempt < this.maxRetries) {
+      if (idempotent && isRetryableStatus(status) && attempt < this.maxRetries) {
         attempt += 1;
         // Honour a Retry-After header when present, clamped to MAX_RETRY_AFTER_MS
         // so a pathological/hostile value can't hang the CLI; otherwise back off:

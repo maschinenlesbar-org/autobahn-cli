@@ -209,6 +209,22 @@ test("a network error names the request URL (credentials redacted) and the retri
   );
 });
 
+test("only GET and HEAD requests are retried", async () => {
+  for (const [method, expected] of [["GET", 3], ["HEAD", 3], ["POST", 1], ["DELETE", 1]] as const) {
+    let calls = 0;
+    const e = new RequestEngine({
+      maxRetries: 2,
+      sleep: async () => {},
+      transport: async () => {
+        calls += 1;
+        return { status: 503, headers: {}, body: Buffer.alloc(0) };
+      },
+    });
+    await assert.rejects(() => e.request(method, "/x"), AutobahnApiError, method);
+    assert.equal(calls, expected, method);
+  }
+});
+
 test("a timed-out request is not retried", async () => {
   let calls = 0;
   const e = new RequestEngine({
