@@ -46,3 +46,38 @@ jobs:
       # first, so this also re-validates the build).
       - name: Test
         run: npm test
+
+  # The API docs and the website's command reference are otherwise built only by
+  # docs.yml on a tag, after the release: a TypeDoc warning or a break in the
+  # reference generator would surface only once the release is out.
+  docs:
+    name: API docs & command reference
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        with:
+          persist-credentials: false
+
+      - name: Use Node.js 24
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: 24.x
+          cache: 'npm'
+
+      - name: Install
+        run: npm ci
+
+      # TypeDoc runs from its own lockfile-pinned toolchain (TypeScript 6 compiler API).
+      - name: Install docs toolchain
+        run: npm ci --prefix tools/docs
+
+      - name: Build
+        run: npm run build
+
+      - name: Build API docs (warnings fail the job)
+        run: npm run docs -- --treatWarningsAsErrors
+
+      - name: Generate the command reference
+        working-directory: site
+        run: node scripts/cli-reference.mjs
