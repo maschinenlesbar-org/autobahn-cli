@@ -37,7 +37,7 @@ exactly what you want to report. A road id the API does not know exits `4` with
 exit (`1`: `Error: HTTP 502 …`, a timeout, a parse error) means that service **could not
 be fetched**: retry that one call once, and if it fails again report the service as
 *unavailable* for that road ("A3: warnings unavailable — upstream error"). Never drop it
-and never let it count towards a "clear" verdict.
+and never let it count towards a "clear" verdict. A **usage error** is exit `1` too, but its stderr starts with lowercase `error:` (`error: command-argument value 'A1/' is invalid …`) — that is a bad input, not an upstream failure: fix the command, don't retry it or report the service as unavailable.
 
 ## Step 1 — Resolve the roads
 
