@@ -42,11 +42,13 @@ Check what construction sites are active before a trip down the A1.
 autobahn roadworks list A1
 ```
 
-Each item includes an `identifier` you can feed to `roadworks get`.
-Pull just the human-readable titles:
+The listing holds active **and planned** works: a planned item carries
+`"future": true` (on the A1 in October 2026, 96 of 239). Each item includes an
+`identifier` you can feed to `roadworks get`. Pull just the titles of the
+active ones:
 
 ```bash
-autobahn roadworks list A1 | jq -r '.[].title'
+autobahn roadworks list A1 | jq -r '.[] | select(.future | not) | .title'
 ```
 
 ### 3. List open closures on a motorway
@@ -56,6 +58,12 @@ shut entirely.
 
 ```bash
 autobahn closures list A3
+```
+
+Planned closures are listed too (`"future": true`), so keep only the open ones:
+
+```bash
+autobahn closures list A3 | jq '[.[] | select(.future | not)]'
 ```
 
 A `list` that matches nothing is **not** an error: it prints an empty result
@@ -133,10 +141,11 @@ autobahn --compact warnings list A2
 
 ### 9. Count how many roadworks are active on a motorway
 
-Combine `list` with `jq` for a quick metric.
+Combine `list` with `jq` for a quick metric. Drop the planned items
+(`"future": true`) first, or the count includes works that have not started:
 
 ```bash
-autobahn roadworks list A7 | jq 'length'
+autobahn roadworks list A7 | jq '[.[] | select(.future | not)] | length'
 ```
 
 ### 10. Run against a different host or with a longer timeout

@@ -106,11 +106,11 @@ use-case-driven set.
 # Which motorways are covered?
 autobahn roads
 
-# Current roadworks on the A1
+# Roadworks on the A1 (active and planned)
 autobahn roadworks list A1
 
-# Titles of all active roadworks (jq)
-autobahn roadworks list A1 | jq -r '.[].title'
+# Titles of the active roadworks only (planned ones carry "future": true)
+autobahn roadworks list A1 | jq -r '.[] | select(.future | not) | .title'
 
 # Full detail of one roadwork item (two-step: list → get)
 autobahn roadworks list A1 | jq -r '.[0].identifier'
@@ -124,7 +124,7 @@ autobahn webcams list A99 | jq -r '.[].linkurl'
 autobahn --compact charging list A9
 
 # How many active roadworks on the A7?
-autobahn roadworks list A7 | jq 'length'
+autobahn roadworks list A7 | jq '[.[] | select(.future | not)] | length'
 ```
 
 ## Output & scripting
