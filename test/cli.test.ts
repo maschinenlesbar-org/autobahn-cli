@@ -166,23 +166,30 @@ test("combined short flags are read like separate ones by the -v and unknown-com
     const cli = makeCli(() => jsonResponse({ roads: ["A1"] }));
     assert.equal(await run(argv, cli.deps), 1, argv.join(" "));
     assert.equal(cli.out.length, 0, argv.join(" "));
-    assert.match(cli.err.join("\n"), /^error: -v is the version flag/, argv.join(" "));
+    assert.match(cli.err.join("\n"), /^error: the version flag \(-V, --version, or -v\) only works before the command/, argv.join(" "));
   }
   const unknown = makeCli(() => jsonResponse({}));
   assert.equal(await run(["bogus", "-hV"], unknown.deps), 1);
   assert.match(unknown.err.join("\n"), /unknown command 'bogus'/);
 });
 
-test("-v after a command is a usage error, not the version instead of the command", async () => {
-  for (const argv of [["roads", "-v"], ["roadworks", "list", "A1", "-v"], ["--compact", "roads", "-v"]]) {
+test("a version flag after a command is a usage error, not the version instead of the command", async () => {
+  for (const argv of [
+    ["roads", "-v"],
+    ["roadworks", "list", "A1", "-v"],
+    ["--compact", "roads", "-v"],
+    ["roads", "-V"],
+    ["roadworks", "get", "A1", "--version"],
+    ["--user-agent", "-v", "roads", "-V"],
+  ]) {
     const cli = makeCli(() => jsonResponse({ roads: ["A1"] }));
     assert.equal(await run(argv, cli.deps), 1, argv.join(" "));
     assert.equal(cli.out.length, 0, argv.join(" "));
     assert.equal(cli.mt.calls.length, 0, argv.join(" "));
-    assert.match(cli.err.join("\n"), /^error: -v is the version flag \(use -V or --version\)/, argv.join(" "));
+    assert.match(cli.err.join("\n"), /^error: the version flag \(-V, --version, or -v\) only works before the command/, argv.join(" "));
   }
-  // Before the command it still prints the version; -V and --version work anywhere.
-  for (const argv of [["-v"], ["-v", "roads"], ["roads", "-V"], ["roads", "--version"]]) {
+  // Before the command all three print the version.
+  for (const argv of [["-v"], ["-v", "roads"], ["-V", "roads"], ["--version", "roads"], ["--version"]]) {
     const cli = makeCli(() => jsonResponse({}));
     assert.equal(await run(argv, cli.deps), 0, argv.join(" "));
     assert.match(cli.out.join("\n"), /^\d+\.\d+\.\d+/, argv.join(" "));

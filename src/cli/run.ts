@@ -84,6 +84,9 @@ export function escapeCommanderError(message: string): string {
 /** Flags that make commander print something and exit 0: help, and the version (`-v` is its alias). */
 const DISPLAY_FLAGS = new Set(["-h", "--help", "-V", "--version", "-v"]);
 
+/** The version flags among DISPLAY_FLAGS. */
+const VERSION_FLAGS = new Set(["-V", "--version", "-v"]);
+
 /** `["-v", "-h"]` for `-vh` when every letter is a display flag, else undefined. */
 function combinedDisplayFlags(token: string): string[] | undefined {
   if (!/^-[A-Za-z]{2,}$/.test(token)) return undefined;
@@ -97,8 +100,8 @@ export interface ArgvScan {
   unknownCommand: boolean;
   /** Indexes of the help/version flags (DISPLAY_FLAGS) — never an option's value. */
   displayFlags: number[];
-  /** The hidden `-v` version alias follows a command (`autobahn roads -v`). */
-  versionAliasAfterCommand: boolean;
+  /** A version flag (`-V`, `--version`, or the hidden `-v`) follows a command (`autobahn roads -V`). */
+  versionFlagAfterCommand: boolean;
 }
 
 /**
@@ -112,7 +115,7 @@ export interface ArgvScan {
 export function scanArgv(program: Command, argv: string[]): ArgvScan {
   let command: Command | undefined = program;
   const path: Command[] = [program];
-  const scan: ArgvScan = { unknownCommand: false, displayFlags: [], versionAliasAfterCommand: false };
+  const scan: ArgvScan = { unknownCommand: false, displayFlags: [], versionFlagAfterCommand: false };
   for (let i = 0; i < argv.length; i++) {
     const token = argv[i]!;
     if (token === "--") break;
@@ -122,7 +125,7 @@ export function scanArgv(program: Command, argv: string[]): ArgvScan {
       const flags = DISPLAY_FLAGS.has(token) ? [token] : combinedDisplayFlags(token);
       if (flags !== undefined) {
         scan.displayFlags.push(i);
-        if (flags.includes("-v") && path.length > 1) scan.versionAliasAfterCommand = true;
+        if (path.length > 1 && flags.some((f) => VERSION_FLAGS.has(f))) scan.versionFlagAfterCommand = true;
         continue;
       }
       if (token.includes("=")) continue;
@@ -160,12 +163,12 @@ export async function run(argv: string[], deps: CliDeps = defaultDeps): Promise<
   // drop the flag so commander reports `unknown command '<name>'` (exit 1) instead of
   // showing help or printing the version (exit 0) — a false success for a script.
   const scan = scanArgv(program, argv);
-  // `-v` is kept only as the old spelling of -V; after a command it is more likely a
-  // "verbose" guess, and printing the version would drop the command silently.
-  if (scan.versionAliasAfterCommand && !scan.unknownCommand) {
+  // A version flag after a command would print the version and drop the command
+  // silently (and `-v` there is more likely a "verbose" guess): a usage error instead.
+  if (scan.versionFlagAfterCommand && !scan.unknownCommand) {
     deps.io.err(
-      "error: -v is the version flag (use -V or --version); it only works before the command, " +
-        "and this CLI has no verbose mode",
+      "error: the version flag (-V, --version, or -v) only works before the command " +
+        "(`autobahn --version`); this CLI has no verbose mode",
     );
     deps.io.err('(run "autobahn --help" for usage)');
     return 1;
