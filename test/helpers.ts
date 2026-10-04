@@ -108,6 +108,7 @@ export async function parity(
   const err: string[] = [];
   const code = await run(argv, {
     io: { out: (s) => out.push(s), err: (s) => err.push(s) },
+    env: {},
     createClient: (options) => new AutobahnClient({ ...options, transport: cliTransport.transport }),
   });
   const cli: CliOutcome = { code, out: out.join("\n"), err: err.join("\n"), requests: cliTransport.calls };

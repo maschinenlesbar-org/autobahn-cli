@@ -11,6 +11,8 @@ export interface CliIO {
 
 export interface CliDeps {
   io: CliIO;
+  /** Environment variables (injectable, so tests never read the real process.env). */
+  env: Record<string, string | undefined>;
   /** Build a client from the resolved global options (injectable for tests). */
   createClient(options: EngineOptions): AutobahnClient;
 }

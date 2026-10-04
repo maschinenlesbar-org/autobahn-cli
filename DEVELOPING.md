@@ -172,7 +172,8 @@ renders booleans as `"true"`/`"false"`, dates as ISO-8601, and encodes spaces as
 `%20`.
 
 **CliDeps / CliIO.** The dependency-injection seam for the CLI
-([`io.ts`](src/cli/io.ts)): a client factory plus an I/O object (`out`/`err`).
+([`io.ts`](src/cli/io.ts)): a client factory, an I/O object (`out`/`err`) and the
+environment (`env`, read for `AUTOBAHN_BASE_URL`; tests pass `{}`).
 Lets the whole CLI run in tests with a mocked client and captured output — no
 subprocess.
 

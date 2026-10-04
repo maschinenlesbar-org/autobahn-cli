@@ -195,7 +195,7 @@ These apply to every command and may be given **before or after** it:
 | `-V, --version` | Print the version number — before the command only (`-v` works too); after a command it is a usage error |
 | `-h, --help` | Show help for the program or a command |
 | `--compact` | Print JSON on a single line instead of pretty-printed |
-| `--base-url <url>` | API base URL (default `https://verkehr.autobahn.de`); a `user:password@` in it is sent as HTTP Basic auth |
+| `--base-url <url>` | API base URL (default `https://verkehr.autobahn.de`, or the `AUTOBAHN_BASE_URL` environment variable; the flag wins); a `user:password@` in it is sent as HTTP Basic auth |
 | `--timeout <ms>` | Per-request timeout in ms (default `30000`; `0` disables; at most `2147483647`). A timed-out request is not retried |
 | `--user-agent <ua>` | `User-Agent` header value (default `autobahn-cli/<version> (+https://github.com/maschinenlesbar-org/autobahn-cli)`) |
 | `--max-retries <n>` | Retries for transient `429`/`502`/`503`/`504` responses and reset connections (default `2`, at most `10`; each waits the server's `Retry-After`, up to 30 s, else a short linear backoff from 200 ms; a `429` waits from 1 s, doubling; at `10` the waits can add up to 3–5 min, which `--timeout` does not bound) |

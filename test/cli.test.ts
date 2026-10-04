@@ -18,6 +18,7 @@ function makeCli(responder: (req: HttpRequest) => HttpResponse | Promise<HttpRes
       out: (s) => out.push(s),
       err: (s) => err.push(s),
     },
+    env: {},
     createClient: (opts) => new AutobahnClient({ ...opts, transport: mt.transport }),
   };
   return { deps, out, err, mt };
@@ -446,11 +447,40 @@ test("--timeout accepts up to the largest timer Node supports", async () => {
   assert.match(over.err.join("\n"), /from 0 to 2147483647/);
 });
 
+test("AUTOBAHN_BASE_URL sets the base URL; --base-url wins; a bad value is a usage error", async () => {
+  const runWith = async (env: Record<string, string>, argv: string[]) => {
+    const out: string[] = [];
+    const err: string[] = [];
+    const mt = makeMockTransport(() => jsonResponse({ roads: ["A1"] }));
+    const code = await run(argv, {
+      io: { out: (s) => out.push(s), err: (s) => err.push(s) },
+      env,
+      createClient: (opts) => new AutobahnClient({ ...opts, transport: mt.transport }),
+    });
+    return { code, out: out.join("\n"), err: err.join("\n"), urls: mt.calls.map((c) => c.url) };
+  };
+  const fromEnv = await runWith({ AUTOBAHN_BASE_URL: "https://mirror.example/api" }, ["roads"]);
+  assert.equal(fromEnv.code, 0);
+  assert.deepEqual(fromEnv.urls, ["https://mirror.example/api/o/autobahn/"]);
+  const flagWins = await runWith({ AUTOBAHN_BASE_URL: "https://mirror.example" }, ["--base-url", "https://other.example", "roads"]);
+  assert.deepEqual(flagWins.urls, ["https://other.example/o/autobahn/"]);
+  const empty = await runWith({ AUTOBAHN_BASE_URL: "" }, ["roads"]);
+  assert.deepEqual(empty.urls, ["https://verkehr.autobahn.de/o/autobahn/"]);
+  const bad = await runWith({ AUTOBAHN_BASE_URL: "ftp://x" }, ["roads"]);
+  assert.equal(bad.code, 2);
+  assert.deepEqual(bad.urls, []);
+  assert.match(bad.err, /^error: AUTOBAHN_BASE_URL: Unsupported scheme "ftp:"/);
+  const help = await runWith({ AUTOBAHN_BASE_URL: "https://user:s3cret@mirror.example" }, ["--help"]);
+  assert.match(help.out, /env AUTOBAHN_BASE_URL/);
+  assert.doesNotMatch(help.out, /s3cret/);
+});
+
 test("global options flow through to the client engine", async () => {
   const seen: EngineOptions[] = [];
   const mt = makeMockTransport(() => jsonResponse({ roads: [] }));
   const deps: CliDeps = {
     io: { out: () => {}, err: () => {} },
+    env: {},
     createClient: (opts) => {
       seen.push(opts);
       return new AutobahnClient({ ...opts, transport: mt.transport });
@@ -664,6 +694,7 @@ test("an AutobahnValidationError raised in an action is a usage error: exit 2, '
   };
   const code = await run(["roads"], {
     io: { out: (s) => out.push(s), err: (s) => err.push(s) },
+    env: {},
     createClient: () => client,
   });
   assert.equal(code, 2);

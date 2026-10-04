@@ -3,12 +3,13 @@
 // captured output.
 
 import type { EventEmitter } from "node:events";
-import { Command, Help, Option } from "commander";
+import { Command, Help, InvalidArgumentError, Option } from "commander";
 import type { CliDeps } from "./io.js";
 import { defaultIO } from "./io.js";
 import { AutobahnClient } from "../client/client.js";
 import { MAX_TIMEOUT_MS } from "../client/http.js";
 import { DEFAULT_BASE_URL, DEFAULT_USER_AGENT, MAX_RETRIES } from "../client/engine.js";
+import { redactUrl } from "../client/errors.js";
 import { VERSION } from "../client/version.js";
 import { parseBaseUrl, parseBoundedInt, parseHeaderValue } from "./shared.js";
 import { registerRoadsCommand } from "./commands/roads.js";
@@ -19,11 +20,14 @@ export { VERSION } from "../client/version.js";
 /** Default dependencies: real client + real stdout/stderr/filesystem. */
 export const defaultDeps: CliDeps = {
   io: defaultIO,
+  env: process.env,
   createClient: (options) => new AutobahnClient(options),
 };
 
 export function buildProgram(deps: CliDeps = defaultDeps): Command {
   const program = new Command();
+  // flag > AUTOBAHN_BASE_URL > default; an empty variable counts as unset.
+  const baseUrlDefault = deps.env["AUTOBAHN_BASE_URL"] || DEFAULT_BASE_URL;
 
   program
     .name("autobahn")
@@ -35,11 +39,12 @@ export function buildProgram(deps: CliDeps = defaultDeps): Command {
     // this CLI's flag up to 0.1.0, keeps working as a hidden alias.
     .version(VERSION, "-V, --version", "output the version number")
     .addOption(new Option("-v", "output the version number").hideHelp())
-    .option(
-      "--base-url <url>",
-      "API base URL; a user:password@ in it is sent as HTTP Basic auth",
-      parseBaseUrl,
-      DEFAULT_BASE_URL,
+    .addOption(
+      new Option("--base-url <url>", "API base URL (env AUTOBAHN_BASE_URL); a user:password@ in it is sent as HTTP Basic auth")
+        .argParser(parseBaseUrl)
+        // The help shows the default without userinfo: a password in AUTOBAHN_BASE_URL
+        // must not end up in --help output or CI logs.
+        .default(baseUrlDefault, JSON.stringify(redactUrl(baseUrlDefault))),
     )
     .option(
       "--timeout <ms>",
@@ -68,6 +73,18 @@ export function buildProgram(deps: CliDeps = defaultDeps): Command {
 
   // Command is an EventEmitter at runtime; commander's typings only expose on().
   program.on("option:v", () => (program as unknown as EventEmitter).emit("option:version"));
+
+  // commander runs value parsers on flags but not on defaults, so a base URL taken from
+  // AUTOBAHN_BASE_URL is checked here, before any command runs (a usage error, exit 2).
+  program.hook("preAction", () => {
+    if (program.getOptionValueSource("baseUrl") !== "default") return;
+    try {
+      parseBaseUrl(program.opts<{ baseUrl: string }>().baseUrl);
+    } catch (err) {
+      if (!(err instanceof InvalidArgumentError)) throw err;
+      program.error(`error: AUTOBAHN_BASE_URL: ${err.message}`);
+    }
+  });
 
   registerRoadsCommand(program, deps);
   registerServiceCommands(program, deps);
