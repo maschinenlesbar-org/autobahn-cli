@@ -115,6 +115,9 @@ closures even when the road is shut. Classify like this:
   - `Die Baustelle ist zu folgenden Zeiträumen gültig:` then one or more window lines in
     two forms: `DD.MM.YY HH:MM bis zum DD.MM.YY HH:MM Uhr.` (across midnight; night
     closures often list several) and `DD.MM.YY von HH:MM bis HH:MM Uhr` (within one day).
+  Either layout can add `Die Baustelle gilt nicht an folgenden Tagen:` followed by
+  `DD.MM.YY` lines — days inside the window when the site is **not** active (the list can
+  be empty). Check today against it before calling an item active.
   Warnings carry only a `Beginn:` line. The `Beginn:`/`Ende:` and window times are German
   local time — but an INRIX warning's event line (`Unfall, seit 04.10.2026, 19:53`,
   `Angespannte Verkehrslage, seit …`) is **UTC** with no zone marker, two hours behind its
