@@ -98,12 +98,13 @@ function showGlobalOptions(command: Command): void {
 /**
  * The closest of `names` to a mistyped `word`, as commander suggests for an unknown
  * command: an edit distance (insert, delete, substitute, swap neighbours) of at most 2
- * that changes less than 60 % of the word. Undefined when nothing is that close.
+ * that changes less than 60 % of the word, ignoring case (commander's own comparison is
+ * case-sensitive, so `ROADWORKS` got no hint). Undefined when nothing is that close.
  */
 export function suggestCommand(word: string, names: string[]): string | undefined {
   let best: { name: string; distance: number } | undefined;
   for (const name of names) {
-    const distance = editDistance(word, name);
+    const distance = editDistance(word.toLowerCase(), name.toLowerCase());
     const similar = (Math.max(word.length, name.length) - distance) / Math.max(word.length, name.length) > 0.4;
     if (distance <= 2 && similar && (best === undefined || distance < best.distance)) best = { name, distance };
   }

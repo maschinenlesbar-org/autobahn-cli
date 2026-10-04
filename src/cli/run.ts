@@ -3,7 +3,7 @@
 // captured output and exit code without spawning a subprocess.
 
 import { CommanderError, type Command } from "commander";
-import { buildProgram, commandPath, defaultDeps } from "./program.js";
+import { buildProgram, commandPath, defaultDeps, suggestCommand } from "./program.js";
 import type { CliDeps } from "./io.js";
 import {
   AutobahnApiError,
@@ -98,6 +98,8 @@ function combinedDisplayFlags(token: string): string[] | undefined {
 export interface ArgvScan {
   /** A token names a command that does not exist (`autobahn services …`). */
   unknownCommand: boolean;
+  /** The first token that names no command, and the command it was looked up under. */
+  unknown?: { name: string; parent: Command };
   /** Indexes of the help/version flags (DISPLAY_FLAGS) — never an option's value. */
   displayFlags: number[];
   /** A version flag (`-V`, `--version`, or the hidden `-v`) follows a command (`autobahn roads -V`). */
@@ -147,8 +149,10 @@ export function scanArgv(program: Command, argv: string[]): ArgvScan {
     }
     if (command === undefined || command.commands.length === 0) continue;
     const sub: Command | undefined = command.commands.find((c) => c.name() === token || c.aliases().includes(token));
-    if (sub === undefined) scan.unknownCommand = true;
-    else path.push(sub);
+    if (sub === undefined) {
+      scan.unknownCommand = true;
+      scan.unknown ??= { name: token, parent: command };
+    } else path.push(sub);
     command = sub;
   }
   return scan;
@@ -200,9 +204,19 @@ export async function run(argv: string[], deps: CliDeps = defaultDeps): Promise<
     deps.io.err('(run "autobahn --help" for usage)');
     return USAGE_ERROR;
   }
+  // An unknown command is reported here rather than by commander: its "Did you mean"
+  // compares case-sensitively (`ROADWORKS` got no hint), and any help or version flag
+  // given with it must not turn the error into a success.
+  if (scan.unknown !== undefined) {
+    const { name, parent } = scan.unknown;
+    const hint = suggestCommand(name, parent.commands.filter((c) => c.name() !== "help").map((c) => c.name()));
+    deps.io.err(escapeCommanderError(`error: unknown command '${name}'${hint === undefined ? "" : `\n(Did you mean ${hint}?)`}`));
+    deps.io.err(`(run "${commandPath(parent)} --help" for usage)`);
+    return USAGE_ERROR;
+  }
   // `help <path> --help` asks for the help of <path>, which the help command prints;
   // left in, commander would answer the --help with the help command's own help.
-  const drop = scan.unknownCommand ? scan.displayFlags : scan.helpFlagsOnHelpCommand;
+  const drop = scan.helpFlagsOnHelpCommand;
   const args = argv.filter((_, i) => !drop.includes(i));
 
   try {

@@ -671,6 +671,18 @@ test("an AutobahnValidationError raised in an action is a usage error: exit 2, '
   assert.deepEqual(err, ["Error: Invalid roadId: Expected a non-empty value."]);
 });
 
+test("upper-case command names get a suggestion too", async () => {
+  for (const [argv, hint] of [
+    [["ROADWORKS", "list", "A1"], "(Did you mean roadworks?)"],
+    [["roadworks", "LIST", "A1"], "(Did you mean list?)"],
+    [["help", "CHARGING"], "(Did you mean charging?)"],
+  ] as const) {
+    const cli = makeCli(() => jsonResponse({}));
+    assert.equal(await run([...argv], cli.deps), 2, argv.join(" "));
+    assert.equal(cli.err.join("\n").split("\n")[1], hint, argv.join(" "));
+  }
+});
+
 test("commander's 'Did you mean' hint stays on its own line", async () => {
   for (const [argv, first, hint] of [
     [["roadwork"], "error: unknown command 'roadwork'", "(Did you mean roadworks?)"],
