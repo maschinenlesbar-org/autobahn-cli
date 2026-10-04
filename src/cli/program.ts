@@ -141,7 +141,7 @@ function addHelpCommands(command: Command): void {
   command.helpCommand(false);
   const help = command
     .command("help", { hidden: true })
-    .description("display help for command")
+    .description("Display help for a command (e.g. help roadworks list)")
     .argument("[command...]", "the command to describe, e.g. roadworks list")
     .action((names: string[]) => {
       let target: Command = command;

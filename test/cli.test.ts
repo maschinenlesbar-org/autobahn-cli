@@ -376,7 +376,7 @@ test("help walks the whole command path and rejects an unknown name", async () =
   }
   const root = makeCli(() => jsonResponse({}));
   await run(["--help"], root.deps);
-  assert.match(root.out.join("\n"), /\n {2}help \[command\.\.\.\] +display help for command$/m);
+  assert.match(root.out.join("\n").replace(/\s+/g, " "), / help \[command\.\.\.\] Display help for a command \(e\.g\. help roadworks list\)/);
 });
 
 test("a usage error is the error plus a one-line pointer to the command's help, not the whole help", async () => {
