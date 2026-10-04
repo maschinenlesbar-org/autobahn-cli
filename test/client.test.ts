@@ -263,7 +263,13 @@ test("get() turns an empty 2xx body into AutobahnNotFoundError naming the real s
 });
 
 test("get() rejects an answer about another item instead of returning it as the one asked for", async () => {
-  for (const [served, got] of [[{ identifier: "x" }, '"x"'], [{ title: "no id" }, "none"]] as const) {
+  for (const [served, got] of [
+    [{ identifier: "x" }, '"x"'],
+    [{ title: "no id" }, "none"],
+    [{ identifier: 123 }, "123 (a number)"],
+    [{ identifier: null }, "null"],
+    [{ identifier: ["abc"] }, "an array"],
+  ] as const) {
     const mt = constantJson(served);
     await assert.rejects(() => clientWith(mt).roadworks.get("abc"), (err: unknown) => {
       assert.ok(err instanceof AutobahnParseError);

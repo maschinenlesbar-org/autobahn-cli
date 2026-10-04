@@ -122,7 +122,7 @@ class ServiceResource<K extends string> {
     // answer about another item would otherwise print with exit 0 as if it were the one
     // asked for.
     if (body["identifier"] !== id) {
-      const got = typeof body["identifier"] === "string" ? quoteValue(body["identifier"]) : "none";
+      const got = describeIdentifier(body["identifier"]);
       throw new AutobahnParseError(
         `Unexpected response from ${this.engine.describeUrl(path)}: asked for identifier ${quoteValue(id)}, got ${got}.`,
       );
@@ -183,6 +183,20 @@ export class AutobahnClient {
  */
 function roadKey(id: string): string {
   return id.toLowerCase().replace(/[\s_-]+/g, "").replace(/^([a-z]+)0+(?=\d)/, "$1");
+}
+
+/**
+ * How an identifier mismatch message shows the identifier the API answered with: quoted
+ * when a string, `none` when the field is missing, a number or boolean with its type
+ * (`123 (a number)`), otherwise its kind — so the message does not point at a missing
+ * field when the value is merely of the wrong type.
+ */
+function describeIdentifier(value: unknown): string {
+  if (value === undefined) return "none";
+  if (typeof value === "string") return quoteValue(value);
+  if (typeof value === "number" || typeof value === "boolean") return `${String(value)} (a ${typeof value})`;
+  if (value === null) return "null";
+  return Array.isArray(value) ? "an array" : "an object";
 }
 
 /** True for a JSON object (not null, not an array). */
