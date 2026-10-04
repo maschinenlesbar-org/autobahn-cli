@@ -66,10 +66,10 @@ Each returns an array of items. The fields that matter for a briefing:
 
 | Field | Meaning |
 |---|---|
-| `title` | Human label, often `A1 \| <from> - <to>` (its `description[]` repeats the stretch as `A1: <direction>, zwischen … und …`). About a quarter of roadworks titles have **no `\|`**: they name a project or an interchange (`AK Leverkusen`, `A45 - Ersatzneubau Kreuzungsbauwerk A1-A45 …`), mostly ramp works (`Auffahrt auf die A45: …` / `Abfahrt von der A1: …` in `description[]`), and carry no from–to stretch. Label those by the title plus a non-empty `subtitle`; don't split on `\|` or invent a stretch |
+| `title` | Often `A1 \| <from> - <to>`. About a quarter of roadworks titles have **no `\|`**: a project or interchange name (`AK Leverkusen`, `A45 - Ersatzneubau …`), mostly ramp works, with no from–to stretch in the data — label those by title plus a non-empty `subtitle`, don't invent a stretch |
 | `subtitle` | Direction, e.g. `" Euskirchen -> Dortmund"` — usually with a **leading space**; trim it before matching or splitting on `" -> "` |
 | `display_type` | What the item is. On closures: `CLOSURE` (the carriageway) or `CLOSURE_ENTRY_EXIT` (only a junction's on/off ramp — usually most of a road's closures) |
-| `isBlocked` | `"true"`/`"false"` string. `"true"` = carriageway blocked **right now**, but the API almost never sets it: in October 2026 it was `"false"` on **all** 306 A1 warnings, closures and roadworks, including `Vollsperrung` closures and 37-minute queues. Take `"true"` as a strong signal and `"false"` as *no information* — judge blocking from `description[]`, `display_type` and `delayTimeValue` (see Step 4). |
+| `isBlocked` | `"true"`/`"false"` string. `"true"` = blocked **right now** (a strong signal), but the API almost never sets it — `"false"` on every item seen in October 2026, `Vollsperrung` closures and accidents included. Read `"false"` as *no information*; judge blocking from `description[]`, `display_type` and `delayTimeValue` (Step 4). |
 | `future` | Boolean — `true` means the item is **planned/upcoming**, not active yet. The primary active-vs-planned signal. |
 | `description[]` | Multi-line German detail (start time, cause, length, delay). Often the only place the real time window appears. |
 | `delayTimeValue` | Minutes of delay (warnings) — use for severity. A JSON **string** (`"10"`, `"5"`): convert before sorting (`tonumber` in jq, `Number()` in node), or `"5"` ranks above `"37"` |
@@ -80,14 +80,12 @@ Each returns an array of items. The fields that matter for a briefing:
 | `routeRecommendation[]` | Official detour advice, if any — always surface it |
 | `identifier` | Pass to `autobahn … get <identifier>` for full detail on request |
 
-> **Quirks to respect.** Coordinates use the non-standard key `long` (not `lon`).
-> Warnings disappear from the response within ~24h of expiry, so what you fetch *is*
+> **Quirks to respect.** Warnings disappear from the response within ~24h of expiry, so what you fetch *is*
 > the current picture — don't cache stale items. A road's listing also carries items of
 > **other motorways where they meet** (on the A1: works titled `A45 - Ersatzneubau
 > Kreuzungsbauwerk A1-A45 …`, `A255 zur A1, …`) — label such an item with the road its
-> title names, or note "at the A1/A45 interchange", rather than as plain A1. The upstream road list carries an id with
-> a trailing space next to its trimmed twin (`"A60"` and `"A60 "`); `autobahn roads` trims
-> and de-duplicates the list, and `list` trims the id you pass. **Volume is large** — a busy motorway
+> title names, or note "at the A1/A45 interchange", rather than as plain A1. **Volume is
+> large** — a busy motorway
 > routinely returns 40–60 closures and 200+ roadworks, the vast majority planned or
 > non-blocking. Never enumerate all of them (see Step 5); summarise and surface only what
 > a driver acts on.
@@ -103,13 +101,12 @@ reporting the **whole road** rather than silently guessing a segment.
 ## Step 4 — Classify, then rank
 
 First split every item into **active** vs **planned**, because the briefing leads with what's
-happening now. Do **not** use `isBlocked` alone for closures — it reads `"false"` on most
-closures even when the road is shut. Classify like this:
+happening now. Classify like this:
 
 - **Planned** if `future === true`, or the `description[]` time window starts in the future
   (or `startTimestamp`). Set these aside — count them, mention notable ones, but don't
   rank them as live disruption. Roadworks and closures state the window in one of **two
-  layouts** (each about a quarter to three quarters of a road's items):
+  layouts**:
   - `Zeitraum dieser Bauphase:` then `Beginn: DD.MM.YY um HH:MM Uhr` and
     `Ende: DD.MM.YY um HH:MM Uhr`;
   - `Die Baustelle ist zu folgenden Zeiträumen gültig:` then one or more window lines in
@@ -195,5 +192,4 @@ Rules:
   Roadwork and closure ids stay stable.
 - Don't invent severity the data doesn't support: an item with no delay value and no event
   text that says otherwise (Step 4: `Unfall`, `Falschfahrer`, `Gefahr`, `gesperrt`,
-  `Vollsperrung`) is informational. `isBlocked: "false"` alone proves nothing — accidents
-  carry it too.
+  `Vollsperrung`) is informational; `isBlocked: "false"` alone proves nothing.
