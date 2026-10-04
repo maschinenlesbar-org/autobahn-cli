@@ -200,7 +200,8 @@ action as a usage error (`Error: <message>`, exit `1`).
 unavailable) and the gateway errors `502`/`504` are retried automatically with backoff, up to `maxRetries`
 (default `2`), honouring a `Retry-After` header when present (both
 delta-seconds and HTTP-date forms), clamped to a 30s ceiling so a pathological
-value cannot hang the CLI; otherwise using linear backoff.
+value cannot hang the CLI; otherwise using linear backoff — except a `429`, which waits
+from 1 s, doubling per retry (at most 30 s).
 `AutobahnApiError.isRetryable` reflects this. A reset connection
 (`isTransientNetworkError`: `ECONNRESET`/`EPIPE`/`ECONNABORTED` as the network error's
 `cause`) is retried with the linear backoff too.

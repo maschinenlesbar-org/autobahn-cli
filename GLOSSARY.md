@@ -233,7 +233,8 @@ not-found too (exit `4`).
 gateway errors `502` (bad gateway) and `504` (gateway timeout) are treated as
 transient — a `502` seen live cleared within seconds. The engine retries them
 automatically up to `maxRetries` (default `2`), honouring a `Retry-After` header
-when present, otherwise using linear backoff. `AutobahnApiError.isRetryable`
+when present, otherwise using linear backoff (for a `429`: from 1 s, doubling per retry, at
+most 30 s). `AutobahnApiError.isRetryable`
 reflects this. When the status persists, the error says so — `… (after 2 retries)` — and
 `AutobahnApiError.retries` holds the count. A connection reset mid-request
 (`socket hang up`, `ECONNRESET`) is retried the same way, with the linear backoff. A

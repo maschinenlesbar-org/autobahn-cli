@@ -278,6 +278,19 @@ test("a pathological Retry-After is clamped to the ceiling (AUT-01)", async () =
   assert.deepEqual(slept, [30_000]);
 });
 
+test("a 429 without Retry-After backs off exponentially from 1 s, at most 30 s", async () => {
+  const slept: number[] = [];
+  const e = new RequestEngine({
+    transport: makeMockTransport(() => jsonResponse({}, 429)).transport,
+    maxRetries: 7,
+    sleep: async (ms) => {
+      slept.push(ms);
+    },
+  });
+  await assert.rejects(() => e.getJson("/x"), AutobahnApiError);
+  assert.deepEqual(slept, [1000, 2000, 4000, 8000, 16000, 30000, 30000]);
+});
+
 test("falls back to linear backoff when Retry-After is absent", async () => {
   let calls = 0;
   const mt = makeMockTransport(() => {
@@ -358,7 +371,7 @@ test("parseRetryAfter handles seconds, HTTP-date, arrays and junk", () => {
   }
 });
 
-test("a malformed Retry-After falls back to linear backoff instead of retrying at once", async () => {
+test("a malformed Retry-After falls back to the backoff instead of retrying at once", async () => {
   for (const header of ["1.5", "-5"]) {
     const mt = makeMockTransport((): HttpResponse => ({
       status: 429,
@@ -368,7 +381,7 @@ test("a malformed Retry-After falls back to linear backoff instead of retrying a
     const slept: number[] = [];
     const e = new RequestEngine({ transport: mt.transport, retryDelayMs: 200, sleep: async (ms) => void slept.push(ms) });
     await assert.rejects(() => e.getJson("/x"), AutobahnApiError);
-    assert.deepEqual(slept, [200, 400], header);
+    assert.deepEqual(slept, [1000, 2000], header); // a 429: the rate-limit backoff
   }
 });
 

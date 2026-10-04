@@ -68,6 +68,19 @@ const DEFAULT_MAX_RESPONSE_BYTES = 100 * 1024 * 1024;
 // The retry *count* is bounded by maxRetries, but each individual sleep was not.
 const MAX_RETRY_AFTER_MS = 30_000;
 
+/** Shortest wait before retrying a 429 that names no Retry-After. */
+const MIN_RATE_LIMIT_DELAY_MS = 1_000;
+
+/**
+ * The wait before retry `attempt` of a 429 without Retry-After: from 1 s (or
+ * retryDelayMs, if larger), doubling per attempt, at most 30 s. The linear 200/400 ms of
+ * the other transient statuses barely backs off from a rate limit, and only adds load to
+ * a public service that has just asked for less.
+ */
+function rateLimitDelay(retryDelayMs: number, attempt: number): number {
+  return Math.min(Math.max(retryDelayMs, MIN_RATE_LIMIT_DELAY_MS) * 2 ** (attempt - 1), MAX_RETRY_AFTER_MS);
+}
+
 /** Most automatic retries a caller may ask for (the CLI's --max-retries shares it). */
 export const MAX_RETRIES = 10;
 
@@ -374,7 +387,9 @@ export class RequestEngine {
         const delay =
           retryAfter !== undefined
             ? Math.min(retryAfter, MAX_RETRY_AFTER_MS)
-            : this.retryDelayMs * attempt;
+            : status === 429
+              ? rateLimitDelay(this.retryDelayMs, attempt)
+              : this.retryDelayMs * attempt;
         await this.sleep(delay);
         continue;
       }

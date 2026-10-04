@@ -245,7 +245,8 @@ ein `get <id>` ohne passenden Eintrag oder ein echter `404` gilt als „nicht ge
 Gateway-Fehler `502` (Bad Gateway) und `504` (Gateway Timeout) gelten als
 vorübergehend – ein live beobachteter `502` war nach wenigen Sekunden behoben. Die Engine wiederholt sie
 automatisch bis zu `maxRetries` Mal (Standard `2`), berücksichtigt dabei einen
-vorhandenen `Retry-After`-Header und nutzt andernfalls linearen Backoff.
+vorhandenen `Retry-After`-Header und nutzt andernfalls linearen Backoff (bei `429`: ab 1 s,
+je Versuch verdoppelt, höchstens 30 s).
 `AutobahnApiError.isRetryable` bildet das ab. Bleibt der Status bestehen, sagt die
 Fehlermeldung das – `… (after 2 retries)` –, und `AutobahnApiError.retries` enthält die Zahl.
 Eine während der Anfrage zurückgesetzte Verbindung (`socket hang up`, `ECONNRESET`) wird

@@ -68,7 +68,7 @@ export function buildProgram(deps: CliDeps = defaultDeps): Command {
     .option(
       "--max-retries <n>",
       "retries for transient 429/502/503/504 responses and reset connections (0..10; each waits the server's " +
-        "Retry-After, up to 30 s, else a short linear backoff from 200 ms)",
+        "Retry-After, up to 30 s, else a short linear backoff from 200 ms — for a 429 from 1 s, doubling)",
       parseBoundedInt(0, MAX_RETRIES),
     )
     .option(
