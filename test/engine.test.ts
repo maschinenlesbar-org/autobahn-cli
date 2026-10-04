@@ -279,6 +279,27 @@ test("gateway errors 502 and 504 are retried like 503; 500 is not", async () => 
   assert.equal(mt.calls.length, 1);
 });
 
+test("sanitizeServerText drops whole escape sequences, not just their control bytes", () => {
+  const ESC = String.fromCharCode(0x1b);
+  const BEL = String.fromCharCode(0x07);
+  const CSI8 = String.fromCharCode(0x9b);
+  const OSC8 = String.fromCharCode(0x9d);
+  const ST8 = String.fromCharCode(0x9c);
+  for (const [input, expected] of [
+    [`line1 ${ESC}]0;title${BEL}rest`, "line1 rest"],
+    [`${ESC}]8;;https://evil.example${ESC}\\click${ESC}]8;;${ESC}\\`, "click"],
+    [`${ESC}[31mred${ESC}[0m plain`, "red plain"],
+    [`${ESC}[1;31;4mbold`, "bold"],
+    [`${CSI8}2Jcleared`, "cleared"],
+    [`${OSC8}0;t${ST8}ok`, "ok"],
+    [`a${ESC}7b${ESC}(Bc`, "abc"],
+    // Unterminated: only ESC and its introducer go, the text stays.
+    [`keep ${ESC}]0;no terminator here`, "keep 0;no terminator here"],
+  ] as const) {
+    assert.equal(sanitizeServerText(input), expected, JSON.stringify(input));
+  }
+});
+
 test("parseRetryAfter handles seconds, HTTP-date, arrays and junk", () => {
   assert.equal(parseRetryAfter("120"), 120_000);
   assert.equal(parseRetryAfter("0"), 0);
@@ -335,8 +356,8 @@ test("error detail is stripped of terminal control characters (AUT-03)", async (
       // human-readable message that run.ts prints raw to stderr...
       assert.ok(!hasControlChars(err.detail ?? ""));
       assert.ok(!hasControlChars(err.message));
-      // ...while the printable characters are preserved.
-      assert.equal(err.detail, "boom[31mred2J");
+      // ...along with the rest of each escape sequence, while the text is preserved.
+      assert.equal(err.detail, "boomred");
       return true;
     },
   );
@@ -445,7 +466,7 @@ test("error detail loses bidi controls and line breaks, so it cannot reorder or 
     () => e.getJson("/x"),
     (err: unknown) => {
       assert.ok(err instanceof AutobahnApiError);
-      assert.equal(err.detail, "bad ]0;PWNED line1 Error: forged x evil");
+      assert.equal(err.detail, "bad line1 Error: forged x evil");
       assert.ok(!/[\n\r\u2028\u202e\u2066]/.test(err.message));
       return true;
     },

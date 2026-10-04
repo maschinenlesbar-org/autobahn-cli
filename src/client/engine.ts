@@ -123,11 +123,24 @@ export function isBidiControl(code: number): boolean {
 const FORMAT_CHAR = /\p{Cf}/u;
 
 /**
+ * A whole terminal escape sequence: a CSI (`ESC [` or the 8-bit U+009B, parameters,
+ * intermediates, final byte), a terminated control string (OSC/DCS/SOS/PM/APC, `ESC ]` …
+ * up to BEL or ST, or their 8-bit forms) or a short `ESC` sequence. Dropping only the
+ * control bytes left the printable rest behind (`ESC ] 0 ; title BEL` became `]0;title`).
+ * An unterminated control string is left to the per-character filter, so it cannot
+ * swallow the rest of the message. Written with escapes, so the source holds no control
+ * bytes.
+ */
+const ESCAPE_SEQUENCE =
+  /(?:\u001b\[|\u009b)[\u0030-\u003f]*[\u0020-\u002f]*[\u0040-\u007e]|(?:\u001b[\]PX^_]|[\u0090\u0098\u009d-\u009f])[^\u0007\u001b\u009c]*(?:\u0007|\u001b\\|\u009c)|\u001b[\u0020-\u002f]*[\u0030-\u007e]/g;
+
+/**
  * Make a string that originates in an attacker-controlled response — here the API
  * error `detail` extracted from the response body — safe to print into an error
  * message on stderr:
  *
- * - C0 and C1 controls and DEL are dropped. `JSON.parse` decodes a JSON-escaped ESC
+ * - Whole escape sequences (CSI, OSC and other control strings) are dropped first,
+ *   then any remaining C0 and C1 controls and DEL. `JSON.parse` decodes a JSON-escaped ESC
  *   (a backslash-u-001b sequence) into a real ESC byte; printed raw, a hostile or
  *   MITM'd endpoint could drive ANSI/OSC sequences into the terminal (display
  *   spoofing, title changes).
@@ -145,7 +158,7 @@ const FORMAT_CHAR = /\p{Cf}/u;
  */
 export function sanitizeServerText(text: string): string {
   let out = "";
-  for (const ch of text) {
+  for (const ch of text.replace(ESCAPE_SEQUENCE, "")) {
     const n = ch.codePointAt(0) ?? 0;
     const whitespaceControl = n >= 0x09 && n <= 0x0d;
     if (!whitespaceControl && (n <= 0x1f || (n >= 0x7f && n <= 0x9f) || FORMAT_CHAR.test(ch))) continue;
