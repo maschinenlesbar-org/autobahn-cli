@@ -8,7 +8,7 @@
 //   client.chargingStations.get(identifier)
 
 import { quoteValue, RequestEngine, type EngineOptions } from "./engine.js";
-import { AutobahnError, AutobahnNotFoundError, AutobahnParseError } from "./errors.js";
+import { AutobahnApiError, AutobahnError, AutobahnNotFoundError, AutobahnParseError } from "./errors.js";
 import { assertValid, idProblem } from "./validate.js";
 import type {
   RoadsResult,
@@ -54,7 +54,7 @@ class ServiceResource<K extends string> {
     // otherwise URL-encode the space and miss the road. Validate after trimming.
     const id = assertValid("roadId", roadId, idProblem).trim();
     const path = `${API_ROOT}/${enc(id)}/services/${this.service}`;
-    const body = await this.engine.getJson<unknown>(path);
+    const body = await getListing(this.engine, path);
     // The API answers every road, even an empty one, with `{ "<key>": [...] }`. Any
     // other 2xx body (an error object, a bare array, a string, a non-array under the
     // key) is not "no items": treating it as [] would read as an all-clear.
@@ -178,7 +178,7 @@ export class AutobahnClient {
    */
   async roads(): Promise<string[]> {
     const path = `${API_ROOT}/`;
-    const body = await this.engine.getJson<unknown>(path);
+    const body = await getListing(this.engine, path);
     const roads = isObject(body) ? body["roads"] : undefined;
     if (!Array.isArray(roads) || !roads.every((road) => typeof road === "string")) {
       throw shapeError(this.engine.describeUrl(path), "a JSON object with a roads array of strings");
@@ -195,6 +195,27 @@ export class AutobahnClient {
  */
 function roadKey(id: string): string {
   return id.toLowerCase().replace(/[\s_-]+/g, "").replace(/^([a-z]+)0+(?=\d)/, "$1");
+}
+
+/**
+ * GET a listing (the road list or a service listing). Neither answers 404 to a valid
+ * request — an unknown road id gets an empty listing — so a 404 here means the base URL
+ * points somewhere else (a wrong path prefix, a proxy's error page). That is a
+ * configuration error, raised as an AutobahnError (CLI exit 1) with the API error as
+ * `cause`, not a "not found" (exit 4) that a script would read as "no such item".
+ */
+async function getListing(engine: RequestEngine, path: string): Promise<unknown> {
+  try {
+    return await engine.getJson<unknown>(path);
+  } catch (cause) {
+    if (cause instanceof AutobahnApiError && cause.status === 404) {
+      throw new AutobahnError(
+        `${cause.message} — the road list and the service listings never answer 404, so the base URL is probably wrong.`,
+        { cause },
+      );
+    }
+    throw cause;
+  }
 }
 
 /**

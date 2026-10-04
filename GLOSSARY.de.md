@@ -273,9 +273,10 @@ sodass Sie `--base-url` selbst dorthin richten können.
 fehlerhaften Endpoint schützt.
 
 **Exit-Codes.** `0` bei Erfolg (inkl. `--help`/`--version`); `4` bei „nicht gefunden“
-(`404`, ein `get` ohne Treffer oder eine unbekannte Autobahn-Kennung); `1` bei jedem
-anderen API-, Netzwerk- oder
-Parse-Fehler sowie bei Bedienfehlern.
+(ein `get` mit Antwort `404` oder leerem Body, oder eine unbekannte Autobahn-Kennung); `1`
+bei jedem anderen API-, Netzwerk- oder Parse-Fehler sowie bei Bedienfehlern – auch bei
+einem `404` der Autobahnliste oder einer Dienstliste, die auf eine gültige Anfrage nie
+`404` antworten; er bedeutet eine falsche Basis-URL.
 
 ---
 

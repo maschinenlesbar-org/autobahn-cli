@@ -153,8 +153,8 @@ autobahn --compact roadworks list A1
 | Code | Meaning |
 | --- | --- |
 | `0` | Success (also `--help` / `--version`) |
-| `4` | Not found — the API returned `404`, a `get <identifier>` matched no item, or a `list <roadId>` named a road the API does not know |
-| `1` | Any other API, network, parse, or usage error |
+| `4` | Not found — a `get <identifier>` matched no item (an empty answer or `404`), or a `list <roadId>` named a road the API does not know |
+| `1` | Any other API, network, parse, or usage error — including a `404` from `roads` or a `list`, which never answer `404` to a valid request (a wrong `--base-url`) |
 
 A `list` returning zero items for a known road is not an error — it exits `0` with `[]`.
 

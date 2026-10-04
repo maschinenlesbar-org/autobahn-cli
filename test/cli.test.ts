@@ -96,6 +96,14 @@ test("get exits 1 when the API answers about another item", async () => {
   assert.match(cli.err.join("\n"), /asked for identifier "abc", got "x"\.$/);
 });
 
+test("a 404 from roads or a list exits 1 (a wrong base URL), not 4", async () => {
+  for (const argv of [["roads"], ["roadworks", "list", "A1"]]) {
+    const cli = makeCli(() => rawResponse("Cannot GET /x", "text/html", 404));
+    assert.equal(await run(argv, cli.deps), 1, argv.join(" "));
+    assert.match(cli.err.join("\n"), /so the base URL is probably wrong\.$/, argv.join(" "));
+  }
+});
+
 test("a network error maps to exit code 1", async () => {
   const cli = makeCli(() => {
     throw new AutobahnNetworkError("connect ECONNREFUSED");

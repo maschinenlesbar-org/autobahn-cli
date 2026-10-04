@@ -259,9 +259,10 @@ there yourself.
 disables) that defends against memory exhaustion from a hostile or buggy
 endpoint.
 
-**Exit codes.** `0` success (incl. `--help`/`--version`); `4` not-found (`404`,
-an unmatched `get` or an unknown road id); `1` any other API/network/parse error and
-usage errors.
+**Exit codes.** `0` success (incl. `--help`/`--version`); `4` not-found (a `get`
+answered `404` or with an empty body, or an unknown road id); `1` any other
+API/network/parse error and usage errors — including a `404` from the road list or a
+service listing, which never answer `404` to a valid request, so it means a wrong base URL.
 
 ---
 

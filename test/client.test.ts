@@ -10,7 +10,7 @@ import {
   AutobahnValidationError,
 } from "../src/client/errors.js";
 import type { AutobahnServiceItem } from "../src/client/types.js";
-import { makeMockTransport, jsonResponse, constantJson, echoDetail } from "./helpers.js";
+import { makeMockTransport, jsonResponse, rawResponse, constantJson, echoDetail } from "./helpers.js";
 
 function clientWith(mt: ReturnType<typeof makeMockTransport>): AutobahnClient {
   return new AutobahnClient({ transport: mt.transport });
@@ -332,6 +332,21 @@ test("a 404 raises AutobahnApiError with status 404", async () => {
     () => clientWith(mt).roadworks.get("nope"),
     (err) => err instanceof AutobahnApiError && err.status === 404,
   );
+});
+
+test("a 404 from the road list or a listing is a base-URL problem (AutobahnError), not not-found", async () => {
+  for (const [label, call] of [
+    ["roads", (c: AutobahnClient) => c.roads()],
+    ["list", (c: AutobahnClient) => c.roadworks.list("A1")],
+  ] as const) {
+    const mt = makeMockTransport(() => rawResponse("Cannot GET /x", "text/html", 404));
+    await assert.rejects(() => call(clientWith(mt)), (err: unknown) => {
+      assert.ok(err instanceof AutobahnError && !(err instanceof AutobahnApiError), label);
+      assert.ok(err.cause instanceof AutobahnApiError && err.cause.status === 404, label);
+      assert.match(err.message, /^HTTP 404 for GET \S+ — the road list and the service listings never answer 404, so the base URL is probably wrong\.$/, label);
+      return true;
+    });
+  }
 });
 
 test("a client with a file: base URL throws before its custom transport sees a request", () => {
