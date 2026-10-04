@@ -121,6 +121,9 @@ happening now. Classify like this:
     A third form repeats weekly: `Jeden Tag zwischen dem DD.MM.YY und dem DD.MM.YY von HH:MM
     bis HH:MM Uhr.`, or with weekdays instead of `Tag` (`Jeden Montag, Dienstag und Mittwoch
     zwischen dem …`) — active on those days inside the date range, during that daily time.
+    A daily time ending `bis 00:00 Uhr` ends at **midnight at the end of that day** (like
+    `24:00`), not at the start: overnight works come as two lines, `von 21:00 bis 00:00 Uhr`
+    and, from the next day, `von 00:00 bis 05:00 Uhr`.
   Either layout can add `Die Baustelle gilt nicht an folgenden Tagen:` followed by
   `DD.MM.YY` lines — days inside the window when the site is **not** active (the list can
   be empty). Check today against it before calling an item active.
