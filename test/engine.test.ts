@@ -103,6 +103,24 @@ test("a 503 is retried up to maxRetries then surfaces as AutobahnApiError", asyn
   assert.equal(calls, 3); // initial + 2 retries
 });
 
+test("the error after the last retry says how many retries were made", async () => {
+  for (const [maxRetries, suffix] of [[2, " (after 2 retries)"], [1, " (after 1 retry)"], [0, ""]] as const) {
+    const mt = makeMockTransport(() => jsonResponse({ message: "slow down" }, 429));
+    const e = new RequestEngine({ transport: mt.transport, maxRetries, sleep: async () => {} });
+    await assert.rejects(
+      () => e.getJson("/x"),
+      (err: unknown) =>
+        err instanceof AutobahnApiError &&
+        err.retries === maxRetries &&
+        err.message === `HTTP 429 for GET https://verkehr.autobahn.de/x: slow down${suffix}`,
+      String(maxRetries),
+    );
+  }
+  // A non-retryable status is not retried, so it says nothing about retries.
+  const e = new RequestEngine({ transport: makeMockTransport(() => jsonResponse({}, 500)).transport, sleep: async () => {} });
+  await assert.rejects(() => e.getJson("/x"), (err: unknown) => err instanceof AutobahnApiError && err.retries === 0 && !/retr/.test(err.message));
+});
+
 test("a retried request that then succeeds resolves", async () => {
   let calls = 0;
   const mt = makeMockTransport(() => {

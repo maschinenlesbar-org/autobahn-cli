@@ -61,6 +61,8 @@ export class AutobahnApiError extends AutobahnError {
   readonly method: string;
   readonly body: string;
   readonly location: string | undefined;
+  /** How many times the engine retried the request before giving up (0 when it did not). */
+  readonly retries: number;
 
   constructor(args: {
     status: number;
@@ -69,6 +71,7 @@ export class AutobahnApiError extends AutobahnError {
     body: string;
     detail?: string;
     location?: string;
+    retries?: number;
   }) {
     // The URL is shown without userinfo: a credential in --base-url must not leak.
     const url = redactUrl(args.url);
@@ -82,13 +85,18 @@ export class AutobahnApiError extends AutobahnError {
       );
     }
     const detailPart = parts.length > 0 ? `: ${parts.join("; ")}` : "";
-    super(`HTTP ${args.status} for ${args.method} ${cutForMessage(url)}${detailPart}`);
+    const retries = args.retries ?? 0;
+    // Say that the status persisted through retries, so a user knows whether raising
+    // --max-retries could help.
+    const retryPart = retries > 0 ? ` (after ${retries} ${retries === 1 ? "retry" : "retries"})` : "";
+    super(`HTTP ${args.status} for ${args.method} ${cutForMessage(url)}${detailPart}${retryPart}`);
     this.status = args.status;
     this.url = url;
     this.method = args.method;
     this.body = args.body;
     this.detail = args.detail;
     this.location = args.location;
+    this.retries = retries;
   }
 
   /** True for the transient statuses the engine retries (isRetryableStatus). */

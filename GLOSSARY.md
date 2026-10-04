@@ -216,7 +216,8 @@ gateway errors `502` (bad gateway) and `504` (gateway timeout) are treated as
 transient — a `502` seen live cleared within seconds. The engine retries them
 automatically up to `maxRetries` (default `2`), honouring a `Retry-After` header
 when present, otherwise using linear backoff. `AutobahnApiError.isRetryable`
-reflects this.
+reflects this. When the status persists, the error says so — `… (after 2 retries)` — and
+`AutobahnApiError.retries` holds the count.
 
 **`Retry-After`.** A response header the engine parses for both the
 delta-seconds form (`Retry-After: 120`) and the HTTP-date form

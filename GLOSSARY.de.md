@@ -229,7 +229,8 @@ Gateway-Fehler `502` (Bad Gateway) und `504` (Gateway Timeout) gelten als
 vorübergehend – ein live beobachteter `502` war nach wenigen Sekunden behoben. Die Engine wiederholt sie
 automatisch bis zu `maxRetries` Mal (Standard `2`), berücksichtigt dabei einen
 vorhandenen `Retry-After`-Header und nutzt andernfalls linearen Backoff.
-`AutobahnApiError.isRetryable` bildet das ab.
+`AutobahnApiError.isRetryable` bildet das ab. Bleibt der Status bestehen, sagt die
+Fehlermeldung das – `… (after 2 retries)` –, und `AutobahnApiError.retries` enthält die Zahl.
 
 **`Retry-After`.** Ein Antwort-Header, den die Engine sowohl in der Sekundenform
 (`Retry-After: 120`) als auch in der HTTP-Datumsform

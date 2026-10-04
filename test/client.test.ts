@@ -167,7 +167,7 @@ test("an empty listing for a road id the API does not know raises AutobahnNotFou
 
 test("a failing road-list check after an empty listing names the check, not just the road list endpoint", async () => {
   const cases: Array<[unknown, number, (cause: unknown) => boolean, string]> = [
-    [{ message: "maintenance" }, 503, (c) => c instanceof AutobahnApiError && c.status === 503, "HTTP 503 for GET https://verkehr.autobahn.de/o/autobahn/: maintenance"],
+    [{ message: "maintenance" }, 503, (c) => c instanceof AutobahnApiError && c.status === 503, "HTTP 503 for GET https://verkehr.autobahn.de/o/autobahn/: maintenance (after 2 retries)"],
     [{ roads: ["A1", null] }, 200, (c) => c instanceof AutobahnParseError, "Unexpected response shape from /o/autobahn/: expected a JSON object with a roads array of strings."],
   ];
   for (const [roadsBody, status, isCause, reason] of cases) {

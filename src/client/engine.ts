@@ -315,7 +315,7 @@ export class RequestEngine {
 
       const contentType = String(response.headers["content-type"] ?? "");
       if (status < 200 || status >= 300) {
-        throw this.toApiError(method, url, status, response.body, response.headers["location"]);
+        throw this.toApiError(method, url, status, response.body, response.headers["location"], attempt);
       }
 
       return { data: response.body, contentType, status };
@@ -361,6 +361,7 @@ export class RequestEngine {
     status: number,
     body: Buffer,
     locationHeader?: string,
+    retries = 0,
   ): AutobahnApiError {
     const text = body.toString("utf8");
     let detail: string | undefined;
@@ -378,7 +379,7 @@ export class RequestEngine {
     // Redirects are not followed; name the target so the user can fix --base-url.
     const location =
       status >= 300 && status < 400 && locationHeader ? redirectTarget(url, locationHeader) : undefined;
-    return new AutobahnApiError({ status, url, method, body: text, detail, location });
+    return new AutobahnApiError({ status, url, method, body: text, detail, location, retries });
   }
 }
 
