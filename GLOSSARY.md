@@ -178,6 +178,11 @@ parsed dates, never as strings.
 **string** (`"10"`). Convert it to a number before sorting or comparing: as strings,
 `"5"` sorts above `"37"`.
 
+**`source`.** Where a warning comes from: `"inrix"` (traffic-flow data — jams and
+accidents; identifiers `INRIX--…`, `startTimestamp` in UTC) or `"eva"` (the traffic
+centres' reports — road damage, events; identifiers like `NLW_2026_002954--…`, local time).
+`null` in the details of other services.
+
 **`display_type`.** A type/category hint the app uses to render the item, and the
 best signal of what an item is. Values seen live: `ROADWORKS`, `SHORT_TERM_ROADWORKS`,
 `WARNING`, `CLOSURE`, `CLOSURE_ENTRY_EXIT`, `PARKING`, `ELECTRIC_CHARGING_STATION`,

@@ -85,7 +85,10 @@ export interface AutobahnServiceItem {
   abnormalTrafficType?: string | null;
   /** Average speed in km/h on a warning, as a decimal string (`"25"`). */
   averageSpeed?: string | null;
-  /** Data source of a warning (`"inrix"`). */
+  /**
+   * Data source of a warning: `"inrix"` (traffic-flow data, `INRIX--…` identifiers, UTC
+   * timestamps) or `"eva"` (the traffic centres' reports, `NLW_…` identifiers, local time).
+   */
   source?: string | null;
   /** Lane picture of a roadwork or closure; `null` in other services' details. */
   impact?: Impact | null;

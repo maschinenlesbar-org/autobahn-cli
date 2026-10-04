@@ -184,6 +184,11 @@ Zeichenketten.
 JSON-**String** (`"10"`). Vor dem Sortieren oder Vergleichen in eine Zahl umwandeln: Als
 Strings sortiert `"5"` vor `"37"`.
 
+**`source`.** Woher eine Warnung stammt: `"inrix"` (Verkehrsflussdaten – Staus und Unfälle;
+Kennungen `INRIX--…`, `startTimestamp` in UTC) oder `"eva"` (Meldungen der
+Verkehrszentralen – Fahrbahnschäden, Ereignisse; Kennungen wie `NLW_2026_002954--…`,
+Ortszeit). In den Details der anderen Dienste `null`.
+
 **`display_type`.** Ein Typ- bzw. Kategoriehinweis, den die App zur Darstellung des
 Eintrags nutzt, und das beste Signal dafür, was ein Eintrag ist. Live beobachtete Werte:
 `ROADWORKS`, `SHORT_TERM_ROADWORKS`, `WARNING`, `CLOSURE`, `CLOSURE_ENTRY_EXIT`, `PARKING`,
