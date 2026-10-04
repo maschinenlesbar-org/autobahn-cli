@@ -39,8 +39,9 @@ function configureTree(command: Command, sink: OutputSink): void {
   command.configureOutput({
     writeOut: (str) => sink.out.push(str.replace(/\n$/, "")),
     writeErr: (str) => sink.err.push(str.replace(/\n$/, "")),
-    // The error message alone (help after an error goes through writeErr): escape it.
-    outputError: (str, write) => write(escapeTerminalText(str.replace(/\n$/, ""))),
+    // The error message alone (help after an error goes through writeErr): escape it,
+    // keeping the line break before commander's own "(Did you mean …?)" hint.
+    outputError: (str, write) => write(escapeCommanderError(str.replace(/\n$/, ""))),
   });
   for (const child of command.commands) configureTree(child, sink);
 }
@@ -66,6 +67,20 @@ export function escapeTerminalText(text: string): string {
   return text.replace(/[\u0000-\u0008\u000a-\u001f\u007f-\u009f]|\p{Cf}/gu, (ch) =>
     Array.from({ length: ch.length }, (_, i) => `\\u${ch.charCodeAt(i).toString(16).padStart(4, "0")}`).join(""),
   );
+}
+
+/**
+ * escapeTerminalText for one commander error message, except for the
+ * `\n(Did you mean …?)` line commander appends after an unknown command or option.
+ * That hint is built from this CLI's own command and option names, and it can only
+ * end the message: commander quotes the user's value (`unknown command '<value>'`), so
+ * a value that contains the same text is followed by its closing quote and stays
+ * escaped. Escaping the whole message printed `…'roadwork'\u000a(Did you mean …?)`.
+ */
+export function escapeCommanderError(message: string): string {
+  const hint = /\n\(Did you mean [^\n]*\?\)$/.exec(message);
+  if (hint === null) return escapeTerminalText(message);
+  return escapeTerminalText(message.slice(0, hint.index)) + hint[0];
 }
 
 /**

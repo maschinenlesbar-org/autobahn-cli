@@ -524,6 +524,24 @@ test("an AutobahnValidationError raised in an action is a usage error: exit 1, '
   assert.deepEqual(err, ["Error: Invalid roadId: Expected a non-empty value."]);
 });
 
+test("commander's 'Did you mean' hint stays on its own line", async () => {
+  for (const [argv, first, hint] of [
+    [["roadwork"], "error: unknown command 'roadwork'", "(Did you mean roadworks?)"],
+    [["--no-compact", "roads"], "error: unknown option '--no-compact'", "(Did you mean --compact?)"],
+    [["roadworks", "lst", "A1"], "error: unknown command 'lst'", "(Did you mean list?)"],
+  ] as const) {
+    const cli = makeCli(() => jsonResponse({}));
+    assert.equal(await run([...argv], cli.deps), 1, argv.join(" "));
+    const lines = cli.err.join("\n").split("\n");
+    assert.deepEqual(lines.slice(0, 2), [first, hint], argv.join(" "));
+    assert.doesNotMatch(cli.err.join("\n"), /\\u000a/, argv.join(" "));
+  }
+  // A value that mimics the hint is commander-quoted, so it stays escaped.
+  const forged = makeCli(() => jsonResponse({}));
+  await run(["bogus\n(Did you mean roads?)"], forged.deps);
+  assert.match(forged.err.join("\n"), /^error: unknown command 'bogus\\u000a\(Did you mean roads\?\)'/);
+});
+
 test("ids echoed in error messages carry no raw control, C1 or bidi characters", async () => {
   const RLO = String.fromCharCode(0x202e);
   const ESC = String.fromCharCode(0x1b);
