@@ -83,6 +83,9 @@ export function escapeCommanderError(message: string): string {
   return escapeTerminalText(message.slice(0, hint.index)) + hint[0];
 }
 
+/** Flags that make commander print something and exit 0: help, and the version (`-v` is its alias). */
+const DISPLAY_FLAGS = new Set(["-h", "--help", "-V", "--version", "-v"]);
+
 /**
  * True when `argv` names a command that does not exist (`autobahn services …`,
  * `autobahn roadworks foo …`). Commander answers `--help` before it checks the command,
@@ -129,10 +132,11 @@ export async function run(argv: string[], deps: CliDeps = defaultDeps): Promise<
     for (const line of sink.err) errSink(redactUserinfo(line));
   };
 
-  // An unknown command is the error, whatever help flag comes with it: drop the flag
-  // so commander reports `unknown command '<name>'` (exit 1) instead of showing help.
+  // An unknown command is the error, whatever help or version flag comes with it:
+  // drop the flag so commander reports `unknown command '<name>'` (exit 1) instead of
+  // showing help or printing the version (exit 0) — a false success for a script.
   const args = namesUnknownCommand(program, argv)
-    ? argv.filter((a, i) => (a !== "--help" && a !== "-h") || argv.slice(0, i).includes("--"))
+    ? argv.filter((a, i) => !DISPLAY_FLAGS.has(a) || argv.slice(0, i).includes("--"))
     : argv;
 
   try {

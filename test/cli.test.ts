@@ -214,6 +214,15 @@ test("an unknown command still errors on stderr with exit 1", async () => {
   assert.match(cli.err.join("\n"), /unknown command 'bogus'/);
 });
 
+test("an unknown command with a version flag is an unknown command (exit 1), not the version", async () => {
+  for (const argv of [["services", "--version"], ["bogus", "-V"], ["-v", "services"], ["roadworks", "foo", "-V"]]) {
+    const cli = makeCli(() => jsonResponse({}));
+    assert.equal(await run(argv, cli.deps), 1, argv.join(" "));
+    assert.equal(cli.out.length, 0, argv.join(" "));
+    assert.match(cli.err.join("\n"), /unknown command '(services|bogus|foo)'/, argv.join(" "));
+  }
+});
+
 test("an unknown command with --help is still an unknown command (exit 1), not help", async () => {
   for (const argv of [
     ["services", "--help"],
