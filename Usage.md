@@ -101,7 +101,8 @@ autobahn webcams list A99
 > road checked (A1, A3, A7, A8, A99 in September 2026). That is the upstream
 > data, not a CLI error: the commands work, there is just nothing listed.
 
-Extract the linkable camera URLs with `jq`:
+Once the service lists webcams again, extract the linkable camera URLs with
+`jq` (until then this prints nothing):
 
 ```bash
 autobahn webcams list A99 | jq -r '.[].linkurl'
