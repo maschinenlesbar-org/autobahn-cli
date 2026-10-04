@@ -104,8 +104,14 @@ happening now. Do **not** use `isBlocked` alone for closures — it reads `"fals
 closures even when the road is shut. Classify like this:
 
 - **Planned** if `future === true`, or the `description[]` time window starts in the future
-  (parse the German `Beginn: DD.MM.YY um HH:MM Uhr` line / `startTimestamp`). Set these
-  aside — count them, mention notable ones, but don't rank them as live disruption.
+  (or `startTimestamp`). Set these aside — count them, mention notable ones, but don't
+  rank them as live disruption. Roadworks and closures state the window in one of **two
+  layouts** (each about a quarter to three quarters of a road's items):
+  - `Zeitraum dieser Bauphase:` then `Beginn: DD.MM.YY um HH:MM Uhr` and
+    `Ende: DD.MM.YY um HH:MM Uhr`;
+  - `Die Baustelle ist zu folgenden Zeiträumen gültig:` then one or more lines
+    `DD.MM.YY HH:MM bis zum DD.MM.YY HH:MM Uhr.` (night closures often list several).
+  Warnings carry only a `Beginn:` line. Times are German local time.
 - **Active** otherwise.
 
 Then rank the **active** items, most severe first:
