@@ -121,6 +121,21 @@ test("the error after the last retry says how many retries were made", async () 
   await assert.rejects(() => e.getJson("/x"), (err: unknown) => err instanceof AutobahnApiError && err.retries === 0 && !/retr/.test(err.message));
 });
 
+test("a non-JSON body names its Content-Type when that is not JSON", async () => {
+  for (const [contentType, message] of [
+    ["text/html; charset=utf-8", 'Failed to parse JSON response from /x: expected JSON, got Content-Type "text/html"'],
+    ["application/json", "Failed to parse JSON response from /x"],
+    ["", "Failed to parse JSON response from /x"],
+  ] as const) {
+    const e = new RequestEngine({ transport: makeMockTransport(() => rawResponse("<html>maintenance</html>", contentType)).transport });
+    await assert.rejects(
+      () => e.getJson("/x"),
+      (err: unknown) => err instanceof AutobahnParseError && err.message === message,
+      contentType,
+    );
+  }
+});
+
 test("a retried request that then succeeds resolves", async () => {
   let calls = 0;
   const mt = makeMockTransport(() => {
