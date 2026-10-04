@@ -52,7 +52,8 @@ Figure out which roadId(s) the request maps to. Valid ids come from `autobahn ro
   label findings by road.
 - Validate against `autobahn roads` before querying. Ids are case-sensitive (`A1`, not
   `a1`); a typo'd or wrong-case id makes every `list` exit `4` with `Unknown road id "a1":
-  … (did you mean "A1"?)` — fix the id, don't report the road as clear.
+  … (did you mean "A1"?)`, and an id with punctuation (`A1/`, `A1.`) exits `2` (`Not a road
+  id`) before any request — either way, fix the id, don't report the road as clear.
 
 ## Step 2 — Pull the three disruption services per road
 
