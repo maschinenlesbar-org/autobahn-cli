@@ -54,7 +54,10 @@ Figure out which roadId(s) the request maps to. Valid ids come from `autobahn ro
 
 ## Step 2 — Pull the three disruption services per road
 
-For each roadId, fetch all three. They are independent — fan them out:
+For each roadId, fetch all three. They are independent, but go gently on the public API:
+run **a few at a time** (one road's three calls together is fine; don't fire nine roads × three
+at once). The CLI retries a 429 with backoff, and an empty listing costs one extra request
+(the road check).
 
 ```bash
 autobahn --compact warnings  list A1
