@@ -3,7 +3,7 @@
 // captured output and exit code without spawning a subprocess.
 
 import { CommanderError, type Command } from "commander";
-import { buildProgram, defaultDeps } from "./program.js";
+import { buildProgram, commandPath, defaultDeps } from "./program.js";
 import type { CliDeps } from "./io.js";
 import {
   AutobahnApiError,
@@ -33,9 +33,7 @@ function configureTree(command: Command, sink: OutputSink): void {
   // printing the whole help (25+ lines for a root option), which scrolled the actual
   // error off a small terminal or CI log. Set on every command: commander does not
   // propagate it.
-  const path: string[] = [];
-  for (let c: Command | null = command; c !== null; c = c.parent) path.unshift(c.name());
-  command.showHelpAfterError(`(run "${path.join(" ")} --help" for usage)`);
+  command.showHelpAfterError(`(run "${commandPath(command)} --help" for usage)`);
   command.configureOutput({
     writeOut: (str) => sink.out.push(str.replace(/\n$/, "")),
     writeErr: (str) => sink.err.push(str.replace(/\n$/, "")),

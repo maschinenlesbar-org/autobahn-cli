@@ -103,6 +103,13 @@ export function suggestCommand(word: string, names: string[]): string | undefine
   return best?.name;
 }
 
+/** `autobahn roadworks list` for the `list` command. */
+export function commandPath(command: Command): string {
+  const names: string[] = [];
+  for (let c: Command | null = command; c !== null; c = c.parent) names.unshift(c.name());
+  return names.join(" ");
+}
+
 /** Optimal-string-alignment distance between `a` and `b`. */
 function editDistance(a: string, b: string): number {
   const d: number[][] = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array<number>(b.length).fill(0)]);
@@ -139,6 +146,13 @@ function addHelpCommands(command: Command): void {
     .action((names: string[]) => {
       let target: Command = command;
       for (const name of names) {
+        if (target.commands.length === 0) {
+          // `help roads extra`: `roads` takes no subcommands at all — say that.
+          target.error(`error: '${commandPath(target)}' has no subcommands (got '${name}')`, {
+            exitCode: 1,
+            code: "commander.unknownCommand",
+          });
+        }
         const sub = target.commands.find((c) => c.name() === name || c.aliases().includes(name));
         if (sub === undefined) {
           const hint = suggestCommand(name, target.commands.filter((c) => c.name() !== "help").map((c) => c.name()));

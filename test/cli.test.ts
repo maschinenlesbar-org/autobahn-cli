@@ -281,6 +281,14 @@ test("help walks the whole command path and rejects an unknown name", async () =
     assert.equal(cli.out[0]?.split("\n")[0], usage, argv.join(" "));
     assert.equal(cli.mt.calls.length, 0);
   }
+  for (const [argv, message] of [
+    [["help", "roads", "extra"], "error: 'autobahn roads' has no subcommands (got 'extra')"],
+    [["roadworks", "help", "list", "extra"], "error: 'autobahn roadworks list' has no subcommands (got 'extra')"],
+  ] as const) {
+    const cli = makeCli(() => jsonResponse({}));
+    assert.equal(await run([...argv], cli.deps), 1, argv.join(" "));
+    assert.equal(cli.err.join("\n").split("\n")[0], message, argv.join(" "));
+  }
   for (const argv of [["help", "foo"], ["help", "roadworks", "bogus"], ["roadworks", "help", "bogus"]]) {
     const cli = makeCli(() => jsonResponse({}));
     assert.equal(await run(argv, cli.deps), 1, argv.join(" "));
