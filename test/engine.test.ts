@@ -263,6 +263,15 @@ test("a fetch Headers object from a custom transport is read like plain headers"
   assert.deepEqual(slept, [7000]);
 });
 
+test("a Uint8Array body from a custom transport is accepted", async () => {
+  const bytes = new TextEncoder().encode('xx{"roads":["A1"]}').subarray(2);
+  const e = new RequestEngine({
+    transport: async () =>
+      ({ status: 200, headers: { "content-type": "application/json" }, body: bytes }) as unknown as HttpResponse,
+  });
+  assert.deepEqual(await e.getJson("/x"), { roads: ["A1"] });
+});
+
 test("upper-case header names from a custom transport are read", async () => {
   const e = new RequestEngine({
     transport: async () => ({
@@ -279,7 +288,7 @@ test("a malformed response from a custom transport is an AutobahnNetworkError, n
     [{}, "status is not an HTTP status code"],
     [null, "not an object"],
     [{ status: 200, body: Buffer.from("{}") }, "headers is not an object"],
-    [{ status: 200, headers: {}, body: '{"roads":["A1"]}' }, "body is not a Buffer"],
+    [{ status: 200, headers: {}, body: '{"roads":["A1"]}' }, "body is not a Buffer or Uint8Array"],
     [{ status: 1000, headers: {}, body: Buffer.alloc(0) }, "status is not an HTTP status code"],
   ] as const) {
     const e = new RequestEngine({ transport: async () => response as unknown as HttpResponse });

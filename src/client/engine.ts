@@ -113,7 +113,7 @@ function responseProblem(value: unknown): string | undefined {
     return "status is not an HTTP status code";
   }
   if (typeof r.headers !== "object" || r.headers === null || Array.isArray(r.headers)) return "headers is not an object";
-  if (!Buffer.isBuffer(r.body)) return "body is not a Buffer";
+  if (!(r.body instanceof Uint8Array)) return "body is not a Buffer or Uint8Array";
   return undefined;
 }
 
@@ -490,6 +490,10 @@ export class RequestEngine {
       }
       const status = response.status;
       const responseHeaders = plainHeaders(response.headers);
+      // fetch gives a Uint8Array; view it as a Buffer (no copy), which the decoders expect.
+      // (HttpResponse types the body as Buffer; a JavaScript transport may not.)
+      const raw: Uint8Array = response.body;
+      const body = Buffer.isBuffer(raw) ? raw : Buffer.from(raw.buffer, raw.byteOffset, raw.byteLength);
       if (isRetryableStatus(status) && attempt < this.maxRetries) {
         attempt += 1;
         // Honour a Retry-After header when present, clamped to MAX_RETRY_AFTER_MS
@@ -509,11 +513,11 @@ export class RequestEngine {
       const contentType = String(responseHeaders["content-type"] ?? "");
       if (status < 200 || status >= 300) {
         const location = responseHeaders["location"];
-        throw this.toApiError(method, url, status, response.body, typeof location === "string" ? location : undefined, attempt);
+        throw this.toApiError(method, url, status, body, typeof location === "string" ? location : undefined, attempt);
       }
 
       const contentEncoding = String(responseHeaders["content-encoding"] ?? "").trim();
-      return { data: response.body, contentType, contentEncoding, status };
+      return { data: body, contentType, contentEncoding, status };
     }
   }
 
