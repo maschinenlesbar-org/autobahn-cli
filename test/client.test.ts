@@ -149,7 +149,12 @@ test("an empty listing for a road id the API does not know raises AutobahnNotFou
   for (const [road, message] of [
     ["a1", 'Unknown road id "a1": not in the API\'s road list (did you mean "A1"?).'],
     ["a64A", 'Unknown road id "a64A": not in the API\'s road list (did you mean "A64a"?).'],
+    ["A 1", 'Unknown road id "A 1": not in the API\'s road list (did you mean "A1"?).'],
+    ["A-1", 'Unknown road id "A-1": not in the API\'s road list (did you mean "A1"?).'],
+    ["A01", 'Unknown road id "A01": not in the API\'s road list (did you mean "A1"?).'],
+    ["A 60", 'Unknown road id "A 60": not in the API\'s road list (did you mean "A60"?).'],
     ["A999", 'Unknown road id "A999": not in the API\'s road list.'],
+    ["A10", 'Unknown road id "A10": not in the API\'s road list.'],
   ] as const) {
     const mt = roadsAnd({ warning: [] });
     await assert.rejects(

@@ -205,7 +205,7 @@ an error: it returns `[]` (exit `0`). The API answers an **unknown road id** (a
 typo, or `a1` for `A1` — ids are case-sensitive) with the same empty listing and
 HTTP 200, so when a listing is empty the client checks the id against the road
 list and raises `AutobahnNotFoundError` (exit `4`, with a did-you-mean for a case
-slip) if it is not there. That check is a second request with its own timeout and
+slip, a space or dash, or a leading zero: `a1`, `A 1`, `A-1`, `A01` → `A1`) if it is not there. That check is a second request with its own timeout and
 retries; if it fails, the listing raises an `AutobahnError` (exit `1`,
 `Could not check road id … against the API's road list …`, the original error as
 `cause`) rather than an all-clear. A `get <id>` with no matching item, or a real `404`, is

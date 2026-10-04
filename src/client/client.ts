@@ -42,7 +42,8 @@ class ServiceResource<K extends string> {
    * List the service's items along a motorway, e.g. roadId "A1". Road ids are
    * case-sensitive. The API answers an unknown id (`A999`, `a1`) exactly like a road
    * without items, so an empty listing is checked against `roads()`: an id not in
-   * that list raises AutobahnNotFoundError (with a did-you-mean for a case slip)
+   * that list raises AutobahnNotFoundError (with a did-you-mean for a case slip, a space
+   * or dash, or a leading zero)
    * instead of returning []. That check is a second request (with its own timeout and
    * retries); if it fails, list() throws an AutobahnError naming the check, with the
    * original error as `cause`.
@@ -86,8 +87,8 @@ class ServiceResource<K extends string> {
     }
     // roads() returns trimmed ids, as list() trims its own.
     if (known.includes(id)) return;
-    const lower = id.toLowerCase();
-    const suggestion = known.find((road) => road.toLowerCase() === lower);
+    const key = roadKey(id);
+    const suggestion = known.find((road) => roadKey(road) === key);
     throw new AutobahnNotFoundError(
       `Unknown road id ${JSON.stringify(id)}: not in the API's road list` +
         (suggestion === undefined ? "." : ` (did you mean ${JSON.stringify(suggestion)}?).`),
@@ -165,6 +166,15 @@ export class AutobahnClient {
     const ids = (roads as RoadsResult["roads"]).map((id) => id.trim()).filter((id) => id !== "");
     return [...new Set(ids)];
   }
+}
+
+/**
+ * A road id reduced to what tells roads apart, for the did-you-mean: case, spaces,
+ * dashes and underscores and leading zeros of the number are dropped, so `a1`, `A 1`,
+ * `A-1` and `A01` all match `A1`, and `A64A` matches `A64a`.
+ */
+function roadKey(id: string): string {
+  return id.toLowerCase().replace(/[\s_-]+/g, "").replace(/^([a-z]+)0+(?=\d)/, "$1");
 }
 
 /** True for a JSON object (not null, not an array). */
