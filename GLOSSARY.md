@@ -42,8 +42,9 @@ currently lists **no webcams on any road checked** (A1, A3, A7, A8, A99 in
 September 2026): `webcams list` prints `[]` — an upstream data gap, not an error.
 
 **Parking lorry / lorry parking (`parking_lorry`).** Truck/HGV parking areas
-along a motorway (German *Lkw-Parkplätze / Rastplätze*) and their occupancy
-information. CLI: `parking`.
+along a motorway (German *Lkw-Parkplätze / Rastplätze*) and their **capacity** — the
+`description` lists `PKW Stellplätze: N` and `LKW Stellplätze: N`. There is no live
+occupancy (free/occupied) data. CLI: `parking`.
 
 **Warning (`warning`).** A traffic warning along a motorway (German
 *Verkehrsmeldung* / *Verkehrswarnung*) — e.g. congestion, accidents, hazards.

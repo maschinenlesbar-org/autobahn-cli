@@ -110,8 +110,9 @@ autobahn webcams list A99 | jq -r '.[].linkurl'
 
 ### 6. Locate lorry parking areas on the A8
 
-Plan a rest stop by listing the parking areas (and their occupancy data) along
-a route.
+Plan a rest stop by listing the parking areas along a route. Each item gives the
+number of spaces (`PKW Stellplätze: N`, `LKW Stellplätze: N` in `description`), not live
+occupancy.
 
 ```bash
 autobahn parking list A8

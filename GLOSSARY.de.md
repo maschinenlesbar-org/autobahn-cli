@@ -43,7 +43,8 @@ listet derzeit **auf keiner geprüften Autobahn Webcams** (A1, A3, A7, A8, A99 i
 September 2026): `webcams list` gibt `[]` aus – eine Datenlücke der Quelle, kein Fehler.
 
 **Lkw-Parkplätze (`parking_lorry`).** Lkw-Parkplätze bzw. Rastplätze entlang einer
-Autobahn und Angaben zu ihrer Belegung. CLI: `parking`.
+Autobahn und ihre **Kapazität** – `description` nennt `PKW Stellplätze: N` und
+`LKW Stellplätze: N`. Live-Belegungsdaten (frei/belegt) gibt es nicht. CLI: `parking`.
 
 **Verkehrswarnung (`warning`).** Eine Verkehrsmeldung bzw. Verkehrswarnung entlang einer
 Autobahn – z. B. Stau, Unfälle, Gefahren. CLI: `warnings`.
