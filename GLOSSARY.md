@@ -218,7 +218,9 @@ automatically up to `maxRetries` (default `2`), honouring a `Retry-After` header
 when present, otherwise using linear backoff. `AutobahnApiError.isRetryable`
 reflects this. When the status persists, the error says so — `… (after 2 retries)` — and
 `AutobahnApiError.retries` holds the count. A connection reset mid-request
-(`socket hang up`, `ECONNRESET`) is retried the same way, with the linear backoff.
+(`socket hang up`, `ECONNRESET`) is retried the same way, with the linear backoff. A
+**timeout is not retried** (a slow upstream is not asked again at once; `--timeout`
+bounds each attempt), and neither is a refused connection or a DNS failure.
 
 **`Retry-After`.** A response header the engine parses for both the
 delta-seconds form (`Retry-After: 120`) and the HTTP-date form

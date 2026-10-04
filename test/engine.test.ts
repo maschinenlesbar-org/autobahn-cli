@@ -151,6 +151,20 @@ test("an error thrown by a custom transport surfaces as AutobahnNetworkError wit
   await assert.rejects(() => e.getJson("/x"), (err: unknown) => err === own);
 });
 
+test("a timed-out request is not retried", async () => {
+  let calls = 0;
+  const e = new RequestEngine({
+    maxRetries: 2,
+    sleep: async () => {},
+    transport: async () => {
+      calls += 1;
+      throw new AutobahnNetworkError("Request timed out after 5ms");
+    },
+  });
+  await assert.rejects(() => e.getJson("/x"), AutobahnNetworkError);
+  assert.equal(calls, 1);
+});
+
 test("a retried request that then succeeds resolves", async () => {
   let calls = 0;
   const mt = makeMockTransport(() => {

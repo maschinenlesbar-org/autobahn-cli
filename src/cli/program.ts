@@ -60,7 +60,8 @@ export function buildProgram(deps: CliDeps = defaultDeps): Command {
     )
     .option(
       "--timeout <ms>",
-      `per-request timeout in milliseconds (0 disables; at most ${MAX_TIMEOUT_MS})`,
+      `per-request timeout in milliseconds (default 30000; 0 disables; at most ${MAX_TIMEOUT_MS}; ` +
+        "a timed-out request is not retried)",
       parseBoundedInt(0, MAX_TIMEOUT_MS),
     )
     .option("--user-agent <ua>", "User-Agent header value", parseHeaderValue)

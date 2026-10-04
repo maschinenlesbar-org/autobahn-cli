@@ -232,7 +232,9 @@ vorhandenen `Retry-After`-Header und nutzt andernfalls linearen Backoff.
 `AutobahnApiError.isRetryable` bildet das ab. Bleibt der Status bestehen, sagt die
 Fehlermeldung das – `… (after 2 retries)` –, und `AutobahnApiError.retries` enthält die Zahl.
 Eine während der Anfrage zurückgesetzte Verbindung (`socket hang up`, `ECONNRESET`) wird
-ebenso wiederholt, mit dem linearen Backoff.
+ebenso wiederholt, mit dem linearen Backoff. Ein **Timeout wird nicht wiederholt** (ein
+langsamer Upstream wird nicht sofort erneut angefragt; `--timeout` begrenzt jeden Versuch),
+ebenso wenig eine abgelehnte Verbindung oder ein DNS-Fehler.
 
 **`Retry-After`.** Ein Antwort-Header, den die Engine sowohl in der Sekundenform
 (`Retry-After: 120`) als auch in der HTTP-Datumsform

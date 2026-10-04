@@ -38,7 +38,10 @@ export interface EngineOptions {
   transport?: Transport;
   /** Value of the User-Agent header. */
   userAgent?: string;
-  /** Per-request timeout in milliseconds (0 disables; at most `MAX_TIMEOUT_MS`, 2^31 - 1 ms). */
+  /**
+   * Per-request timeout in milliseconds (0 disables; at most `MAX_TIMEOUT_MS`, 2^31 - 1 ms).
+   * Defaults to 30 000. A request that times out is not retried.
+   */
   timeoutMs?: number;
   /** Number of automatic retries for transient (429/502/503/504) responses, 0..`MAX_RETRIES` (10). */
   maxRetries?: number;
