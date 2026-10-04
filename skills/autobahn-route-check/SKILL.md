@@ -186,8 +186,9 @@ Rules:
 - Surface `routeRecommendation` / detour info whenever present.
 - Show delay minutes and direction (`subtitle`) — those are what a driver acts on.
 - Offer the `get <identifier>` follow-up for any item the user wants full detail on, but
-  don't dump raw JSON unless asked. Use an identifier from **this** run: identifiers embed a
-  timestamp and are re-issued within hours, so an older one answers exit `4` although the
-  event persists (match events across runs on the part before `--`).
+  don't dump raw JSON unless asked. For a **warning**, use an identifier from **this** run:
+  warning ids embed a refresh timestamp and are re-issued within hours, so an older one answers
+  exit `4` although the event persists (match warnings across runs on the part before `--`).
+  Roadwork and closure ids stay stable.
 - Don't invent severity the data doesn't support; if `isBlocked` is false and there's no
   delay value, it's informational.
