@@ -101,8 +101,9 @@ export interface AutobahnServiceItem {
   /**
    * Start time. ISO 8601 on roadworks, warnings and closures; a German date
    * (`"30.03.2026"`, DD.MM.YYYY) on charging stations, where it can also be absent;
-   * on lorry parking and short-term roadworks absent from listings, `null` in the detail
-   * response (their time is only in the description's window lines).
+   * reliable only on long-term roadworks (`ROADWORKS`): absent from listings (`null` in the
+   * detail response) on lorry parking, short-term roadworks and most closures, whose time
+   * is only in the description's window lines.
    */
   startTimestamp?: string | null;
   // Webcam-specific (the webcam service has listed nothing since 2026-09)
