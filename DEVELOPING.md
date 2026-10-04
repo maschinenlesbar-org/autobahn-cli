@@ -182,8 +182,9 @@ id or identifier throws an `AutobahnValidationError` before any request),
 `AutobahnParseError` (bad JSON, or a 2xx body without the
 expected shape: `Unexpected response shape from <url>: expected …`, the full request
 URL with userinfo redacted), all extending
-`AutobahnError`. `AutobahnNotFoundError` (a road id the API does not know; CLI
-exit `4`) extends `AutobahnError` too.
+`AutobahnError`. `AutobahnNotFoundError` (a road id the API does not know, or an
+identifier the detail endpoint answers with an empty body; CLI exit `4`) extends
+`AutobahnError` too — it is not an `AutobahnApiError`.
 
 **Input validation.** [`validate.ts`](src/client/validate.ts): a rule is a pure
 `<thing>Problem(value)` function that returns why a value is invalid, or `undefined`.
