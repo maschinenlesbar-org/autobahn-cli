@@ -76,7 +76,10 @@ Ebenso `.` oder `..` (`Invalid roadId: "." and ".." are not ids.`). Darüber hin
 eine Autobahn-Kennung nur Buchstaben, Ziffern, Leerzeichen, Binde- und Unterstriche
 enthalten (jede gelistete Kennung ist `A<Zahl>` mit optionalem Buchstaben; Leerzeichen und
 Bindestriche bleiben erlaubt, damit `A 1` seinen Vorschlag bekommt); `%`, `~` oder `A1;x`
-werden vor jeder Anfrage abgelehnt.
+werden vor jeder Anfrage abgelehnt. Die Regel beruht auf den heute gelisteten Kennungen
+(alle 109 passen auf `A<Zahl>` mit optionalem Buchstaben); sollte `roads` je eine Kennung mit
+einem anderen Zeichen ausgeben, würde `list` sie als „Not a road id“ ablehnen – ein Zeichen,
+die Regel zu erweitern.
 
 **`identifier`.** Die opake ID eines einzelnen Dienst-Eintrags, die in jedem gelisteten
 Eintrag als Feld `identifier` steht. Diesen Wert übergeben Sie einem

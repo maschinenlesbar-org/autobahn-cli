@@ -76,7 +76,9 @@ request: the API decodes the client's `%2F` back to `/` and resolves `..`, so
 (`Invalid roadId: "." and ".." are not ids.`). Beyond that a road id may hold only
 letters, digits, spaces, dashes and underscores (every listed id is `A<number>` with an
 optional letter; spaces and dashes stay allowed so `A 1` gets its did-you-mean); `%`, `~`
-or `A1;x` are rejected before any request.
+or `A1;x` are rejected before any request. The rule rests on the ids the API lists today
+(all 109 match `A<number>` with an optional letter); should `roads` ever print an id with
+another character, `list` would reject it as "Not a road id" — a sign to widen the rule.
 
 **`identifier`.** The opaque id of a single service item, present as the
 `identifier` field on every listed item. It is the value you pass to a

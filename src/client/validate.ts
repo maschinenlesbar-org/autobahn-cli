@@ -49,6 +49,8 @@ export function idProblem(value: string): string | undefined {
  * `A<number>[letter]`; spaces, dashes and underscores stay allowed so that `A 1` or `A-1`
  * reaches the did-you-mean. Anything else (`%`, `~`, `A1;x`) cannot name a road and used
  * to cost two requests (the listing and the road-list check) before "Unknown road id".
+ * The alphabet is an assumption about the ids the API lists (all 109 in October 2026);
+ * if `roads()` ever returns one outside it, this rule must be widened.
  */
 export function roadIdProblem(value: string): string | undefined {
   const problem = idProblem(value);
