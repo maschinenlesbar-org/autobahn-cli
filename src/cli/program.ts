@@ -71,6 +71,41 @@ export function buildProgram(deps: CliDeps = defaultDeps): Command {
 
   registerRoadsCommand(program, deps);
   registerServiceCommands(program, deps);
+  addHelpCommands(program);
 
   return program;
+}
+
+/**
+ * Replace commander's built-in `help [command]` on every command that has subcommands.
+ * The built-in one only looks one level down and shows help for anything it cannot
+ * find: `autobahn help roadworks list` printed the `roadworks` help, and
+ * `autobahn help foo` printed the root help with exit 0. This one walks the whole path
+ * and reports an unknown name as `unknown command` (exit 1). It is hidden, so the
+ * generated site reference does not list it per group, and put back into the help
+ * output's command list where the built-in one was.
+ */
+function addHelpCommands(command: Command): void {
+  const groups = command.commands;
+  if (groups.length === 0) return;
+  for (const sub of [...groups]) addHelpCommands(sub);
+  command.helpCommand(false);
+  const help = command
+    .command("help", { hidden: true })
+    .description("display help for command")
+    .argument("[command...]", "the command to describe, e.g. roadworks list")
+    .action((names: string[]) => {
+      let target: Command = command;
+      for (const name of names) {
+        const sub = target.commands.find((c) => c.name() === name || c.aliases().includes(name));
+        if (sub === undefined) {
+          target.error(`error: unknown command '${name}'`, { exitCode: 1, code: "commander.unknownCommand" });
+        }
+        target = sub;
+      }
+      target.outputHelp();
+    });
+  command.configureHelp({
+    visibleCommands: (cmd) => [...cmd.commands.filter((c) => c !== help && c.name() !== "help"), help],
+  });
 }

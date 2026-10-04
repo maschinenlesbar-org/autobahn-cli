@@ -202,6 +202,28 @@ test("an unknown command with --help is still an unknown command (exit 1), not h
   }
 });
 
+test("help walks the whole command path and rejects an unknown name", async () => {
+  for (const [argv, usage] of [
+    [["help"], "Usage: autobahn [options] [command]"],
+    [["help", "roadworks"], "Usage: autobahn roadworks [options] [command]"],
+    [["help", "roadworks", "list"], "Usage: autobahn roadworks list [options] <roadId>"],
+    [["roadworks", "help", "get"], "Usage: autobahn roadworks get [options] <identifier>"],
+  ] as const) {
+    const cli = makeCli(() => jsonResponse({}));
+    assert.equal(await run([...argv], cli.deps), 0, argv.join(" "));
+    assert.equal(cli.out[0]?.split("\n")[0], usage, argv.join(" "));
+    assert.equal(cli.mt.calls.length, 0);
+  }
+  for (const argv of [["help", "foo"], ["help", "roadworks", "bogus"], ["roadworks", "help", "bogus"]]) {
+    const cli = makeCli(() => jsonResponse({}));
+    assert.equal(await run(argv, cli.deps), 1, argv.join(" "));
+    assert.match(cli.err.join("\n"), /^error: unknown command '(foo|bogus)'/, argv.join(" "));
+  }
+  const root = makeCli(() => jsonResponse({}));
+  await run(["--help"], root.deps);
+  assert.match(root.out.join("\n"), /\n {2}help \[command\.\.\.\] +display help for command$/m);
+});
+
 test("an invalid --timeout is a usage error (non-zero, no request)", async () => {
   const cli = makeCli(() => jsonResponse({}));
   const code = await run(["--timeout", "1e3", "roads"], cli.deps);
