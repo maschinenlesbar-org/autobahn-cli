@@ -140,6 +140,14 @@ test("a compressed body names its Content-Encoding instead of failing as non-JSO
     body: Buffer.from('{"ok":1}'),
   }));
   assert.deepEqual(await new RequestEngine({ transport: identity.transport }).getJson("/x"), { ok: 1 });
+  for (const value of ["identity, identity", "Identity,", " identity "]) {
+    const listed = makeMockTransport(() => ({
+      status: 200,
+      headers: { "content-type": "application/json", "content-encoding": value },
+      body: Buffer.from('{"ok":2}'),
+    }));
+    assert.deepEqual(await new RequestEngine({ transport: listed.transport }).getJson("/x"), { ok: 2 }, value);
+  }
 });
 
 test("a non-JSON body names its Content-Type when that is not JSON", async () => {

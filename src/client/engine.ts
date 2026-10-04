@@ -497,7 +497,9 @@ export class RequestEngine {
     const res = await this.request("GET", path, { query, accept: "application/json" });
     // The client sends no Accept-Encoding and does not decompress; a compressed body can
     // only come from a misbehaving proxy. Name it rather than fail as "not JSON".
-    if (res.contentEncoding !== "" && !/^identity$/i.test(res.contentEncoding)) {
+    // A list of codings is allowed (RFC 9110 §8.4); only `identity` ones mean "not encoded".
+    const codings = res.contentEncoding.split(",").map((c) => c.trim()).filter((c) => c !== "");
+    if (codings.some((c) => !/^identity$/i.test(c))) {
       throw new AutobahnParseError(
         `Unsupported Content-Encoding "${cleanDetail(res.contentEncoding)}" from ${this.describeUrl(path, query)}: ` +
           "the client does not decompress responses.",
