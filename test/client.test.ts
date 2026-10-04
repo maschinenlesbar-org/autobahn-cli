@@ -55,10 +55,10 @@ test("charging.list uses the electric_charging_station service + key", async () 
 
 test("warnings.get builds the details path and url-encodes the identifier", async () => {
   const mt = constantJson({ identifier: "abc", title: "x" });
-  await clientWith(mt).warnings.get("a/b+c=");
+  await clientWith(mt).warnings.get("a b+c=");
   assert.equal(
     new URL(mt.last().url).pathname,
-    "/o/autobahn/details/warning/a%2Fb%2Bc%3D",
+    "/o/autobahn/details/warning/a%20b%2Bc%3D",
   );
 });
 
@@ -253,6 +253,22 @@ test("a road id containing / is rejected before any request instead of re-target
       return true;
     });
     assert.equal(mt.calls.length, 0, roadId);
+  }
+});
+
+test("an identifier containing / is rejected before any request instead of re-targeting the item", async () => {
+  for (const identifier of ["x/../2026-1.de1", "2026-1.de1/", "a/b"]) {
+    const mt = constantJson({ identifier: "2026-1.de1" });
+    await assert.rejects(() => clientWith(mt).roadworks.get(identifier), (err: unknown) => {
+      assert.ok(err instanceof AutobahnValidationError, identifier);
+      assert.equal(
+        (err as Error).message,
+        'Invalid identifier: An id cannot contain "/": the API reads it as a path separator.',
+        identifier,
+      );
+      return true;
+    });
+    assert.equal(mt.calls.length, 0, identifier);
   }
 });
 

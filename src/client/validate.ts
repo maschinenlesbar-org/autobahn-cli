@@ -22,10 +22,13 @@ export function assertValid<T>(name: string, value: T, problem: Problem<T>): T {
 }
 
 /**
- * Why `value` cannot be put into a request path as a road id, or undefined when it can.
+ * Why `value` cannot be put into a request path as a road id or item identifier, or
+ * undefined when it can.
  * The client percent-encodes the id, but the upstream decodes `%2F` back to `/` and
  * resolves `..` before routing, so `"A1/../A2"` would fetch the A2 data (exit 0) and
- * `"A2/"` would pass for `"A2"`. No id the API issues contains a `/`.
+ * `"A2/"` would pass for `"A2"`; `get("x/../<id>")` would fetch `<id>`. No road id or
+ * identifier the API issues contains a `/` (one that did could not be fetched either:
+ * the upstream would route it as two segments).
  */
 export function idProblem(value: string): string | undefined {
   if (value.includes("/")) return 'An id cannot contain "/": the API reads it as a path separator.';

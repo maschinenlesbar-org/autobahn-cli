@@ -40,10 +40,10 @@ test("roadworks list hits the right path", async () => {
 
 test("charging get url-encodes the identifier", async () => {
   const cli = makeCli(() => jsonResponse({ identifier: "x" }));
-  await run(["charging", "get", "abc/def"], cli.deps);
+  await run(["charging", "get", "ab+c=d"], cli.deps);
   assert.equal(
     new URL(cli.mt.last().url).pathname,
-    "/o/autobahn/details/electric_charging_station/abc%2Fdef",
+    "/o/autobahn/details/electric_charging_station/ab%2Bc%3Dd",
   );
 });
 

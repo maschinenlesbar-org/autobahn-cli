@@ -111,11 +111,12 @@ class ServiceResource<K extends string> {
    * Fetch one item's details by its identifier (an opaque string; the format varies
    * by service). Surrounding whitespace is trimmed, as list() does for road ids: no
    * identifier the API issues has any, so a stray space from a copy-paste would
-   * otherwise read as "not found". A 2xx body that is not a JSON object raises
-   * AutobahnParseError.
+   * otherwise read as "not found". An identifier containing "/" is rejected like such a
+   * road id (idProblem): `"x/../<id>"` would otherwise resolve to `<id>`. A 2xx body
+   * that is not a JSON object raises AutobahnParseError.
    */
   async get(identifier: string): Promise<JsonObject> {
-    const id = requireSegment("identifier", identifier).trim();
+    const id = assertValid("identifier", requireSegment("identifier", identifier).trim(), idProblem);
     const path = `${API_ROOT}/details/${this.service}/${enc(id)}`;
     // The detail endpoint answers an unknown identifier with 200 and an empty body.
     const body = await this.engine.getJson<unknown>(path, undefined, { emptyIsNotFound: true });
