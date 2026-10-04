@@ -178,7 +178,8 @@ Global options may be given **before or after** the command — both
 
 Commands: `roads`, and the six service groups `roadworks`, `webcams`,
 `parking`, `warnings`, `closures`, `charging` — each with `list <roadId>` and
-`get <identifier>` subcommands.
+`get <identifier>` subcommands. `autobahn help <command path>` (for example
+`autobahn help roadworks list`) prints the help of any command, like `--help` after it.
 
 Exit codes: `0` success, `4` not found (`get` matched nothing or answered `404` /
 unknown road id in `list`),
