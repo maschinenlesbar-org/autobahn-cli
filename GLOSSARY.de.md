@@ -155,7 +155,10 @@ Ereignis bezieht, z. B. eine geplante Baustelle.
 **`startTimestamp`.** Beginn des Ereignisses bzw. Eintrags. Eine ISO-Zeit bei Baustellen,
 Warnungen und Sperrungen; bei Ladestationen ein deutsches Datum (`"30.03.2026"`,
 TT.MM.JJJJ, das `Date.parse` nicht lesen kann), das dort auch fehlen kann. Lkw-Parkplätze
-haben keinen: Er fehlt in den Listeneinträgen und ist in der Detailantwort `null`.
+haben keinen: Er fehlt in den Listeneinträgen und ist in der Detailantwort `null`. Die
+ISO-Zeiten mischen Zeitzonen – Warnungen in UTC (`2026-10-04T15:24:00Z`), Baustellen und
+Sperrungen in deutscher Ortszeit (`2026-08-10T11:00:00+02:00`) –, vergleichen Sie sie daher
+als geparste Datumswerte, nie als Zeichenketten.
 
 **`delayTimeValue`.** Die Verzögerung in Minuten bei einer Verkehrswarnung, gesendet als
 JSON-**String** (`"10"`). Vor dem Sortieren oder Vergleichen in eine Zahl umwandeln: Als

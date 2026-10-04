@@ -152,7 +152,9 @@ event, e.g. planned roadworks.
 **`startTimestamp`.** When the event/item starts. An ISO time on roadworks, warnings
 and closures; a German date on charging stations (`"30.03.2026"`, DD.MM.YYYY, which
 `Date.parse` cannot read), where it can also be missing. Lorry parking has none: absent
-from listing items, `null` in the detail response.
+from listing items, `null` in the detail response. The ISO times mix offsets — warnings
+use UTC (`2026-10-04T15:24:00Z`), roadworks and closures German local time
+(`2026-08-10T11:00:00+02:00`) — so compare them as parsed dates, never as strings.
 
 **`delayTimeValue`.** The delay in minutes on a traffic warning, sent as a JSON
 **string** (`"10"`). Convert it to a number before sorting or comparing: as strings,
