@@ -135,7 +135,7 @@ autobahn charging get <identifier>
 ### 8. Check traffic warnings, compactly, for scripting
 
 `--compact` prints single-line JSON — handy when piping into another tool or
-logging. Note it is a **global** option and goes *before* the command.
+logging. It is a **global** option and works before or after the command.
 
 ```bash
 autobahn --compact warnings list A2
@@ -153,7 +153,7 @@ autobahn roadworks list A7 | jq '[.[] | select(.future | not)] | length'
 ### 10. Run against a different host or with a longer timeout
 
 Point the client at an alternate base URL, or relax the per-request timeout for
-slow networks. These are global options, placed before the command.
+slow networks. These are global options; they work before or after the command.
 
 ```bash
 autobahn --timeout 60000 --user-agent "trip-planner/1.0" warnings list A1
