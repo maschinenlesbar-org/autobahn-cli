@@ -178,7 +178,8 @@ exit `4`) extends `AutobahnError` too.
 The library enforces it with `assertValid(name, value, problem)` before any request,
 which throws `AutobahnValidationError` (extends `AutobahnError`, exported) with the
 message `Invalid <name>: <reason>`; a method that returns a promise rejects with it. The
-CLI's option parsers call the same `…Problem` functions, so an input gets the same
+CLI's option and argument parsers call the same `…Problem` functions (`parseId` wraps
+`idProblem` for the `<roadId>`/`<identifier>` arguments), so an input gets the same
 outcome on both sides, and `run.ts` reports an `AutobahnValidationError` raised in an
 action as a usage error (`Error: <message>`, exit `1`).
 

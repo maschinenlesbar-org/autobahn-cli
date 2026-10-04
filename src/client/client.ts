@@ -8,12 +8,7 @@
 //   client.chargingStations.get(identifier)
 
 import { RequestEngine, type EngineOptions } from "./engine.js";
-import {
-  AutobahnError,
-  AutobahnNotFoundError,
-  AutobahnParseError,
-  AutobahnValidationError,
-} from "./errors.js";
+import { AutobahnError, AutobahnNotFoundError, AutobahnParseError } from "./errors.js";
 import { assertValid, idProblem } from "./validate.js";
 import type {
   RoadsResult,
@@ -22,22 +17,9 @@ import type {
 } from "./types.js";
 
 const API_ROOT = "/o/autobahn";
-// Percent-encodes one path segment. It leaves "." and ".." unchanged; the engine
-// rejects those (see RequestEngine.buildUrl), so they cannot re-target a request.
+// Percent-encodes one path segment. It leaves "." and ".." unchanged; idProblem
+// rejects those (and "/", which the upstream decodes), so they cannot re-target a request.
 const enc = encodeURIComponent;
-
-/**
- * Validate a required path segment (motorway id / item identifier) client-side.
- * Rejects empty or whitespace-only values up front with a clear message rather
- * than building a malformed URL (`//services/...`) and leaking the upstream
- * "Cannot GET" 404 text back to the caller.
- */
-function requireSegment(name: string, value: string): string {
-  if (typeof value !== "string" || value.trim() === "") {
-    throw new AutobahnValidationError(`Invalid ${name}: must be a non-empty string`);
-  }
-  return value;
-}
 
 /**
  * One Autobahn service (roadworks, webcam, ...). `list(roadId)` returns the
@@ -69,7 +51,7 @@ class ServiceResource<K extends string> {
     // Trim surrounding whitespace: the upstream API itself emits a few ids with a
     // trailing space (e.g. "A60 "), and copying such an id straight back in would
     // otherwise URL-encode the space and miss the road. Validate after trimming.
-    const id = assertValid("roadId", requireSegment("roadId", roadId).trim(), idProblem);
+    const id = assertValid("roadId", roadId, idProblem).trim();
     const path = `${API_ROOT}/${enc(id)}/services/${this.service}`;
     const body = await this.engine.getJson<unknown>(path);
     // The API answers every road, even an empty one, with `{ "<key>": [...] }`. Any
@@ -122,7 +104,7 @@ class ServiceResource<K extends string> {
    * raises AutobahnParseError.
    */
   async get(identifier: string): Promise<JsonObject> {
-    const id = assertValid("identifier", requireSegment("identifier", identifier).trim(), idProblem);
+    const id = assertValid("identifier", identifier, idProblem).trim();
     const path = `${API_ROOT}/details/${this.service}/${enc(id)}`;
     // The detail endpoint answers an unknown identifier with 200 and an empty body.
     const body = await this.engine.getJson<unknown>(path, undefined, { emptyIsNotFound: true });

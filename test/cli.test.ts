@@ -255,7 +255,7 @@ test("a road id of .. exits 1 without a request instead of printing another endp
   assert.equal(code, 1);
   assert.equal(cli.mt.calls.length, 0);
   assert.deepEqual(cli.out, []);
-  assert.equal(cli.err.join("\n"), 'Error: Invalid roadId: "." and ".." are not ids.');
+  assert.match(cli.err.join("\n"), /^error: command-argument value '\.\.' is invalid for argument 'roadId'\. "\." and "\.\." are not ids\./);
 });
 
 test("a road id with / exits 1 without a request instead of printing another road's data", async () => {
@@ -264,7 +264,7 @@ test("a road id with / exits 1 without a request instead of printing another roa
   assert.equal(code, 1);
   assert.equal(cli.mt.calls.length, 0);
   assert.deepEqual(cli.out, []);
-  assert.match(cli.err.join("\n"), /Invalid roadId: An id cannot contain "\/"/);
+  assert.match(cli.err.join("\n"), /is invalid for argument 'roadId'\. An id cannot contain "\/"/);
 });
 
 test("a 2xx body without the service envelope exits 1 instead of printing []", async () => {

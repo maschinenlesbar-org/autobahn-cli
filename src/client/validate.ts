@@ -23,8 +23,11 @@ export function assertValid<T>(name: string, value: T, problem: Problem<T>): T {
 
 /**
  * Why `value` cannot be put into a request path as a road id or item identifier, or
- * undefined when it can.
- * The client percent-encodes the id, but the upstream decodes `%2F` back to `/` and
+ * undefined when it can. The rules apply to the value with surrounding whitespace
+ * trimmed, as the client sends it.
+ *
+ * A blank value is rejected (it would build `//services/...` and leak the upstream
+ * "Cannot GET" text). The client percent-encodes the id, but the upstream decodes `%2F` back to `/` and
  * resolves `..` before routing, so `"A1/../A2"` would fetch the A2 data (exit 0) and
  * `"A2/"` would pass for `"A2"`; `get("x/../<id>")` would fetch `<id>`. No road id or
  * identifier the API issues contains a `/` (one that did could not be fetched either:
@@ -32,8 +35,11 @@ export function assertValid<T>(name: string, value: T, problem: Problem<T>): T {
  * percent-encoding leaves them unchanged and URL parsing would resolve them.
  */
 export function idProblem(value: string): string | undefined {
-  if (value.includes("/")) return 'An id cannot contain "/": the API reads it as a path separator.';
-  if (value === "." || value === "..") return '"." and ".." are not ids.';
+  if (typeof value !== "string") return "Expected a string.";
+  const id = value.trim();
+  if (id === "") return "Expected a non-empty value.";
+  if (id.includes("/")) return 'An id cannot contain "/": the API reads it as a path separator.';
+  if (id === "." || id === "..") return '"." and ".." are not ids.';
   return undefined;
 }
 

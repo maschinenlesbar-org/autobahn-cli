@@ -37,6 +37,29 @@ test("parity: a base URL with surrounding whitespace is rejected by CLI and libr
   }
 });
 
+test("parity: a blank, dot or slash road id or identifier is rejected by CLI and library with the same reason", async () => {
+  for (const id of ["", "  ", ".", " .. ", "A1/../A2", "A2/"]) {
+    for (const [argv, call, name] of [
+      [["roadworks", "list", id], (c: AutobahnClient) => c.roadworks.list(id), "roadId"],
+      [["roadworks", "get", id], (c: AutobahnClient) => c.roadworks.get(id), "identifier"],
+    ] as const) {
+      const { cli, lib } = await parity(
+        ["--compact", ...argv],
+        (transport) => call(new AutobahnClient({ transport })),
+        () => jsonResponse({ roadworks: [{ identifier: "a" }], identifier: "a" }),
+      );
+      const label = `${name}=${JSON.stringify(id)}`;
+      assert.equal(cli.code, 1, label);
+      assert.deepEqual(cli.requests, [], label);
+      assert.equal(lib.ok, false, label);
+      assert.deepEqual(lib.requests, [], label);
+      assert.equal(lib.error?.name, "AutobahnValidationError", label);
+      const cliArgReason = new RegExp(`is invalid for argument '${name}'\\. (.*)$`, "m").exec(cli.err)?.[1];
+      assert.equal(lib.error?.message, `Invalid ${name}: ${cliArgReason}`, label);
+    }
+  }
+});
+
 test("parity: roads returns the same trimmed, de-duplicated list from CLI and library", async () => {
   for (const roads of [
     ["A1", "A60", "A60 ", "A7"],
