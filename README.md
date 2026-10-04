@@ -17,7 +17,7 @@ operated by Autobahn GmbH des Bundes.
 - **Seven commands** — `roads` plus six service groups (`roadworks`, `webcams`, `parking`, `warnings`, `closures`, `charging`), each with `list` and `get`.
 
 > Want to use this as a TypeScript library or understand how it's built?
-> See **[DEVELOPING.md](DEVELOPING.md)**.
+> See **[DEVELOPING.md](https://github.com/maschinenlesbar-org/autobahn-cli/blob/main/DEVELOPING.md)**.
 
 ## Install
 
@@ -99,7 +99,7 @@ with an unknown or mistyped identifier exits `4` too.
 
 ## Common tasks
 
-A few recipes to get going — see **[Usage.md](Usage.md)** for the full,
+A few recipes to get going — see **[Usage.md](https://github.com/maschinenlesbar-org/autobahn-cli/blob/main/Usage.md)** for the full,
 use-case-driven set.
 
 ```bash
@@ -197,10 +197,10 @@ These apply to every command and may be given **before or after** it:
 
 ## Learn more
 
-- **[Usage.md](Usage.md)** — full use-case-driven cookbook.
-- **[GLOSSARY.md](GLOSSARY.md)** — every command, resource, and domain term explained.
-- **[DEVELOPING.md](DEVELOPING.md)** — TypeScript library usage, architecture, testing, CI.
-- **[SKILLS.md](SKILLS.md)** — Claude Code Agent Skills bundled with this repo (route
+- **[Usage.md](https://github.com/maschinenlesbar-org/autobahn-cli/blob/main/Usage.md)** — full use-case-driven cookbook.
+- **[GLOSSARY.md](https://github.com/maschinenlesbar-org/autobahn-cli/blob/main/GLOSSARY.md)** — every command, resource, and domain term explained.
+- **[DEVELOPING.md](https://github.com/maschinenlesbar-org/autobahn-cli/blob/main/DEVELOPING.md)** — TypeScript library usage, architecture, testing, CI.
+- **[SKILLS.md](https://github.com/maschinenlesbar-org/autobahn-cli/blob/main/SKILLS.md)** — Claude Code Agent Skills bundled with this repo (route
   check, EV charging planner, GeoJSON export), installable as a plugin.
 
 ## Data license
