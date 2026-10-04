@@ -342,6 +342,8 @@ export class RequestEngine {
   private readonly sleep: (ms: number) => Promise<void>;
 
   constructor(options: EngineOptions = {}) {
+    // A JavaScript caller may pass null for "no options"; treat it like undefined.
+    options = options ?? {};
     assertKnownOptions(options);
     // Only `undefined` selects a default (`??`, not `||`): a blank baseUrl or
     // userAgent is rejected like "  ", as the CLI rejects `--base-url ""`. Both are

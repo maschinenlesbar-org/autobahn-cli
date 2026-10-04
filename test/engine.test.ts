@@ -263,6 +263,12 @@ test("a malformed response from a custom transport is an AutobahnNetworkError, n
   }
 });
 
+test("null options mean the defaults, like no options", async () => {
+  assert.ok(new RequestEngine(null as unknown as undefined) instanceof RequestEngine);
+  const { AutobahnClient } = await import("../src/client/client.js");
+  assert.doesNotThrow(() => new AutobahnClient(null as unknown as undefined));
+});
+
 test("an unknown option name makes the constructor throw, with a hint when one is close", () => {
   for (const [options, message] of [
     [{ timeout: 1 }, 'Unknown option "timeout" (did you mean timeoutMs?).'],
