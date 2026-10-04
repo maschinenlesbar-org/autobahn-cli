@@ -112,8 +112,9 @@ closures even when the road is shut. Classify like this:
   layouts** (each about a quarter to three quarters of a road's items):
   - `Zeitraum dieser Bauphase:` then `Beginn: DD.MM.YY um HH:MM Uhr` and
     `Ende: DD.MM.YY um HH:MM Uhr`;
-  - `Die Baustelle ist zu folgenden Zeiträumen gültig:` then one or more lines
-    `DD.MM.YY HH:MM bis zum DD.MM.YY HH:MM Uhr.` (night closures often list several).
+  - `Die Baustelle ist zu folgenden Zeiträumen gültig:` then one or more window lines in
+    two forms: `DD.MM.YY HH:MM bis zum DD.MM.YY HH:MM Uhr.` (across midnight; night
+    closures often list several) and `DD.MM.YY von HH:MM bis HH:MM Uhr` (within one day).
   Warnings carry only a `Beginn:` line. The `Beginn:`/`Ende:` and window times are German
   local time — but an INRIX warning's event line (`Unfall, seit 04.10.2026, 19:53`,
   `Angespannte Verkehrslage, seit …`) is **UTC** with no zone marker, two hours behind its
