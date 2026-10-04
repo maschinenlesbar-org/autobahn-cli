@@ -147,6 +147,10 @@ Ereignis bezieht, z. B. eine geplante Baustelle.
 **`startTimestamp`.** Beginn des Ereignisses bzw. Eintrags (eine ISO-Zeit). Lkw-Parkplätze
 haben keinen: Er fehlt in den Listeneinträgen und ist in der Detailantwort `null`.
 
+**`delayTimeValue`.** Die Verzögerung in Minuten bei einer Verkehrswarnung, gesendet als
+JSON-**String** (`"10"`). Vor dem Sortieren oder Vergleichen in eine Zahl umwandeln: Als
+Strings sortiert `"5"` vor `"37"`.
+
 **`display_type`.** Ein Typ- bzw. Kategoriehinweis, den die App zur Darstellung des
 Eintrags nutzt.
 

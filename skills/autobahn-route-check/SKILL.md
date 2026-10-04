@@ -71,7 +71,7 @@ Each returns an array of items. The fields that matter for a briefing:
 | `isBlocked` | `"true"`/`"false"` string. `"true"` = carriageway blocked **right now**. **Unreliable on closures** — most listed closures carry `"false"` even when shut (see Step 4). Trust it on warnings/roadworks; corroborate it on closures. |
 | `future` | Boolean — `true` means the item is **planned/upcoming**, not active yet. The primary active-vs-planned signal. |
 | `description[]` | Multi-line German detail (start time, cause, length, delay). Often the only place the real time window appears. |
-| `delayTimeValue` | Minutes of delay (warnings) — use for severity |
+| `delayTimeValue` | Minutes of delay (warnings) — use for severity. A JSON **string** (`"10"`, `"5"`): convert before sorting (`tonumber` in jq, `Number()` in node), or `"5"` ranks above `"37"` |
 | `abnormalTrafficType` | e.g. `SLOW_TRAFFIC`, `QUEUING_TRAFFIC` (warnings) |
 | `startTimestamp` | ISO time; warnings are real-time and **auto-expire ~24h** |
 | `point` | `"lat,long"` of the item |
@@ -112,7 +112,8 @@ Then rank the **active** items, most severe first:
 1. **Closures** that are genuinely shutting the road — `isBlocked === "true"` **or** a
    `description[]` that says full closure (`Vollsperrung`) / no through traffic. A plain
    active closure entry without those is partial/lane-level — treat as mid severity.
-2. **Warnings** by `delayTimeValue` (higher = worse); `QUEUING_TRAFFIC` outranks
+2. **Warnings** by `delayTimeValue` as a number (higher = worse; it arrives as a string —
+   `sort_by(.delayTimeValue | tonumber? // 0) | reverse`); `QUEUING_TRAFFIC` outranks
    `SLOW_TRAFFIC` at equal delay.
 3. **Roadworks** — background unless they're blocking (`isBlocked === "true"`); those few
    rank with closures.

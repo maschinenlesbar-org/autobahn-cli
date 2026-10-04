@@ -146,6 +146,10 @@ event, e.g. planned roadworks.
 **`startTimestamp`.** When the event/item starts (an ISO time). Lorry parking has
 none: absent from listing items, `null` in the detail response.
 
+**`delayTimeValue`.** The delay in minutes on a traffic warning, sent as a JSON
+**string** (`"10"`). Convert it to a number before sorting or comparing: as strings,
+`"5"` sorts above `"37"`.
+
 **`display_type`.** A type/category hint the app uses to render the item.
 
 **`icon`, `footer`, `routeRecommendation`.** Display metadata: an icon key,
