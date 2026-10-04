@@ -214,6 +214,18 @@ test("an unknown command still errors on stderr with exit 1", async () => {
   assert.match(cli.err.join("\n"), /unknown command 'bogus'/);
 });
 
+test("a help or version flag that is an option's value is kept", async () => {
+  for (const flag of ["-h", "--help", "-V"]) {
+    const cli = makeCli(() => jsonResponse({}));
+    assert.equal(await run(["--user-agent", flag, "bogus"], cli.deps), 1, flag);
+    assert.equal(cli.out.length, 0, flag);
+    assert.match(cli.err.join("\n"), /unknown command 'bogus'/, flag);
+  }
+  const known = makeCli(() => jsonResponse({ roads: ["A1"] }));
+  assert.equal(await run(["--user-agent", "-h", "roads"], known.deps), 0);
+  assert.equal(known.mt.last().headers?.["User-Agent"], "-h");
+});
+
 test("an unknown command with a version flag is an unknown command (exit 1), not the version", async () => {
   for (const argv of [["services", "--version"], ["bogus", "-V"], ["-v", "services"], ["roadworks", "foo", "-V"]]) {
     const cli = makeCli(() => jsonResponse({}));

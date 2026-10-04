@@ -86,33 +86,46 @@ export function escapeCommanderError(message: string): string {
 /** Flags that make commander print something and exit 0: help, and the version (`-v` is its alias). */
 const DISPLAY_FLAGS = new Set(["-h", "--help", "-V", "--version", "-v"]);
 
+/** What scanArgv found in argv before commander parses it. */
+export interface ArgvScan {
+  /** A token names a command that does not exist (`autobahn services …`). */
+  unknownCommand: boolean;
+  /** Indexes of the help/version flags (DISPLAY_FLAGS) — never an option's value. */
+  displayFlags: number[];
+}
+
 /**
- * True when `argv` names a command that does not exist (`autobahn services …`,
- * `autobahn roadworks foo …`). Commander answers `--help` before it checks the command,
- * so `autobahn services --help` printed the root help and exited 0 — a false success
- * for a script probing for a command. Options are skipped (with their value when they
- * take one), so `--base-url <url>` is not read as a command; scanning stops at `--`
- * and at a command without subcommands.
+ * Walk `argv` along the command tree. Commander answers `--help` and `--version` before
+ * it checks the command, so `autobahn services --help` printed the root help and exited
+ * 0 — a false success for a script probing for a command. Options are skipped with
+ * their value when they take one, so `--base-url <url>` is not read as a command and
+ * `--user-agent -h` is not read as a help flag; scanning stops at `--`. Past a command
+ * without subcommands (or an unknown one) only flags are collected.
  */
-export function namesUnknownCommand(program: Command, argv: string[]): boolean {
-  let command = program;
+export function scanArgv(program: Command, argv: string[]): ArgvScan {
+  let command: Command | undefined = program;
   const path: Command[] = [program];
+  const scan: ArgvScan = { unknownCommand: false, displayFlags: [] };
   for (let i = 0; i < argv.length; i++) {
     const token = argv[i]!;
-    if (token === "--") return false;
+    if (token === "--") break;
     if (token.startsWith("-")) {
+      if (DISPLAY_FLAGS.has(token)) {
+        scan.displayFlags.push(i);
+        continue;
+      }
       if (token.includes("=")) continue;
       const option = path.flatMap((c) => c.options).find((o) => o.short === token || o.long === token);
       if (option?.required) i++;
       continue;
     }
-    if (command.commands.length === 0) return false;
-    const sub = command.commands.find((c) => c.name() === token || c.aliases().includes(token));
-    if (sub === undefined) return true;
+    if (command === undefined || command.commands.length === 0) continue;
+    const sub: Command | undefined = command.commands.find((c) => c.name() === token || c.aliases().includes(token));
+    if (sub === undefined) scan.unknownCommand = true;
+    else path.push(sub);
     command = sub;
-    path.push(sub);
   }
-  return false;
+  return scan;
 }
 
 export async function run(argv: string[], deps: CliDeps = defaultDeps): Promise<number> {
@@ -135,9 +148,8 @@ export async function run(argv: string[], deps: CliDeps = defaultDeps): Promise<
   // An unknown command is the error, whatever help or version flag comes with it:
   // drop the flag so commander reports `unknown command '<name>'` (exit 1) instead of
   // showing help or printing the version (exit 0) — a false success for a script.
-  const args = namesUnknownCommand(program, argv)
-    ? argv.filter((a, i) => !DISPLAY_FLAGS.has(a) || argv.slice(0, i).includes("--"))
-    : argv;
+  const scan = scanArgv(program, argv);
+  const args = scan.unknownCommand ? argv.filter((_, i) => !scan.displayFlags.includes(i)) : argv;
 
   try {
     await program.parseAsync(args, { from: "user" });
