@@ -85,6 +85,14 @@ class ServiceResource<K extends string> {
         { cause },
       );
     }
+    // An empty road list is an upstream fault, not proof that the road does not exist:
+    // reporting every id as unknown (exit 4) would read as "no such road".
+    if (known.length === 0) {
+      throw new AutobahnError(
+        `Could not check road id ${quoteValue(id)} against the API's road list ` +
+          `(the ${this.service} listing was empty): the road list itself is empty.`,
+      );
+    }
     // roads() returns trimmed ids, as list() trims its own.
     if (known.includes(id)) return;
     const key = roadKey(id);

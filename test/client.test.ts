@@ -205,6 +205,19 @@ test("a listing item that is not an object with a string identifier raises Autob
   }
 });
 
+test("an empty road list makes the road check fail (AutobahnError), not report the road unknown", async () => {
+  const mt = roadsAnd({ roadworks: [] }, []);
+  await assert.rejects(() => clientWith(mt).roadworks.list("A1"), (err: unknown) => {
+    assert.ok(err instanceof AutobahnError);
+    assert.ok(!(err instanceof AutobahnNotFoundError));
+    assert.equal(
+      (err as Error).message,
+      'Could not check road id "A1" against the API\'s road list (the roadworks listing was empty): the road list itself is empty.',
+    );
+    return true;
+  });
+});
+
 test("a non-empty listing is returned without consulting the road list", async () => {
   const mt = roadsAnd({ warning: [{ identifier: "w" }] });
   assert.equal((await clientWith(mt).warnings.list("X9")).length, 1);

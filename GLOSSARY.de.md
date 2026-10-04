@@ -231,7 +231,7 @@ führenden Null mit einem Vorschlag: `a1`, `A 1`, `A-1`, `A01` → `A1`), wenn s
 Prüfung ist eine zweite Anfrage mit eigenem Timeout und eigenen Wiederholungen; schlägt sie
 fehl, löst die Liste einen `AutobahnError` aus (Exit `1`,
 `Could not check road id … against the API's road list …`, der ursprüngliche Fehler als
-`cause`) statt einer Entwarnung. Auch
+`cause`) statt einer Entwarnung – ebenso, wenn die Autobahnliste leer zurückkommt. Auch
 ein `get <id>` ohne passenden Eintrag oder ein echter `404` gilt als „nicht gefunden“
 (Exit `4`).
 
