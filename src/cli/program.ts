@@ -8,7 +8,7 @@ import type { CliDeps } from "./io.js";
 import { defaultIO } from "./io.js";
 import { AutobahnClient } from "../client/client.js";
 import { MAX_TIMEOUT_MS } from "../client/http.js";
-import { DEFAULT_BASE_URL, MAX_RETRIES } from "../client/engine.js";
+import { DEFAULT_BASE_URL, DEFAULT_USER_AGENT, MAX_RETRIES } from "../client/engine.js";
 import { VERSION } from "../client/version.js";
 import { parseBaseUrl, parseBoundedInt, parseHeaderValue } from "./shared.js";
 import { registerRoadsCommand } from "./commands/roads.js";
@@ -49,7 +49,7 @@ export function buildProgram(deps: CliDeps = defaultDeps): Command {
     )
     .option(
       "--user-agent <ua>",
-      `User-Agent header value (default "autobahn-cli/${VERSION} (+<project URL>)")`,
+      `User-Agent header value (default: "${DEFAULT_USER_AGENT}")`,
       parseHeaderValue,
     )
     .option(

@@ -217,6 +217,14 @@ test("get help says where an identifier comes from", async () => {
   assert.match(help, /autobahn parking list A1 \| jq -r '\.\[0\]\.identifier'/);
 });
 
+test("--user-agent help shows the real default", async () => {
+  const cli = makeCli(() => jsonResponse({}));
+  await run(["--help"], cli.deps);
+  const help = cli.out.join("\n").replace(/\s+/g, " ");
+  assert.match(help, /\(default: "autobahn-cli\/\d+\.\d+\.\d+ \(\+https:\/\/github\.com\/maschinenlesbar-org\/autobahn-cli\)"\)/);
+  assert.doesNotMatch(help, /<project URL>/);
+});
+
 test("--version exits 0", async () => {
   const cli = makeCli(() => jsonResponse({}));
   const code = await run(["--version"], cli.deps);
