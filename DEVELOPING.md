@@ -40,7 +40,7 @@ const client = new AutobahnClient(); // defaults to https://verkehr.autobahn.de
 
 const roads = await client.roads();              // ["A1", "A2", ...]
 const works = await client.roadworks.list("A1"); // AutobahnServiceItem[]
-const detail = await client.warnings.get(works[0]!.identifier!);
+const detail = await client.roadworks.get(works[0]!.identifier!); // same service as the list
 
 try {
   await client.closures.get("DOES-NOT-EXIST");
