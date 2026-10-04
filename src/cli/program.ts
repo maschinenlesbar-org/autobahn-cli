@@ -3,35 +3,18 @@
 // captured output.
 
 import type { EventEmitter } from "node:events";
-import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
 import { Command, Option } from "commander";
 import type { CliDeps } from "./io.js";
 import { defaultIO } from "./io.js";
 import { AutobahnClient } from "../client/client.js";
 import { MAX_TIMEOUT_MS } from "../client/http.js";
 import { DEFAULT_BASE_URL, MAX_RETRIES } from "../client/engine.js";
+import { VERSION } from "../client/version.js";
 import { parseBaseUrl, parseBoundedInt, parseHeaderValue } from "./shared.js";
 import { registerRoadsCommand } from "./commands/roads.js";
 import { registerServiceCommands } from "./commands/services.js";
 
-/**
- * Single source of truth for the version: read from package.json at runtime
- * rather than duplicating a literal that can silently drift after a release bump.
- * From the compiled location (dist/src/cli/program.js) package.json is three
- * directories up; the same offset holds for the source under src/cli.
- */
-function readVersion(): string {
-  try {
-    const pkgUrl = new URL("../../../package.json", import.meta.url);
-    const pkg = JSON.parse(readFileSync(fileURLToPath(pkgUrl), "utf8")) as { version?: string };
-    return pkg.version ?? "0.0.0";
-  } catch {
-    return "0.0.0";
-  }
-}
-
-export const VERSION = readVersion();
+export { VERSION } from "../client/version.js";
 
 /** Default dependencies: real client + real stdout/stderr/filesystem. */
 export const defaultDeps: CliDeps = {
@@ -64,7 +47,11 @@ export function buildProgram(deps: CliDeps = defaultDeps): Command {
         "a timed-out request is not retried)",
       parseBoundedInt(0, MAX_TIMEOUT_MS),
     )
-    .option("--user-agent <ua>", "User-Agent header value", parseHeaderValue)
+    .option(
+      "--user-agent <ua>",
+      `User-Agent header value (default "autobahn-cli/${VERSION} (+<project URL>)")`,
+      parseHeaderValue,
+    )
     .option(
       "--max-retries <n>",
       "retries for transient 429/502/503/504 responses and reset connections (0..10; each waits the server's " +

@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { RequestEngine, parseRetryAfter, sanitizeServerText } from "../src/client/engine.js";
+import { readFileSync } from "node:fs";
+import { DEFAULT_USER_AGENT, RequestEngine, parseRetryAfter, sanitizeServerText } from "../src/client/engine.js";
 import {
   AutobahnApiError,
   AutobahnNetworkError,
@@ -192,6 +193,17 @@ test("a timed-out request is not retried", async () => {
   });
   await assert.rejects(() => e.getJson("/x"), AutobahnNetworkError);
   assert.equal(calls, 1);
+});
+
+test("the default User-Agent names the client, its version and the project URL", async () => {
+  const mt = makeMockTransport(() => jsonResponse({}));
+  await new RequestEngine({ transport: mt.transport }).getJson("/x");
+  const pkg = JSON.parse(readFileSync(new URL("../../package.json", import.meta.url), "utf8")) as { version: string };
+  assert.equal(
+    mt.last().headers?.["User-Agent"],
+    `autobahn-cli/${pkg.version} (+https://github.com/maschinenlesbar-org/autobahn-cli)`,
+  );
+  assert.equal(DEFAULT_USER_AGENT, mt.last().headers?.["User-Agent"]);
 });
 
 test("a retried request that then succeeds resolves", async () => {

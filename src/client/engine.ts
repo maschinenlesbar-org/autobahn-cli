@@ -16,9 +16,14 @@ import {
   redactUrl,
 } from "./errors.js";
 import { assertValid, baseUrlProblem } from "./validate.js";
+import { VERSION } from "./version.js";
 
 export const DEFAULT_BASE_URL = "https://verkehr.autobahn.de";
-const DEFAULT_USER_AGENT = "autobahn-cli";
+/**
+ * The User-Agent sent unless one is given: name, version and where to find the project,
+ * so the API's operator can tell which client and release is calling.
+ */
+export const DEFAULT_USER_AGENT = `autobahn-cli/${VERSION} (+https://github.com/maschinenlesbar-org/autobahn-cli)`;
 
 export interface RawResponse {
   data: Buffer;
