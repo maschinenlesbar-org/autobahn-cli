@@ -42,6 +42,16 @@ export interface GeoJsonPoint {
  */
 export type Coordinate = LatLongCoordinate | GeoJsonPoint;
 
+/** The lane picture of a roadwork or closure: the stretch's ends and one symbol per lane. */
+export interface Impact {
+  /** Junction at one end of the stretch, e.g. "Eppelborn". */
+  lower?: string;
+  /** Junction at the other end, e.g. "Saarbrücken". */
+  upper?: string;
+  /** Lane symbols across the carriageway, e.g. "CLOSED", "ARROW_UP", "BREAKDOWN_LANE". */
+  symbols?: string[];
+}
+
 /**
  * The shared item shape across the service listings. Every field is optional
  * because the API populates a different subset per service type (a webcam has an
@@ -69,6 +79,20 @@ export interface AutobahnServiceItem {
   isBlocked?: string;
   future?: boolean;
   display_type?: string;
+  /** Delay in minutes on a warning, as a decimal **string** (`"10"`); `null` in other services' details. */
+  delayTimeValue?: string | null;
+  /** Kind of congestion on a warning (`QUEUING_TRAFFIC`, `SLOW_TRAFFIC`, …); absent on some warnings. */
+  abnormalTrafficType?: string | null;
+  /** Average speed in km/h on a warning, as a decimal string (`"25"`). */
+  averageSpeed?: string | null;
+  /** Data source of a warning (`"inrix"`). */
+  source?: string | null;
+  /** Lane picture of a roadwork or closure; `null` in other services' details. */
+  impact?: Impact | null;
+  /** Position code used by the app for ordering, as a decimal string; `null` on some details. */
+  startLcPosition?: string | null;
+  /** Feature icons of a lorry parking area (empty on every item seen live). */
+  lorryParkingFeatureIcons?: JsonValue[];
   footer?: string[];
   routeRecommendation?: string[];
   /**

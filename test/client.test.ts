@@ -100,6 +100,34 @@ test("list() items type each coordinate shape the API returns", async () => {
   assert.equal(Number(c.long), 9.44);
 });
 
+test("list() items type the warning and roadwork fields the API sends", async () => {
+  // Values as seen live on the A1 on 2026-10-04.
+  const [w] = await clientWith(
+    constantJson({
+      warning: [{
+        identifier: "INRIX--vi-avl.de0",
+        delayTimeValue: "10",
+        abnormalTrafficType: "QUEUING_TRAFFIC",
+        averageSpeed: "25",
+        source: "inrix",
+        startLcPosition: "62",
+        lorryParkingFeatureIcons: [],
+      }],
+    }),
+  ).warnings.list("A1");
+  const delay: string | null | undefined = w?.delayTimeValue;
+  assert.equal(Number(delay), 10);
+  assert.equal(w?.abnormalTrafficType, "QUEUING_TRAFFIC");
+  assert.equal(w?.source, "inrix");
+
+  const [r] = await clientWith(
+    constantJson({
+      roadworks: [{ identifier: "r1", impact: { lower: "Eppelborn", upper: "Saarbrücken", symbols: ["CLOSED"] } }],
+    }),
+  ).roadworks.list("A1");
+  assert.deepEqual(r?.impact?.symbols, ["CLOSED"]);
+});
+
 /** Answers the road list at /o/autobahn/ and `listing` everywhere else. */
 function roadsAnd(listing: unknown, roads: string[] = ["A1", "A2", "A60 ", "A64a"]) {
   return makeMockTransport((req) =>
