@@ -62,7 +62,10 @@ const ORDER = [
 ];
 
 const groups = new Map(ORDER.map((h) => [h, []]));
+// The commit `npm version` creates ("0.2.1") is the release itself, not a change.
+const isVersionBump = (subject) => /^v?\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(subject);
 for (const { subject, hash } of commits) {
+  if (isVersionBump(subject)) continue;
   const m = /^([a-z]+)(\([^)]*\))?:\s*(.*)$/.exec(subject);
   const heading = m ? (HEADINGS[m[1]] ?? "Other") : "Other";
   const text = m ? m[3] : subject;
