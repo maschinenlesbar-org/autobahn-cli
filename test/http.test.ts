@@ -35,6 +35,23 @@ test("performs a real GET and returns status, headers and body", async () => {
   );
 });
 
+test("userinfo in the URL is sent as HTTP Basic auth to that host, as documented", async () => {
+  await withServer(
+    (req, res) => {
+      res.setHeader("content-type", "application/json");
+      res.end(JSON.stringify({ authorization: req.headers.authorization ?? null }));
+    },
+    async (baseUrl) => {
+      const withUser = baseUrl.replace("http://", "http://user:s3cret@");
+      const resp = await nodeHttpTransport({ method: "GET", url: `${withUser}/o/autobahn/` });
+      const expected = `Basic ${Buffer.from("user:s3cret").toString("base64")}`;
+      assert.deepEqual(JSON.parse(resp.body.toString("utf8")), { authorization: expected });
+      const plain = await nodeHttpTransport({ method: "GET", url: `${baseUrl}/o/autobahn/` });
+      assert.deepEqual(JSON.parse(plain.body.toString("utf8")), { authorization: null });
+    },
+  );
+});
+
 test("rejects an unsupported protocol with AutobahnNetworkError", async () => {
   await assert.rejects(
     () => nodeHttpTransport({ method: "GET", url: "ftp://example.test/x" }),

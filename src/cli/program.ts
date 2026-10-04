@@ -52,7 +52,12 @@ export function buildProgram(deps: CliDeps = defaultDeps): Command {
     // this CLI's flag up to 0.1.0, keeps working as a hidden alias.
     .version(VERSION, "-V, --version", "output the version number")
     .addOption(new Option("-v", "output the version number").hideHelp())
-    .option("--base-url <url>", "API base URL", parseBaseUrl, DEFAULT_BASE_URL)
+    .option(
+      "--base-url <url>",
+      "API base URL (a user:password@ in it is sent as HTTP Basic auth)",
+      parseBaseUrl,
+      DEFAULT_BASE_URL,
+    )
     .option(
       "--timeout <ms>",
       `per-request timeout in milliseconds (0 disables; at most ${MAX_TIMEOUT_MS})`,

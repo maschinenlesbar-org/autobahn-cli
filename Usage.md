@@ -166,7 +166,7 @@ Global options may be given **before or after** the command — both
 | Option | Description |
 | --- | --- |
 | `-V, --version` | Print the version number (`-v` works too) |
-| `--base-url <url>` | API base URL (default `https://verkehr.autobahn.de`) |
+| `--base-url <url>` | API base URL (default `https://verkehr.autobahn.de`); a `user:password@` in it is sent as HTTP Basic auth |
 | `--timeout <ms>` | Per-request timeout in milliseconds (`0` disables) |
 | `--user-agent <ua>` | `User-Agent` header value |
 | `--max-retries <n>` | Retries for transient `429`/`502`/`503`/`504` responses (default `2`, at most `10`) |

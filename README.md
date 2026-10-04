@@ -15,7 +15,7 @@ operated by Autobahn GmbH des Bundes.
 - **Works out of the box** — no account, no API key, no configuration. Install and query.
 - **Clean JSON output** — pretty-printed by default, `--compact` for one-line/scripting.
 - **Seven commands** — `roads` plus six service groups (`roadworks`, `webcams`, `parking`, `warnings`, `closures`, `charging`), each with `list` and `get`.
-- **Nothing to configure** — the API is fully open and read-only; no credentials ever leave your machine.
+- **Nothing to configure** — the API is fully open and read-only; the CLI sends no credentials of its own. (A `user:password@` you put into `--base-url` yourself — for a mirror behind a login — is sent to that host as HTTP Basic auth, like `curl` does, and redacted from every message.)
 
 > Want to use this as a TypeScript library or understand how it's built?
 > See **[DEVELOPING.md](DEVELOPING.md)**.
@@ -187,7 +187,7 @@ These apply to every command and may be given **before or after** it:
 | `-V, --version` | Print the version number (`-v` works too) |
 | `-h, --help` | Show help for the program or a command |
 | `--compact` | Print JSON on a single line instead of pretty-printed |
-| `--base-url <url>` | API base URL (default `https://verkehr.autobahn.de`) |
+| `--base-url <url>` | API base URL (default `https://verkehr.autobahn.de`); a `user:password@` in it is sent as HTTP Basic auth |
 | `--timeout <ms>` | Per-request timeout in ms (default `30000`; `0` disables; at most `2147483647`) |
 | `--user-agent <ua>` | `User-Agent` header value |
 | `--max-retries <n>` | Retries for transient `429`/`502`/`503`/`504` responses (default `2`, at most `10`; each waits the server's `Retry-After`, up to 30 s, else a short linear backoff from 200 ms) |
