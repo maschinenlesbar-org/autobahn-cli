@@ -166,6 +166,14 @@ test("-V, --version and the old -v all print the version; help shows -V", async 
   assert.doesNotMatch(help.out.join("\n"), /-v\b/);
 });
 
+test("get help says where an identifier comes from", async () => {
+  const cli = makeCli(() => jsonResponse({}));
+  assert.equal(await run(["parking", "get", "--help"], cli.deps), 0);
+  const help = cli.out.join("\n");
+  assert.match(help, /identifier +the "identifier" field of an item from `parking list`/);
+  assert.match(help, /autobahn parking list A1 \| jq -r '\.\[0\]\.identifier'/);
+});
+
 test("--version exits 0", async () => {
   const cli = makeCli(() => jsonResponse({}));
   const code = await run(["--version"], cli.deps);

@@ -68,7 +68,13 @@ export function registerServiceCommands(program: Command, deps: CliDeps): void {
     group
       .command("get")
       .description("Fetch one item's details by its identifier")
-      .argument("<identifier>", "the item's identifier", parseId)
+      .argument("<identifier>", `the "identifier" field of an item from \`${spec.command} list\``, parseId)
+      .addHelpText(
+        "after",
+        `\nIdentifiers are opaque and long; copy one from a listing:\n` +
+          `  autobahn ${spec.command} list A1 | jq -r '.[0].identifier'\n` +
+          `  autobahn ${spec.command} get <identifier>`,
+      )
       .action(
         action(deps, async ({ client, global }, [identifier]) => {
           const resource = client[spec.resource] as AutobahnClient[ServiceKey];
