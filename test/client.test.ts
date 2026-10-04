@@ -322,6 +322,8 @@ test("error messages cut a very long URL or road id at 500 characters; err.url k
   await assert.rejects(() => clientWith(unknown).roadworks.list(long), (err: unknown) => {
     assert.ok(err instanceof AutobahnNotFoundError);
     assert.ok(err.message.length < 600, String(err.message.length));
+    // The cut marker sits outside the quotes, so it does not read as part of the id.
+    assert.ok(err.message.startsWith(`Unknown road id "${"A".repeat(500)}"…: `), err.message.slice(0, 40));
     return true;
   });
 });

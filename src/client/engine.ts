@@ -11,6 +11,7 @@ import {
   AutobahnNotFoundError,
   AutobahnParseError,
   AutobahnValidationError,
+  MAX_MESSAGE_VALUE_LENGTH,
   cutForMessage,
   isRetryableStatus,
   redactUrl,
@@ -210,11 +211,13 @@ export function sanitizeServerText(text: string): string {
  * format character (bidi overrides, zero-width characters). A road id or identifier is
  * echoed in messages, and it can come from a pipeline; an override in it would reorder
  * the rest of the line ("Trojan Source"). A value longer than MAX_MESSAGE_VALUE_LENGTH
- * characters is cut first (ending in "…"). The result stays valid JSON.
+ * characters is cut, and the "…" goes after the closing quote (`"AAAA"…`), so it does
+ * not read as part of the value. The quoted part stays a valid JSON string.
  */
 export function quoteValue(value: string): string {
+  const cut = value.length > MAX_MESSAGE_VALUE_LENGTH;
   let out = "";
-  for (const ch of JSON.stringify(cutForMessage(value))) {
+  for (const ch of JSON.stringify(cut ? value.slice(0, MAX_MESSAGE_VALUE_LENGTH) : value)) {
     const n = ch.codePointAt(0) ?? 0;
     if ((n >= 0x7f && n <= 0x9f) || FORMAT_CHAR.test(ch)) {
       // One escape per UTF-16 unit, so a character above U+FFFF stays valid JSON.
@@ -223,7 +226,7 @@ export function quoteValue(value: string): string {
       out += ch;
     }
   }
-  return out;
+  return cut ? `${out}…` : out;
 }
 
 /** An IMF-fixdate (RFC 9110 §5.6.7), the one HTTP-date form senders must generate. */
