@@ -121,10 +121,12 @@ any other 2xx body — an error object, a bare array, a string, a non-array unde
 key — raises `AutobahnParseError` (exit `1`) rather than passing for "no items". So
 does an item that is not a JSON object with a string `identifier`, or one whose typed
 field has the wrong type (`description` that is not an array of strings, `future` that is
-not a boolean, …). A **display-only** field of the wrong type (`icon`, `footer`, `impact`,
+not a boolean, …). The same holds for the `roads` array of the motorway list (strings
+only). A **display-only** field of the wrong type (`icon`, `footer`, `impact`,
 `averageSpeed`, `source`, `startLcPosition`, `lorryParkingFeatureIcons`, `operator`) is
-dropped from that item instead, so one cosmetic upstream change does not fail the listing. The same holds for
-the `roads` array of the motorway list (strings only).
+dropped from that item instead, so one cosmetic upstream change does not fail the listing.
+The drop is silent: the output is then not byte-for-byte what the API sent. If a
+display field you rely on goes missing, compare with the raw API answer (`curl`).
 
 ---
 

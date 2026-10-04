@@ -129,8 +129,11 @@ JSON-Objekt mit einer String-`identifier` ist, oder dessen typisiertes Feld den 
 hat (`description` kein Array von Strings, `future` kein Boolean, …). Ein **reines
 Anzeigefeld** mit falschem Typ (`icon`, `footer`, `impact`, `averageSpeed`, `source`,
 `startLcPosition`, `lorryParkingFeatureIcons`, `operator`) wird stattdessen aus diesem Eintrag
-entfernt, damit eine kosmetische Änderung der Quelle nicht die ganze Liste scheitern lässt. Dasselbe gilt für das Array `roads` der
-Autobahnliste (nur Strings).
+entfernt, damit eine kosmetische Änderung der Quelle nicht die ganze Liste scheitern lässt.
+Das geschieht stillschweigend: Die Ausgabe ist dann nicht mehr Byte für Byte die Antwort der
+API. Fehlt ein Anzeigefeld, auf das Sie sich stützen, vergleichen Sie mit der Rohantwort
+(`curl`). Die strenge Prüfung gilt ebenso für das Array `roads` der Autobahnliste (nur
+Strings).
 
 ---
 
