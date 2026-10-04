@@ -66,8 +66,9 @@ new AutobahnClient({
 });
 ```
 
-`transport` and `sleep` must be functions when given (`AutobahnValidationError`
-otherwise). The numeric options must be integers in range — `timeoutMs` 0..2³¹−1, `maxRetries`
+`transport` and `sleep` must be functions when given, and an unknown option name (a
+JavaScript typo such as `timeout` for `timeoutMs`) is rejected too — both as an
+`AutobahnValidationError`. The numeric options must be integers in range — `timeoutMs` 0..2³¹−1, `maxRetries`
 0..10 (`MAX_RETRIES`), `retryDelayMs` 0..30 000, `maxResponseBytes` 0..2⁵³−1 — or the
 constructor throws an `AutobahnError` naming the option (a negative or `NaN` timeout
 no longer silently disables the timeout).

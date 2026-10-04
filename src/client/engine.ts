@@ -284,6 +284,35 @@ function intOption(name: string, value: number | undefined, fallback: number, ma
   return value;
 }
 
+/** Every EngineOptions key. */
+const OPTION_NAMES = [
+  "baseUrl",
+  "transport",
+  "userAgent",
+  "timeoutMs",
+  "maxRetries",
+  "retryDelayMs",
+  "maxResponseBytes",
+  "sleep",
+] as const satisfies ReadonlyArray<keyof EngineOptions>;
+
+/**
+ * Throw for a key that is not an EngineOptions name. A JavaScript caller's typo
+ * (`timeout` for `timeoutMs`) was ignored silently and the default applied; TypeScript
+ * catches it at compile time, JavaScript does not.
+ */
+function assertKnownOptions(options: object): void {
+  for (const key of Object.keys(options)) {
+    if ((OPTION_NAMES as readonly string[]).includes(key)) continue;
+    const lower = key.toLowerCase();
+    const hint = OPTION_NAMES.find((name) => name.toLowerCase().includes(lower) || lower.includes(name.toLowerCase()));
+    throw new AutobahnValidationError(
+      `Unknown option ${quoteValue(key)}` +
+        (hint === undefined ? `; the options are ${OPTION_NAMES.join(", ")}.` : ` (did you mean ${hint}?).`),
+    );
+  }
+}
+
 /**
  * Read a function option: `undefined` gives the default; anything else that is not a
  * function throws. A string `transport` used to fail at the first request as a network
@@ -308,6 +337,7 @@ export class RequestEngine {
   private readonly sleep: (ms: number) => Promise<void>;
 
   constructor(options: EngineOptions = {}) {
+    assertKnownOptions(options);
     // Only `undefined` selects a default (`??`, not `||`): a blank baseUrl or
     // userAgent is rejected like "  ", as the CLI rejects `--base-url ""`. Both are
     // configuration errors, so AutobahnValidationError (an AutobahnError), not

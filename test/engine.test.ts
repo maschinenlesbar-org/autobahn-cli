@@ -255,6 +255,19 @@ test("a malformed response from a custom transport is an AutobahnNetworkError, n
   }
 });
 
+test("an unknown option name makes the constructor throw, with a hint when one is close", () => {
+  for (const [options, message] of [
+    [{ timeout: 1 }, 'Unknown option "timeout" (did you mean timeoutMs?).'],
+    [{ retries: 1 }, 'Unknown option "retries" (did you mean maxRetries?).'],
+    [{ proxy: "x" }, 'Unknown option "proxy"; the options are baseUrl, transport, userAgent, timeoutMs, maxRetries, retryDelayMs, maxResponseBytes, sleep.'],
+  ] as const) {
+    assert.throws(
+      () => new RequestEngine(options as unknown as ConstructorParameters<typeof RequestEngine>[0]),
+      (err: unknown) => err instanceof AutobahnValidationError && err.message === message,
+    );
+  }
+});
+
 test("a transport or sleep that is not a function makes the constructor throw", () => {
   for (const [options, message] of [
     [{ transport: "nope" }, "Invalid option transport: expected a function, got string."],
