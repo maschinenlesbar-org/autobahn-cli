@@ -64,7 +64,7 @@ parking     list <roadId> | get <identifier>   (lorry parking areas)
 warnings    list <roadId> | get <identifier>   (traffic warnings)
 closures    list <roadId> | get <identifier>
 charging    list <roadId> | get <identifier>   (electric charging stations)
-help        [command...]                       help for any command, e.g. `help roadworks list`
+help        [command...]                       help for any command, e.g. help roadworks list
 ```
 
 The `<roadId>` is a motorway designation from `autobahn roads` (e.g. `A1`).
