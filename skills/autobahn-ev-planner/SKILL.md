@@ -115,8 +115,9 @@ Rules:
 - Mark `isBlocked === "true"` stations as out of service (or omit, but say you did).
 - Give a tappable map link from `coordinate` (format `?q=lat,long`).
 - If the user wants full detail on one site, offer `autobahn charging get <identifier>`.
-- **Optional enrichment:** the Bundesnetzagentur *Ladesäulenregister* (a separate API in
-  this project's `apis.md`) carries the same stations with richer tariff/availability
-  data — mention it as a follow-up if the user needs live availability, but don't fetch it
-  unless asked.
+- **Optional enrichment:** the Bundesnetzagentur *Ladesäulenregister* carries the same
+  stations with operator, connector and power per charging point (a registry — no live
+  availability). It has its own CLI, `ladesaeulen` (`@maschinenlesbar.org/ladesaeulenregister-cli`,
+  plugin `ladesaeulen@maschinenlesbar`). Mention it as a follow-up if the user needs those
+  details, but don't fetch it unless asked, and don't install anything.
 - Don't invent power/connector values the `description` doesn't state; say "not specified".
