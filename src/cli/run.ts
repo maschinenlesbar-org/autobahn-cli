@@ -35,6 +35,8 @@ function configureTree(command: Command, sink: OutputSink): void {
   command.configureOutput({
     writeOut: (str) => sink.out.push(str.replace(/\n$/, "")),
     writeErr: (str) => sink.err.push(str.replace(/\n$/, "")),
+    // The error message alone (help after an error goes through writeErr): escape it.
+    outputError: (str, write) => write(escapeTerminalText(str.replace(/\n$/, ""))),
   });
   for (const child of command.commands) configureTree(child, sink);
 }
@@ -46,6 +48,20 @@ function configureTree(command: Command, sink: OutputSink): void {
  */
 export function redactUserinfo(text: string): string {
   return text.replace(/\b([a-z][a-z0-9+.-]*:\/\/)[^\s/?#']*@/gi, "$1***@");
+}
+
+/**
+ * Escape the characters a terminal acts on in one commander error message: C0 controls
+ * (newline included, tab excepted), DEL, C1 and Unicode format characters (bidi
+ * overrides, zero-width characters) become `\uXXXX`. Commander repeats a rejected
+ * argument raw ("command-argument value '<value>' is invalid"), and a road id can come
+ * from a pipeline: a newline in it could forge an `Error:` line, an override reorder
+ * the line. The library escapes the values it echoes itself (`quoteValue`).
+ */
+export function escapeTerminalText(text: string): string {
+  return text.replace(/[\u0000-\u0008\u000a-\u001f\u007f-\u009f]|\p{Cf}/gu, (ch) =>
+    Array.from({ length: ch.length }, (_, i) => `\\u${ch.charCodeAt(i).toString(16).padStart(4, "0")}`).join(""),
+  );
 }
 
 export async function run(argv: string[], deps: CliDeps = defaultDeps): Promise<number> {

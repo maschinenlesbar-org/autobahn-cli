@@ -151,6 +151,27 @@ export function sanitizeServerText(text: string): string {
   return out.replace(/\s+/g, " ").trim();
 }
 
+/**
+ * Quote a value for an error message, as `JSON.stringify` does, and also escape what it
+ * leaves raw although a terminal acts on it: DEL, the C1 controls and every Unicode
+ * format character (bidi overrides, zero-width characters). A road id or identifier is
+ * echoed in messages, and it can come from a pipeline; an override in it would reorder
+ * the rest of the line ("Trojan Source"). The result stays valid JSON.
+ */
+export function quoteValue(value: string): string {
+  let out = "";
+  for (const ch of JSON.stringify(value)) {
+    const n = ch.codePointAt(0) ?? 0;
+    if ((n >= 0x7f && n <= 0x9f) || FORMAT_CHAR.test(ch)) {
+      // One escape per UTF-16 unit, so a character above U+FFFF stays valid JSON.
+      for (let i = 0; i < ch.length; i++) out += `\\u${ch.charCodeAt(i).toString(16).padStart(4, "0")}`;
+    } else {
+      out += ch;
+    }
+  }
+  return out;
+}
+
 /** An IMF-fixdate (RFC 9110 §5.6.7), the one HTTP-date form senders must generate. */
 const IMF_FIXDATE =
   /^(Mon|Tue|Wed|Thu|Fri|Sat|Sun), \d{2} (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) \d{4} \d{2}:\d{2}:\d{2} GMT$/;

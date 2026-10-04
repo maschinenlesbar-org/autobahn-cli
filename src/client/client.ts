@@ -7,7 +7,7 @@
 //   client.roadworks.list("A1")
 //   client.chargingStations.get(identifier)
 
-import { RequestEngine, type EngineOptions } from "./engine.js";
+import { quoteValue, RequestEngine, type EngineOptions } from "./engine.js";
 import { AutobahnError, AutobahnNotFoundError, AutobahnParseError } from "./errors.js";
 import { assertValid, idProblem } from "./validate.js";
 import type {
@@ -80,7 +80,7 @@ class ServiceResource<K extends string> {
     } catch (cause) {
       const reason = cause instanceof Error ? cause.message : String(cause);
       throw new AutobahnError(
-        `Could not check road id ${JSON.stringify(id)} against the API's road list ` +
+        `Could not check road id ${quoteValue(id)} against the API's road list ` +
           `(the ${this.service} listing was empty): ${reason}`,
         { cause },
       );
@@ -90,8 +90,8 @@ class ServiceResource<K extends string> {
     const key = roadKey(id);
     const suggestion = known.find((road) => roadKey(road) === key);
     throw new AutobahnNotFoundError(
-      `Unknown road id ${JSON.stringify(id)}: not in the API's road list` +
-        (suggestion === undefined ? "." : ` (did you mean ${JSON.stringify(suggestion)}?).`),
+      `Unknown road id ${quoteValue(id)}: not in the API's road list` +
+        (suggestion === undefined ? "." : ` (did you mean ${quoteValue(suggestion)}?).`),
     );
   }
 
@@ -114,9 +114,9 @@ class ServiceResource<K extends string> {
     // answer about another item would otherwise print with exit 0 as if it were the one
     // asked for.
     if (body["identifier"] !== id) {
-      const got = typeof body["identifier"] === "string" ? JSON.stringify(body["identifier"]) : "none";
+      const got = typeof body["identifier"] === "string" ? quoteValue(body["identifier"]) : "none";
       throw new AutobahnParseError(
-        `Unexpected response from ${path}: asked for identifier ${JSON.stringify(id)}, got ${got}.`,
+        `Unexpected response from ${path}: asked for identifier ${quoteValue(id)}, got ${got}.`,
       );
     }
     return body as JsonObject;

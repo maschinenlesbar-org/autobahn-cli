@@ -427,6 +427,26 @@ test("an AutobahnValidationError raised in an action is a usage error: exit 1, '
   assert.deepEqual(err, ["Error: Invalid roadId: Expected a non-empty value."]);
 });
 
+test("ids echoed in error messages carry no raw control, C1 or bidi characters", async () => {
+  const RLO = String.fromCharCode(0x202e);
+  const ESC = String.fromCharCode(0x1b);
+  // Rejected by the parser: commander repeats the argument.
+  const rejected = makeCli(() => jsonResponse({ roadworks: [] }));
+  assert.equal(await run(["roadworks", "list", `A1/${RLO}x\nError: forged${ESC}[2J`], rejected.deps), 1);
+  const rejectedErr = rejected.err.join("\n");
+  assert.match(rejectedErr, /value 'A1\/\\u202ex\\u000aError: forged\\u001b\[2J' is invalid/);
+  // Accepted, then unknown: the library echoes the id.
+  const unknown = makeCli((req) =>
+    jsonResponse(new URL(req.url).pathname === "/o/autobahn/" ? { roads: ["A1"] } : { roadworks: [] }),
+  );
+  assert.equal(await run(["roadworks", "list", `A1${RLO}evil`], unknown.deps), 4);
+  assert.equal(unknown.err.join("\n"), 'Error: Unknown road id "A1\\u202eevil": not in the API\'s road list.');
+  for (const err of [rejectedErr, unknown.err.join("\n")]) {
+    assert.doesNotMatch(err, /[\u0000-\u0008\u000b-\u001f\u007f-\u009f\u202a-\u202e]/u);
+    assert.doesNotMatch(err, /^Error: forged/m);
+  }
+});
+
 test("redactUserinfo hides the userinfo of every URL in a line and leaves other text alone", () => {
   assert.equal(
     redactUserinfo("argument 'ftp://user:s3cret@h.example' is invalid; also http://a@b@c.example/x?y=u@v"),
