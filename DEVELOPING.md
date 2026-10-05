@@ -84,9 +84,12 @@ CLI's `--base-url` parser applies the same function, and its default is
 (`autobahn-cli/<version> (+https://github.com/maschinenlesbar-org/autobahn-cli)`, both
 exported). Only an omitted (`undefined`) `baseUrl` or `userAgent` selects the
 default; an empty string is rejected like `"  "`, as the CLI rejects `--base-url ""`.
-The reasons never repeat the value, and `run.ts` redacts the
-userinfo of a URL in commander's usage-error text (which echoes the rejected argument),
-so a credential in a base URL reaches no message. `userAgent` follows
+The reasons never repeat the value. The CLI also redacts on output: `run.ts`
+(`withRedactedOutput`) takes the exact userinfo of every argument and of `AUTOBAHN_BASE_URL`
+(`credentialsIn`, exported) and replaces it with `***` in everything it prints — commander's
+usage errors, which echo rejected values, its own messages and the help's defaults — so a
+password with spaces, quotes, `#`, `?` or `/` is caught as well as an ordinary one.
+`redactUrl` falls back to the same text-based cut for a value that doesn't parse as a URL. `userAgent` follows
 `headerValueProblem` (exported too), which the CLI's `--user-agent` parser shares; a
 value it rejects throws `AutobahnValidationError` (`Invalid option userAgent: <reason>`).
 

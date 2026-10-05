@@ -10,6 +10,8 @@ import {
   AutobahnError,
   AutobahnNotFoundError,
   AutobahnValidationError,
+  credentialsIn,
+  redactCredentials,
 } from "../client/errors.js";
 
 interface OutputSink {
@@ -165,7 +167,35 @@ export function scanArgv(program: Command, argv: string[]): ArgvScan {
  */
 export const USAGE_ERROR = 2;
 
+/**
+ * `deps` with an `io` that redacts the credentials of every argument and of
+ * AUTOBAHN_BASE_URL from everything it prints. Commander echoes rejected values in its
+ * errors, the CLI's own messages name unknown commands and option values, and help shows the
+ * base URL's default: whatever path a credential takes to stdout or stderr, the exact
+ * userinfo (as `credentialsIn` finds it, plus its terminal-escaped and JSON-quoted forms) is
+ * replaced by `***`. A pattern alone can't delimit a password with spaces, quotes, `#`, `?`
+ * or `/`; the exact strings can. Without credentials the output passes through unchanged.
+ */
+export function withRedactedOutput(deps: CliDeps, argv: readonly string[]): CliDeps {
+  // An `--option=value` token is echoed as its value alone.
+  const values = argv.map((token) => (token.startsWith("-") && token.includes("=") ? token.slice(token.indexOf("=") + 1) : token));
+  const sources = [...argv, ...values, deps.env["AUTOBAHN_BASE_URL"] ?? ""];
+  const secrets = new Set<string>();
+  for (const source of sources) {
+    for (const secret of credentialsIn(source)) {
+      secrets.add(secret);
+      secrets.add(escapeTerminalText(secret));
+      secrets.add(JSON.stringify(secret).slice(1, -1));
+    }
+  }
+  if (secrets.size === 0) return deps;
+  const list = [...secrets];
+  const redact = (text: string): string => redactUserinfo(redactCredentials(text, list));
+  return { ...deps, io: { out: (text) => deps.io.out(redact(text)), err: (text) => deps.io.err(redact(text)) } };
+}
+
 export async function run(argv: string[], deps: CliDeps = defaultDeps): Promise<number> {
+  deps = withRedactedOutput(deps, argv);
   const program = buildProgram(deps);
   const sink: OutputSink = { out: [], err: [] };
   configureTree(program, sink);
