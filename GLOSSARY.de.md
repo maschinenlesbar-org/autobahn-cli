@@ -77,7 +77,7 @@ eine Autobahn-Kennung nur Buchstaben, Ziffern, Leerzeichen, Binde- und Unterstri
 enthalten (jede gelistete Kennung ist `A<Zahl>` mit optionalem Buchstaben; Leerzeichen und
 Bindestriche bleiben erlaubt, damit `A 1` seinen Vorschlag bekommt); `%`, `~` oder `A1;x`
 werden vor jeder Anfrage abgelehnt. Die Regel beruht auf den heute gelisteten Kennungen
-(alle 109 passen auf `A<Zahl>` mit optionalem Buchstaben); sollte `roads` je eine Kennung mit
+(jede bisher gesehene Kennung, 110 am 05.10.2026, passt auf `A<Zahl>` mit optionalem Buchstaben); sollte `roads` je eine Kennung mit
 einem anderen Zeichen ausgeben, würde `list` sie als „Not a road id“ ablehnen – ein Zeichen,
 die Regel zu erweitern.
 
