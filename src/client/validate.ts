@@ -68,6 +68,8 @@ export function roadIdProblem(value: string): string | undefined {
  *   `ftp:` base URL would otherwise reach a custom transport that does no such check);
  * - no `?` or `#`: either would swallow every path (`http://h/?x=1` requests
  *   `/?x=1/o/autobahn/...`, `http://h/#f` requests `/`);
+ * - a `%` in the user name or password must start a valid escape (`%25` for a literal one):
+ *   Node decodes the userinfo for the Authorization header and fails at request time;
  * - no surrounding whitespace (U+00A0 included) and no control character anywhere:
  *   `new URL()` trims or drops them silently, but the raw string is what gets sent, so
  *   `"https://h/ "` would request `/%20/o/autobahn/`.
@@ -87,6 +89,15 @@ export function baseUrlProblem(value: string): string | undefined {
     return `Unsupported scheme "${url.protocol}". Expected an http(s) URL.`;
   }
   if (/[?#]/.test(value)) return "A base URL cannot have a query (?) or fragment (#).";
+  // Node decodes the userinfo into the Authorization header and throws "URI malformed" for a
+  // "%" that isn't an escape — at request time, as a network error. Reject it here.
+  for (const part of [url.username, url.password]) {
+    try {
+      decodeURIComponent(part);
+    } catch {
+      return 'The user name or password has a "%" that is not followed by two hex digits; write a literal "%" as %25.';
+    }
+  }
   if (value !== value.trim()) return "A base URL cannot have surrounding whitespace.";
   for (let i = 0; i < value.length; i++) {
     const c = value.charCodeAt(i);
