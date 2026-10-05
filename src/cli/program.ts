@@ -75,7 +75,9 @@ export function buildProgram(deps: CliDeps = defaultDeps): Command {
 
   // commander runs value parsers on flags but not on defaults, so a base URL taken from
   // AUTOBAHN_BASE_URL is checked here, before any command runs (a usage error, exit 2).
-  program.hook("preAction", () => {
+  // The help command never makes a request: help must work whatever the variable holds.
+  program.hook("preAction", (_program, actionCommand) => {
+    if (actionCommand.name() === "help") return;
     if (program.getOptionValueSource("baseUrl") !== "default") return;
     try {
       parseBaseUrl(program.opts<{ baseUrl: string }>().baseUrl);
