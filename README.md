@@ -25,7 +25,7 @@ operated by Autobahn GmbH des Bundes.
 npm i -g @maschinenlesbar.org/autobahn-cli
 ```
 
-This installs the **`autobahn`** command. Requires **Node.js 20+**.
+This installs the **`autobahn`** command. Requires **Node.js 22.12+**.
 
 Check it works:
 
