@@ -739,3 +739,16 @@ test("a 3xx names the redirect target instead of a bare status", async () => {
     assert.equal(mt.calls.length, 1); // still not followed
   }
 });
+
+test("a 304 or 305 is not called a redirect; a 300 without a target isn't either", async () => {
+  for (const [status, location] of [[304, undefined], [305, undefined], [300, undefined]] as const) {
+    const e = new RequestEngine({ transport: async () => ({ status, headers: location ? { location } : {}, body: Buffer.alloc(0) }), maxRetries: 0 });
+    await assert.rejects(
+      () => e.getJson("/x"),
+      (err: unknown) => err instanceof AutobahnApiError && err.message === `HTTP ${status} for GET https://verkehr.autobahn.de/x`,
+      String(status),
+    );
+  }
+  const e = new RequestEngine({ transport: async () => ({ status: 300, headers: { location: "/y" }, body: Buffer.alloc(0) }), maxRetries: 0 });
+  await assert.rejects(() => e.getJson("/x"), /redirect to https:\/\/verkehr\.autobahn\.de\/y not followed/);
+});

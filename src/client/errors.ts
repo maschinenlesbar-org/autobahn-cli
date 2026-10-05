@@ -87,6 +87,11 @@ export function isRetryableStatus(status: number): boolean {
   return status === 429 || status === 502 || status === 503 || status === 504;
 }
 
+/** True for the statuses that redirect to a `Location`: 301, 302, 303, 307, 308. */
+export function isRedirectStatus(status: number): boolean {
+  return status === 301 || status === 302 || status === 303 || status === 307 || status === 308;
+}
+
 /** Base class for every error originating from this client. */
 export class AutobahnError extends Error {
   constructor(message: string, options?: { cause?: unknown }) {
@@ -124,7 +129,8 @@ export class AutobahnApiError extends AutobahnError {
     const url = redactUrl(args.url);
     const parts: string[] = [];
     if (args.detail) parts.push(args.detail);
-    if (args.status >= 300 && args.status < 400) {
+    // 304 Not Modified and 305/306 are not redirects; 300 is one when it names a target.
+    if (isRedirectStatus(args.status) || (args.status === 300 && args.location)) {
       parts.push(
         args.location
           ? `redirect to ${args.location} not followed`

@@ -15,6 +15,7 @@ import {
   MAX_MESSAGE_VALUE_LENGTH,
   credentialsIn,
   cutForMessage,
+  isRedirectStatus,
   isRetryableStatus,
   redactCredentials,
   redactUrl,
@@ -697,7 +698,7 @@ export class RequestEngine {
     if (detail !== undefined) detail = cleanDetail(detail);
     // Redirects are not followed; name the target so the user can fix --base-url.
     const location =
-      status >= 300 && status < 400 && locationHeader ? redirectTarget(url, locationHeader) : undefined;
+      (isRedirectStatus(status) || status === 300) && locationHeader ? redirectTarget(url, locationHeader) : undefined;
     return new AutobahnApiError({ status, url, method, body: text, detail, location, retries });
   }
 }
