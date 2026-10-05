@@ -13,7 +13,7 @@ Skills: [autobahn-ev-planner](#autobahn-ev-planner) · [autobahn-map](#autobahn-
 
 ## autobahn-ev-planner
 
-Ran on 4 October 2026 with the build released as `autobahn` 0.2.0 later that evening.
+Ran on 6 October 2026 at 00:28 with `autobahn` 0.5.0.
 
 > I'm driving my EV from Hamburg down to Göttingen on the A7. Where can I fast-charge on the way?
 
@@ -60,7 +60,7 @@ connector and power per charging point from the Ladesäulenregister (the `ladesa
 
 ## autobahn-map
 
-Ran on 15 September 2026 with `autobahn` 0.0.7.
+Ran on 6 October 2026 at 00:28 with `autobahn` 0.5.0.
 
 > I dispatch lorries on the A8. Give me the truck parking areas and the current traffic warnings as a GeoJSON file for QGIS.
 
@@ -70,34 +70,33 @@ autobahn --compact parking list A8
 autobahn --compact warnings list A8
 ```
 
-The parking items no longer carry `coordinate.lat`/`coordinate.long`: `coordinate` is now a GeoJSON
-Point (`{"type":"Point","coordinates":[6.373376,49.483848]}`) with no `point` string. The skill's
-per-item snippet would have written `[null, null]` for all 71 areas, so the export read x/y from
-`coordinate.coordinates` and checked every pair before writing. Parking titles read `A8 | undefined`,
-so the area name comes from `subtitle`.
+Parking items carry `coordinate` as a GeoJSON Point (`{"type":"Point","coordinates":[lon,lat]}`)
+and no `point` string, so the export read x/y from `coordinate.coordinates`, as the skill's
+`lonLat()` does, and checked every pair before writing. Parking titles read `A8 | undefined`, so
+the area name comes from `subtitle`. Shortly after midnight the A8 had no warnings: `warnings list`
+returned `[]` with exit 0 — an empty layer, not a failed one, so the file is complete.
 
 ```
-Wrote autobahn-A8-parking-warnings.geojson — one FeatureCollection, 78 features, 64 KB, 0 skipped
-  parking   71 × Point        DE-SL-000031 (RA Moseltal N, Saarland) … DE-BY-… (Bayern)
-  warnings   7 × LineString   affected stretch from each warning's own geometry
+Wrote autobahn-A8-parking-warnings.geojson — one FeatureCollection, 71 features, 21 KB, 0 skipped
+  parking   71 × Point        DE-BW-… (Baden-Württemberg) … DE-SL-000520 (Saarland)
+  warnings   0                none on the A8 at 00:28 (empty answer, exit 0)
 Properties: road, service, subtitle, display_type, isBlocked, future, identifier,
-  description ("PKW Stellplätze: 20\nLKW Stellplätze: 16"); warnings add
-  startTimestamp, delayTimeValue, abnormalTrafficType.
+  description ("PKW Stellplätze: 20\nLKW Stellplätze: 16").
 
 Largest lorry areas: Denkendorf 123 LKW spaces (DE-BW-008040), Gruibingen 112,
   Leipheim S 88, Aichen N 79, Samerberg N 69 — 1,990 lorry spaces in total.
-Worst warning: Heimsheim – Pforzheim-Nord (Stuttgart → Karlsruhe), +43 min, QUEUING_TRAFFIC.
 Checked: every coordinate is a [lon, lat] number pair inside Germany; the file parses as
   a single FeatureCollection.
 ```
 
-Next steps offered: drag the file onto https://geojson.io, or re-export pretty-printed.
+Next steps offered: drag the file onto https://geojson.io, re-export pretty-printed, or run it
+again in the daytime when the A8 usually carries warnings.
 
 ## autobahn-route-check
 
-Ran on 4 October 2026 at 21:10 with the build released as `autobahn` 0.2.0 later that evening.
+Ran on 6 October 2026 at 00:27 with `autobahn` 0.5.0.
 
-> I'm driving from Frankfurt to Köln on the A3 this evening. Anything I should know about?
+> I'm driving from Frankfurt to Köln on the A3 tonight. Anything I should know about?
 
 ```bash
 autobahn --compact roads
@@ -107,25 +106,29 @@ autobahn --compact roadworks list A3
 ```
 
 The A3 runs to Passau, so the skill kept only items inside a box around the two cities (lat
-50.0–51.0, lon 6.9–8.75). That box holds no carriageway closure (`display_type: "CLOSURE"`), only
-three ramp closures (`CLOSURE_ENTRY_EXIT`), which the skill counts apart from the road. The AS
-Montabaur ramp has `future: false`, but its `Die Baustelle ist zu folgenden Zeiträumen gültig:`
-windows start tomorrow at 19:00, so it counts as planned. The one warning has no
-`delayTimeValue` and no `abnormalTrafficType` (an `Ereignismeldung`), so it is information,
-not a jam. 10 of the 72 roadworks in the box are titled for a project rather than `A3 | …`
-(the Offenbacher Kreuz rebuild, AK Bonn/Siegburg – Siebengebirge); they are in the count.
+50.0–51.0, lon 6.9–8.75): 2 warnings, 3 ramp closures (`CLOSURE_ENTRY_EXIT`, counted apart
+from the road) and 76 roadworks. The one warning with a delay is on the user's carriageway:
+`QUEUING_TRAFFIC`, 35 minutes, "Im Stillstand". Its `Beginn:` line says 00:05 while the INRIX
+event line says `seit 05.10.2026, 22:05` — that one is UTC, so the briefing quotes 00:05. Of the
+76 roadworks, 45 have a window covering now — most are short-term night works whose windows run
+`06.10.26 von 00:00 bis 05:00 Uhr` — and none says `Vollsperrung`. The skill read each window
+rather than `future`: 31 are planned, and one AS Montabaur works item with `future: false` only
+starts on 06.10. at 19:00. 15 roadworks are titled for a project rather than `A3 | …`; they are
+in the count. `isBlocked` was `"false"` and `routeRecommendation` empty on every item.
 
 ```
-A3 Frankfurt → Köln — ✓ clear tonight: no closures, no blocking roadworks, no jams
-     (this stretch: 1 warning / 0 closures + 3 ramp closures / 72 roadworks — 42 active,
-      none blocking; whole A3: 1 / 1 + 24 ramp / 171)
+A3 Frankfurt → Köln — ⚠ drivable: one jam, no closures, no blocking roadworks
+     (this stretch: 2 warnings / 0 closures + 3 ramp closures / 76 roadworks — 45 active,
+      none blocking; whole A3: 2 / 1 + 28 ramp / 190)
+  🐢 +35 min  QUEUING  A3 Frankfurt → Köln, Bad Camberg – Limburg-Süd: standstill since 00:05
   ⓘ  A3 Köln → Frankfurt, Limburg-Süd – Idstein: Fahrbahnschäden since 09.09.
      (other carriageway, no delay stated)
 
-Planned ramp closures (none active tonight):
-  🚧 AS Montabaur, on-ramp from Montabaur: 05.10. 19:00 – 06.10. 05:00 and 12.10. 20:00 – 13.10. 05:00
-  🚧 AS Siebengebirge, on- and off-ramp of the Köln → Frankfurt carriageway: 05.10. 05:00 – 16.10. 05:00
+Ramp closures on this stretch:
+  🚧 AS Siebengebirge, on- and off-ramp of the Köln → Frankfurt carriageway: active until 16.10. 05:00
+  🚧 AS Montabaur, on-ramp from Montabaur (planned): 07.10. 19:00 – 08.10. 05:00 and 14.10. 20:00 – 15.10. 05:00
 No detour recommendations were published for any of these.
 ```
 
-Next steps offered: full detail on any item (`autobahn warnings get <identifier>`), or the same check for the return trip.
+Next steps offered: full detail on the jam (`autobahn warnings get <identifier>`, with the id from
+this run — warning ids are re-issued), or the same check for the return trip.

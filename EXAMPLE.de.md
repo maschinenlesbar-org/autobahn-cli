@@ -13,7 +13,7 @@ Skills: [autobahn-ev-planner](#autobahn-ev-planner) · [autobahn-map](#autobahn-
 
 ## autobahn-ev-planner
 
-Lief am 4. Oktober 2026 mit dem Build, der am selben Abend als `autobahn` 0.2.0 veröffentlicht wurde.
+Lief am 6. Oktober 2026 um 00:28 Uhr mit `autobahn` 0.5.0.
 
 > Mit dem E-Auto über die A7 von Hamburg nach Göttingen – wo gibt es unterwegs Schnelllader?
 
@@ -61,7 +61,7 @@ Betreiber, Stecker und Leistung je Ladepunkt aus dem Ladesäulenregister (die CL
 
 ## autobahn-map
 
-Lief am 15. September 2026 mit `autobahn` 0.0.7.
+Lief am 6. Oktober 2026 um 00:28 Uhr mit `autobahn` 0.5.0.
 
 > Für die Lkw-Disposition auf der A8: Lkw-Parkplätze und aktuelle Verkehrswarnungen als GeoJSON-Datei für QGIS.
 
@@ -71,34 +71,34 @@ autobahn --compact parking list A8
 autobahn --compact warnings list A8
 ```
 
-Die Parkplatz-Einträge haben kein `coordinate.lat`/`coordinate.long` mehr: `coordinate` ist jetzt
-ein GeoJSON-Point (`{"type":"Point","coordinates":[6.373376,49.483848]}`), einen `point`-String
-gibt es nicht. Das Code-Beispiel des Skills hätte für alle 71 Parkplätze `[null, null]`
-geschrieben. Der Export las x/y deshalb aus `coordinate.coordinates` und prüfte jedes Paar vor dem
-Schreiben. Die Titel der Parkplätze lauten `A8 | undefined`, der Name steht in `subtitle`.
+Parkplatz-Einträge tragen `coordinate` als GeoJSON-Point (`{"type":"Point","coordinates":[lon,lat]}`)
+und keinen `point`-String. Der Export las x/y deshalb aus `coordinate.coordinates`, wie es
+`lonLat()` im Skill tut, und prüfte jedes Paar vor dem Schreiben. Die Titel der Parkplätze lauten
+`A8 | undefined`, der Name steht in `subtitle`. Kurz nach Mitternacht hatte die A8 keine Warnungen:
+`warnings list` lieferte `[]` mit Exit-Code 0 – eine leere Ebene, keine fehlgeschlagene, die Datei
+ist also vollständig.
 
 ```
-autobahn-A8-parking-warnings.geojson geschrieben – eine FeatureCollection, 78 Features, 64 KB, 0 übersprungen
-  parking   71 × Point        DE-SL-000031 (RA Moseltal N, Saarland) … DE-BY-… (Bayern)
-  warnings   7 × LineString   betroffener Abschnitt aus der geometry der jeweiligen Warnung
+autobahn-A8-parking-warnings.geojson geschrieben – eine FeatureCollection, 71 Features, 21 KB, 0 übersprungen
+  parking   71 × Point        DE-BW-… (Baden-Württemberg) … DE-SL-000520 (Saarland)
+  warnings   0                um 00:28 Uhr keine auf der A8 (leere Antwort, Exit-Code 0)
 Properties: road, service, subtitle, display_type, isBlocked, future, identifier,
-  description ("PKW Stellplätze: 20\nLKW Stellplätze: 16"); Warnungen zusätzlich
-  startTimestamp, delayTimeValue, abnormalTrafficType.
+  description ("PKW Stellplätze: 20\nLKW Stellplätze: 16").
 
 Größte Lkw-Parkplätze: Denkendorf 123 Lkw-Stellplätze (DE-BW-008040), Gruibingen 112,
   Leipheim S 88, Aichen N 79, Samerberg N 69 – insgesamt 1.990 Lkw-Stellplätze.
-Schwerste Warnung: Heimsheim – Pforzheim-Nord (Stuttgart → Karlsruhe), +43 min, QUEUING_TRAFFIC.
 Geprüft: Jede Koordinate ist ein [lon, lat]-Zahlenpaar innerhalb Deutschlands; die Datei
   lässt sich als eine einzige FeatureCollection parsen.
 ```
 
-Als Nächstes angeboten: die Datei auf https://geojson.io ziehen oder eingerückt (pretty-printed) neu exportieren.
+Als Nächstes angeboten: die Datei auf https://geojson.io ziehen, eingerückt neu exportieren oder
+tagsüber erneut ausführen, wenn die A8 meist Warnungen hat.
 
 ## autobahn-route-check
 
-Lief am 4. Oktober 2026 um 21:10 Uhr mit dem Build, der am selben Abend als `autobahn` 0.2.0 veröffentlicht wurde.
+Lief am 6. Oktober 2026 um 00:27 Uhr mit `autobahn` 0.5.0.
 
-> Heute Abend auf der A3 von Frankfurt nach Köln – gibt es etwas zu beachten?
+> Heute Nacht auf der A3 von Frankfurt nach Köln – gibt es etwas zu beachten?
 
 ```bash
 autobahn --compact roads
@@ -108,26 +108,30 @@ autobahn --compact roadworks list A3
 ```
 
 Die A3 reicht bis Passau, deshalb behielt der Skill nur Einträge in einem Rechteck um beide
-Städte (Breite 50,0–51,0, Länge 6,9–8,75). Darin liegt keine Fahrbahnsperrung
-(`display_type: "CLOSURE"`), nur drei Sperrungen von Auf- oder Abfahrten (`CLOSURE_ENTRY_EXIT`),
-die der Skill getrennt von der Autobahn zählt. Die Auffahrt an der AS Montabaur hat
-`future: false`, ihre Zeitfenster unter `Die Baustelle ist zu folgenden Zeiträumen gültig:`
-beginnen aber morgen um 19:00 Uhr – sie zählt daher als geplant. Die einzige Warnung hat weder
-`delayTimeValue` noch `abnormalTrafficType` (eine `Ereignismeldung`), ist also ein Hinweis, kein
-Stau. 10 der 72 Baustellen im Rechteck tragen den Namen eines Projekts statt `A3 | …` (Neubau
-Offenbacher Kreuz, AK Bonn/Siegburg – Siebengebirge); sie sind mitgezählt.
+Städte (Breite 50,0–51,0, Länge 6,9–8,75): 2 Warnungen, 3 Sperrungen von Auf- oder Abfahrten
+(`CLOSURE_ENTRY_EXIT`, getrennt von der Autobahn gezählt) und 76 Baustellen. Die einzige Warnung
+mit Verzögerung liegt auf der Fahrbahn des Nutzers: `QUEUING_TRAFFIC`, 35 Minuten, „Im Stillstand".
+Ihre `Beginn:`-Zeile nennt 00:05 Uhr, die INRIX-Ereigniszeile `seit 05.10.2026, 22:05` – die ist
+UTC, die Auskunft nennt daher 00:05 Uhr. Von den 76 Baustellen haben 45 ein Zeitfenster, das jetzt
+gilt – meist kurzfristige Nachtbaustellen mit `06.10.26 von 00:00 bis 05:00 Uhr` –, keine nennt
+eine `Vollsperrung`. Der Skill las jedes Zeitfenster statt `future`: 31 sind geplant, und eine
+Baustelle an der AS Montabaur mit `future: false` beginnt erst am 06.10. um 19:00 Uhr. 15 Baustellen
+tragen den Namen eines Projekts statt `A3 | …`; sie sind mitgezählt. `isBlocked` war bei jedem
+Eintrag `"false"`, `routeRecommendation` leer.
 
 ```
-A3 Frankfurt → Köln – ✓ heute Abend frei: keine Sperrungen, keine blockierenden Baustellen, kein Stau
-     (dieser Abschnitt: 1 Warnung / 0 Sperrungen + 3 Rampensperrungen / 72 Baustellen – 42 aktiv,
-      keine blockiert; gesamte A3: 1 / 1 + 24 Rampen / 171)
+A3 Frankfurt → Köln – ⚠ befahrbar: ein Stau, keine Sperrungen, keine blockierenden Baustellen
+     (dieser Abschnitt: 2 Warnungen / 0 Sperrungen + 3 Rampensperrungen / 76 Baustellen – 45 aktiv,
+      keine blockiert; gesamte A3: 2 / 1 + 28 Rampen / 190)
+  🐢 +35 min  QUEUING  A3 Frankfurt → Köln, Bad Camberg – Limburg-Süd: Stillstand seit 00:05 Uhr
   ⓘ  A3 Köln → Frankfurt, Limburg-Süd – Idstein: Fahrbahnschäden seit 09.09.
      (Gegenfahrbahn, keine Verzögerung angegeben)
 
-Geplante Rampensperrungen (heute Abend keine aktiv):
-  🚧 AS Montabaur, Auffahrt aus Richtung Montabaur: 05.10. 19:00 – 06.10. 05:00 und 12.10. 20:00 – 13.10. 05:00
-  🚧 AS Siebengebirge, Auf- und Abfahrt der Fahrbahn Köln → Frankfurt: 05.10. 05:00 – 16.10. 05:00
+Rampensperrungen auf diesem Abschnitt:
+  🚧 AS Siebengebirge, Auf- und Abfahrt der Fahrbahn Köln → Frankfurt: aktiv bis 16.10. 05:00
+  🚧 AS Montabaur, Auffahrt aus Richtung Montabaur (geplant): 07.10. 19:00 – 08.10. 05:00 und 14.10. 20:00 – 15.10. 05:00
 Für keinen dieser Einträge wurde eine Umleitungsempfehlung veröffentlicht.
 ```
 
-Als Nächstes angeboten: Details zu einem Eintrag (`autobahn warnings get <identifier>`) oder dieselbe Prüfung für die Rückfahrt.
+Als Nächstes angeboten: Details zum Stau (`autobahn warnings get <identifier>`, mit der ID aus diesem
+Lauf – Warnungs-IDs werden neu vergeben) oder dieselbe Prüfung für die Rückfahrt.
