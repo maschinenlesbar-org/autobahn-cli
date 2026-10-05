@@ -208,10 +208,11 @@ action as a usage error (`Error: <message>`, exit `2`, like commander's own pars
 
 **Retry / backoff.** Transient `429` (rate-limited), `503` (service
 unavailable) and the gateway errors `502`/`504` are retried automatically with backoff, up to `maxRetries`
-(default `2`), honouring a `Retry-After` header when present (both
-delta-seconds and HTTP-date forms), clamped to a 30s ceiling so a pathological
-value cannot hang the CLI; otherwise using linear backoff — except a `429`, which waits
-from 1 s, doubling per retry (at most 30 s).
+(default `2`). The backoff is linear from `retryDelayMs` (200 ms) — except for a `429`,
+which waits from 1 s, doubling per retry (at most 30 s). A `Retry-After` header (both
+delta-seconds and HTTP-date forms) can make a wait longer, clamped to a 30s ceiling so a
+pathological value cannot hang the CLI, but never shorter: `Retry-After: 0` or a date in
+the past still waits the backoff, so retries never burst.
 `AutobahnApiError.isRetryable` reflects this. A reset connection
 (`isTransientNetworkError`: `ECONNRESET`/`EPIPE`/`ECONNABORTED` as the network error's
 `cause`) is retried with the linear backoff too. Only `GET` and `HEAD` are retried: a

@@ -600,16 +600,14 @@ export class RequestEngine {
       }
       if (idempotent && isRetryableStatus(status) && attempt < this.maxRetries) {
         attempt += 1;
-        // Honour a Retry-After header when present, clamped to MAX_RETRY_AFTER_MS
-        // so a pathological/hostile value can't hang the CLI; otherwise back off:
-        // doubling from 1 s for a 429, linear from retryDelayMs for 502/503/504.
+        // Back off: doubling from 1 s for a 429, linear from retryDelayMs for 502/503/504.
+        // A Retry-After header can ask for longer (clamped to MAX_RETRY_AFTER_MS so a
+        // pathological value can't hang the CLI), never for less: `Retry-After: 0` or a date
+        // in the past turned the retries into a zero-delay burst against a server that had
+        // just asked for less load.
+        const backoff = status === 429 ? rateLimitDelay(this.retryDelayMs, attempt) : this.retryDelayMs * attempt;
         const retryAfter = parseRetryAfter(responseHeaders["retry-after"]);
-        const delay =
-          retryAfter !== undefined
-            ? Math.min(retryAfter, MAX_RETRY_AFTER_MS)
-            : status === 429
-              ? rateLimitDelay(this.retryDelayMs, attempt)
-              : this.retryDelayMs * attempt;
+        const delay = retryAfter === undefined ? backoff : Math.min(Math.max(retryAfter, backoff), MAX_RETRY_AFTER_MS);
         await this.sleep(delay);
         continue;
       }
