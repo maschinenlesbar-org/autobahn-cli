@@ -3,7 +3,7 @@
 // (429, 502, 503, 504), and decodes responses.
 
 import { TextDecoder } from "node:util";
-import { MAX_TIMEOUT_MS, nodeHttpTransport, type Transport } from "./http.js";
+import { MAX_TIMEOUT_MS, nodeHttpTransport, sizeLimitMessage, type HttpRequest, type HttpResponse, type Transport } from "./http.js";
 import { buildQueryString, type QueryParams } from "./query.js";
 import {
   AutobahnApiError,
@@ -116,7 +116,21 @@ function responseProblem(value: unknown): string | undefined {
     return "status is not an HTTP status code";
   }
   if (typeof r.headers !== "object" || r.headers === null || Array.isArray(r.headers)) return "headers is not an object";
-  if (!(r.body instanceof Uint8Array)) return "body is not a Buffer or Uint8Array";
+  if (bodyBytes(r.body) === undefined) return "body is not a Buffer, Uint8Array, other ArrayBuffer view or ArrayBuffer";
+  return undefined;
+}
+
+/**
+ * The response body as a Buffer (a view, no copy): a Buffer, any ArrayBuffer view (a
+ * Uint8Array from fetch, a DataView) or an ArrayBuffer/SharedArrayBuffer — checked by internal
+ * slot, not `instanceof`, so a value from another realm (a vm context, a Jest test) counts.
+ * Undefined for anything else.
+ */
+function bodyBytes(value: unknown): Buffer | undefined {
+  if (Buffer.isBuffer(value)) return value;
+  if (ArrayBuffer.isView(value)) return Buffer.from(value.buffer, value.byteOffset, value.byteLength);
+  const tag = Object.prototype.toString.call(value);
+  if (tag === "[object ArrayBuffer]" || tag === "[object SharedArrayBuffer]") return Buffer.from(value as ArrayBuffer);
   return undefined;
 }
 
@@ -144,18 +158,28 @@ function plainHeaders(headers: object): Record<string, string | string[] | undef
   return record;
 }
 
-/** Node error codes of a connection that broke off mid-request (`socket hang up` is ECONNRESET). */
-const TRANSIENT_NETWORK_CODES = new Set(["ECONNRESET", "EPIPE", "ECONNABORTED"]);
+/**
+ * Error codes of a connection that broke off mid-request: Node's (`socket hang up` is
+ * ECONNRESET) and undici's (`fetch failed` with cause UND_ERR_SOCKET, "other side closed").
+ */
+const TRANSIENT_NETWORK_CODES = new Set(["ECONNRESET", "EPIPE", "ECONNABORTED", "UND_ERR_SOCKET"]);
+
+/** True when `err` or an error in its `cause` chain has a transient connection code. */
+function hasTransientCode(err: unknown, depth = 0): boolean {
+  if (typeof err !== "object" || err === null || depth > 4) return false;
+  const code = (err as { code?: unknown }).code;
+  if (typeof code === "string" && TRANSIENT_NETWORK_CODES.has(code)) return true;
+  return hasTransientCode((err as { cause?: unknown }).cause, depth + 1);
+}
 
 /**
  * True for an AutobahnNetworkError caused by a reset or aborted connection, which the
- * engine retries. A refused connection, a DNS failure or a timeout is not transient in
+ * engine retries — whichever transport raised it (a Node error, fetch's TypeError with an
+ * undici cause). A refused connection, a DNS failure or a timeout is not transient in
  * that sense and is not retried.
  */
 export function isTransientNetworkError(err: unknown): boolean {
-  if (!(err instanceof AutobahnNetworkError)) return false;
-  const code = (err.cause as { code?: unknown } | undefined)?.code;
-  return typeof code === "string" && TRANSIENT_NETWORK_CODES.has(code);
+  return err instanceof AutobahnNetworkError && hasTransientCode(err.cause);
 }
 
 /** sanitizeServerText, then cut at MAX_DETAIL_LENGTH characters. */
@@ -476,6 +500,32 @@ export class RequestEngine {
     return cutForMessage(redactUrl(this.joinUrl(path, query)));
   }
 
+  /**
+   * Call the transport under the overall deadline (`timeoutMs`): the request gets an
+   * AbortSignal that fires at the deadline, and the call rejects then whether the transport
+   * stops or not — a custom transport (fetch, a node:http wrapper) that ignores `timeoutMs`
+   * can't hang the caller. A synchronous throw becomes a rejection.
+   */
+  private async callTransport(request: HttpRequest): Promise<HttpResponse> {
+    const call = (signal?: AbortSignal): Promise<HttpResponse> =>
+      Promise.resolve().then(() => this.transport(signal === undefined ? request : { ...request, signal }));
+    if (this.timeoutMs === 0) return call();
+    const controller = new AbortController();
+    let timer: NodeJS.Timeout | undefined;
+    const deadline = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => {
+        const err = new AutobahnNetworkError(`Request exceeded overall deadline of ${this.timeoutMs}ms`);
+        controller.abort(err);
+        reject(err);
+      }, this.timeoutMs);
+    });
+    try {
+      return await Promise.race([call(controller.signal), deadline]);
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
   /** Perform a request with Accept negotiation and transient-error retries. */
   async request(
     method: string,
@@ -496,7 +546,7 @@ export class RequestEngine {
     for (;;) {
       let response: Awaited<ReturnType<Transport>>;
       try {
-        response = await this.transport({
+        response = await this.callTransport({
           method,
           url,
           headers,
@@ -505,9 +555,10 @@ export class RequestEngine {
         });
       } catch (cause) {
         // A connection the server (or a gateway) reset is the network-level twin of a
-        // 502: retry the GET like a transient status. Timeouts are not retried — a slow
-        // upstream should not be asked again at once, and --timeout bounds each attempt.
-        if (idempotent && isTransientNetworkError(cause) && attempt < this.maxRetries) {
+        // 502: retry the GET like a transient status, whichever transport reported it.
+        // Timeouts are not retried — a slow upstream should not be asked again at once,
+        // and --timeout bounds each attempt.
+        if (idempotent && hasTransientCode(cause) && attempt < this.maxRetries) {
           attempt += 1;
           await this.sleep(this.retryDelayMs * attempt);
           continue;
@@ -539,8 +590,14 @@ export class RequestEngine {
       const responseHeaders = plainHeaders(response.headers);
       // fetch gives a Uint8Array; view it as a Buffer (no copy), which the decoders expect.
       // (HttpResponse types the body as Buffer; a JavaScript transport may not.)
-      const raw: Uint8Array = response.body;
-      const body = Buffer.isBuffer(raw) ? raw : Buffer.from(raw.buffer, raw.byteOffset, raw.byteLength);
+      const body = bodyBytes(response.body) as Buffer;
+      // The size cap holds whatever the transport did: the default one aborts early, a custom
+      // one may have read everything.
+      if (this.maxResponseBytes > 0 && body.byteLength > this.maxResponseBytes) {
+        throw new AutobahnNetworkError(
+          `${method} ${this.describeUrl(path, options.query)} failed: ${sizeLimitMessage(this.maxResponseBytes)}`,
+        );
+      }
       if (idempotent && isRetryableStatus(status) && attempt < this.maxRetries) {
         attempt += 1;
         // Honour a Retry-After header when present, clamped to MAX_RETRY_AFTER_MS

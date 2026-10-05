@@ -219,12 +219,22 @@ caller of the public `RequestEngine.request` with another method gets one attemp
 
 **`maxResponseBytes`.** A hard cap on response body size (default 100 MiB;
 `0` disables) that defends against memory exhaustion from a hostile or buggy
-endpoint.
+endpoint. The default transport aborts as soon as the cap is passed; the engine also
+checks the body any transport returns, so the cap holds for custom transports too.
+
+**Custom transports.** A transport may return the body as a Buffer, any `ArrayBuffer`
+view (fetch's `Uint8Array`, from any realm) or an `ArrayBuffer`, and the headers as a plain
+record in any case, a `Headers` object or a `Map`. Whatever it throws becomes an
+`AutobahnNetworkError`; a reset reported as Node's `ECONNRESET`/`EPIPE`/`ECONNABORTED` or
+undici's `UND_ERR_SOCKET` anywhere in the `cause` chain is retried like a 502.
 
 **`timeoutMs`.** Bounds a request two ways (default 30s; `0` disables): a
 socket-inactivity timeout *and* an overall wall-clock deadline armed at request
 start. The deadline stops a slow-drip endpoint that resets the inactivity timer
-forever (one byte at a time) from holding the CLI open under the size cap.
+forever (one byte at a time) from holding the CLI open under the size cap. The engine
+enforces the deadline itself, for every transport: the transport gets an `AbortSignal`
+(`HttpRequest.signal`) that fires at the deadline, and the call rejects then whether the
+transport stops or not, so a `fetch` or `node:http` transport can't hang a caller.
 
 **Empty-body not-found.** The detail endpoint answers an unknown identifier with
 HTTP 200 and an empty body rather than a true `404`. For `get` (the engine's
