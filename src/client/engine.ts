@@ -13,8 +13,10 @@ import {
   AutobahnParseError,
   AutobahnValidationError,
   MAX_MESSAGE_VALUE_LENGTH,
+  credentialsIn,
   cutForMessage,
   isRetryableStatus,
+  redactCredentials,
   redactUrl,
 } from "./errors.js";
 import { assertValid, baseUrlProblem } from "./validate.js";
@@ -358,7 +360,12 @@ function functionOption<F extends (...args: never[]) => unknown>(name: string, v
 }
 
 export class RequestEngine {
-  private readonly baseUrl: string;
+  // A real private field (not TypeScript's `private`): util.inspect, console.log and
+  // JSON.stringify of a client never show it, so a password in the base URL can't be
+  // logged by accident. Messages use describeUrl, which redacts it.
+  readonly #baseUrl: string;
+  /** The base URL's userinfo, raw and percent-decoded, for scrubbing server and transport text. */
+  readonly #credentials: string[];
   private readonly transport: Transport;
   private readonly userAgent: string;
   private readonly timeoutMs: number;
@@ -378,7 +385,14 @@ export class RequestEngine {
     // The base URL is checked raw, before the trailing slashes are stripped. The
     // default transport re-checks the scheme per hop; a custom transport may not.
     const baseUrl = assertValid("option baseUrl", options.baseUrl ?? DEFAULT_BASE_URL, baseUrlProblem);
-    this.baseUrl = baseUrl.replace(/\/+$/, "");
+    this.#baseUrl = baseUrl.replace(/\/+$/, "");
+    this.#credentials = credentialsIn(baseUrl).flatMap((raw) => {
+      try {
+        return [raw, decodeURIComponent(raw)];
+      } catch {
+        return [raw];
+      }
+    });
     this.transport = functionOption("transport", options.transport, nodeHttpTransport);
     // Checked here, not first by Node at request time (as an AutobahnNetworkError).
     this.userAgent = assertValid("option userAgent", options.userAgent ?? DEFAULT_USER_AGENT, headerValueProblem);
@@ -392,6 +406,34 @@ export class RequestEngine {
       Number.MAX_SAFE_INTEGER,
     );
     this.sleep = functionOption("sleep", options.sleep, realSleep);
+  }
+
+  /**
+   * `text` without the base URL's credentials: server text (an error body that echoes the
+   * request URL) and transport text (fetch's "Failed to fetch <url>") can carry them.
+   */
+  private scrub(text: string): string {
+    return this.#credentials.length === 0 ? text : redactCredentials(text, this.#credentials);
+  }
+
+  /**
+   * A transport failure as the `cause` of the error the engine raises: the original when its
+   * text carries no credentials, otherwise a copy with them scrubbed (message, `code` and the
+   * cause chain kept), so logging the error with its causes can't reveal the base URL's
+   * password.
+   */
+  private scrubCause(cause: unknown, depth = 0): unknown {
+    if (this.#credentials.length === 0 || depth > 5) return cause;
+    if (typeof cause === "string") return this.scrub(cause);
+    if (!(cause instanceof Error)) return cause;
+    const inner = this.scrubCause(cause.cause, depth + 1);
+    const message = this.scrub(cause.message);
+    if (message === cause.message && inner === cause.cause && !this.scrub(cause.stack ?? "").includes("***@")) return cause;
+    const copy = new Error(message, inner === undefined ? undefined : { cause: inner });
+    copy.name = cause.name;
+    const code = (cause as { code?: unknown }).code;
+    if (code !== undefined) Object.assign(copy, { code });
+    return copy;
   }
 
   /**
@@ -421,7 +463,7 @@ export class RequestEngine {
   private joinUrl(path: string, query?: QueryParams): string {
     const normalizedPath = path.startsWith("/") ? path : `/${path}`;
     const qs = query ? buildQueryString(query) : "";
-    return `${this.baseUrl}${normalizedPath}${qs ? `?${qs}` : ""}`;
+    return `${this.#baseUrl}${normalizedPath}${qs ? `?${qs}` : ""}`;
   }
 
   /**
@@ -480,8 +522,8 @@ export class RequestEngine {
         const reason = cause instanceof Error ? cause.message : String(cause);
         const retried = attempt > 0 ? ` (after ${attempt} ${attempt === 1 ? "retry" : "retries"})` : "";
         throw new AutobahnNetworkError(
-          `${method} ${this.describeUrl(path, options.query)} failed: ${sanitizeServerText(reason)}${retried}`,
-          { cause },
+          `${method} ${this.describeUrl(path, options.query)} failed: ${sanitizeServerText(this.scrub(reason))}${retried}`,
+          { cause: this.scrubCause(cause) },
         );
       }
 
@@ -583,7 +625,7 @@ export class RequestEngine {
     locationHeader?: string,
     retries = 0,
   ): AutobahnApiError {
-    const text = body.toString("utf8");
+    const text = this.scrub(body.toString("utf8"));
     let detail: string | undefined;
     try {
       const parsed = JSON.parse(text) as { detail?: unknown; message?: unknown };
