@@ -197,6 +197,8 @@ function cleanDetail(text: string): string {
  * source stays free of control bytes.
  */
 export function headerValueProblem(value: string): string | undefined {
+  // A JavaScript caller may pass anything; `{}.trim()` was a raw TypeError.
+  if (typeof value !== "string") return "Expected a string.";
   if (value.trim() === "") return "Expected a non-empty value.";
   for (let i = 0; i < value.length; i++) {
     const c = value.charCodeAt(i);
