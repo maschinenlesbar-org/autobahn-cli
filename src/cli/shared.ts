@@ -4,7 +4,7 @@
 import type { Command } from "commander";
 import { InvalidArgumentError } from "commander";
 import type { CliDeps } from "./io.js";
-import { headerValueProblem, isBidiControl, type EngineOptions } from "../client/engine.js";
+import { cleartextProblem, DEFAULT_BASE_URL, headerValueProblem, isBidiControl, type EngineOptions } from "../client/engine.js";
 import { baseUrlProblem, idProblem, roadIdProblem } from "../client/validate.js";
 
 /**
@@ -130,20 +130,15 @@ export function renderJson(deps: CliDeps, global: GlobalOptions, value: unknown)
 }
 
 /**
- * A user:password@ in an `http:` base URL is sent as Basic auth in clear text. That is
- * allowed (and documented), but a missing "s" is an easy slip, so say it on stderr once.
+ * Write one `warning: …` line to stderr when the effective base URL (--base-url >
+ * AUTOBAHN_BASE_URL > default) is plain `http:` to a host other than loopback
+ * (cleartextProblem): requests, and any user:password@ in the URL, travel unencrypted.
+ * Called once per run, after the options are parsed and before the first request;
+ * stdout and the exit code are untouched.
  */
-function warnOnCleartextCredentials(deps: CliDeps, baseUrl: string | undefined): void {
-  if (baseUrl === undefined) return;
-  let url: URL;
-  try {
-    url = new URL(baseUrl);
-  } catch {
-    return;
-  }
-  if (url.protocol === "http:" && (url.username !== "" || url.password !== "")) {
-    deps.io.err(`warning: the credentials in the base URL are sent unencrypted to ${url.host} (http:, not https:)`);
-  }
+export function warnOnCleartext(deps: CliDeps, global: GlobalOptions): void {
+  const problem = cleartextProblem(global.baseUrl ?? DEFAULT_BASE_URL);
+  if (problem !== undefined) deps.io.err(`warning: ${problem}`);
 }
 
 export interface ActionContext {
@@ -169,7 +164,7 @@ export function action(
     const command = args[args.length - 1] as Command;
     const positionals = args.slice(0, Math.max(0, args.length - 2)) as string[];
     const global = command.optsWithGlobals() as GlobalOptions;
-    warnOnCleartextCredentials(deps, global.baseUrl);
+    warnOnCleartext(deps, global);
     const client = deps.createClient(toEngineOptions(global));
     await fn({ client, global, opts: command.opts() }, positionals);
   };

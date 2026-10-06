@@ -176,6 +176,12 @@ Global options may be given **before or after** the command — both
 | `--compact` | Print JSON on a single line instead of pretty-printed |
 | `-h, --help` | Display help for a command |
 
+A base URL on plain `http:` to a host other than loopback (`localhost`, `127.0.0.0/8`,
+`::1`) works, but the CLI writes one line to stderr before the first request, e.g.
+`warning: requests to mirror.example are sent unencrypted (http:, not https:)`, or
+`warning: the base URL's credentials are sent unencrypted to mirror.example (http:, not https:)`
+when it carries a `user:password@` (never printed). stdout and the exit code are unchanged.
+
 Commands: `roads`, and the six service groups `roadworks`, `webcams`,
 `parking`, `warnings`, `closures`, `charging` — each with `list <roadId>` and
 `get <identifier>` subcommands. `autobahn help <command path>` (for example

@@ -8,6 +8,7 @@ export {
   DEFAULT_BASE_URL,
   DEFAULT_USER_AGENT,
   MAX_RETRIES,
+  cleartextProblem,
   headerValueProblem,
   isBidiControl,
   isTransientNetworkError,

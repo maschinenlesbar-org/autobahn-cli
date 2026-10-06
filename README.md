@@ -201,6 +201,12 @@ These apply to every command and may be given **before or after** it:
 | `--max-retries <n>` | Retries for transient `429`/`502`/`503`/`504` responses and reset connections (default `2`, at most `10`; each waits a short linear backoff from 200 ms, a `429` from 1 s, doubling, or longer if the server's `Retry-After` asks (up to 30 s); at `10` the waits can add up to 3–5 min, which `--timeout` does not bound) |
 | `--max-response-bytes <n>` | Cap response body size in bytes (`0` = unlimited; default 100 MiB) |
 
+A base URL on plain `http:` to a host other than loopback (`localhost`, `127.0.0.0/8`,
+`::1`) works, but the CLI writes one line to stderr before the first request, e.g.
+`warning: requests to mirror.example are sent unencrypted (http:, not https:)`, or
+`warning: the base URL's credentials are sent unencrypted to mirror.example (http:, not https:)`
+when it carries a `user:password@` (never printed). stdout and the exit code are unchanged.
+
 ## Learn more
 
 - **[Usage.md](https://github.com/maschinenlesbar-org/autobahn-cli/blob/main/Usage.md)** — full use-case-driven cookbook.

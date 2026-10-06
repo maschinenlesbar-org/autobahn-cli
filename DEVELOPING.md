@@ -116,6 +116,17 @@ host you point it at; only `http:`/`https:` URLs are accepted, and redirects
 are **not** followed — a `3xx` surfaces as an error rather than being chased to
 another host.
 
+A plain-`http:` base URL gets a warning, not a refusal: `cleartextProblem(baseUrl, secrets)`
+(engine, exported) returns one sentence naming the host (`url.host`, never the userinfo)
+and what travels unencrypted — the base URL's credentials when it carries userinfo — or
+`undefined` for `https:`, an unparseable URL and loopback hosts (`localhost`,
+`127.0.0.0/8`, `::1`; nothing leaves the machine). The CLI's `action()` wrapper
+(`shared.ts`, `warnOnCleartext`) prints it once per run as `warning: <sentence>` on stderr
+for the effective base URL (flag > `AUTOBAHN_BASE_URL` > default), after the options are
+parsed and before the first request; `--help`, `--version` and usage errors never get
+there. (It replaces the CLI-internal `warnOnCleartextCredentials`, which warned only for
+userinfo, loopback included.)
+
 ## Architecture
 
 ```
@@ -261,6 +272,13 @@ npm test          # builds, then runs `node --test` over dist/test
 - **`parity.test.ts`** — CLI ↔ library parity: the same input through `run()` and through the library must give the same outcome (both reject without a request with the same reason, or both send the same requests).
 - **`io.test.ts`** — the default I/O seam: EPIPE and other stdout/stderr write errors.
 - **`types.test.ts`** — compile-time checks of exported library types (e.g. `ServiceResource`).
+- **`conformance-p*.test.ts`** — the checks shared across the `*-cli` repos, the same files
+  everywhere with only an adapter block at the top: P1 CLI redaction, P2 library
+  redaction, P4/P19 configuration validation, P5 the transport contract, P6 the retry
+  policy, P7 pipes and exit codes (runs the built bin), P8/P9/P13 charset, response
+  shapes and error classes, P20 the stderr warning for a plain-`http:` base URL (its
+  other-secret case is skipped: the API takes no key). Mock transports or local servers
+  only, never the live API.
 - **`package.test.ts`** — the published package: `npm pack --dry-run` must list the library, the bin, `version.js` and the licence documents, and no sources, tests, maps, skills or site.
 
 ## Continuous integration
