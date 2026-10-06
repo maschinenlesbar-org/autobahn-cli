@@ -277,8 +277,10 @@ npm test          # builds, then runs `node --test` over dist/test
   redaction, P4/P19 configuration validation, P5 the transport contract, P6 the retry
   policy, P7 pipes and exit codes (runs the built bin), P8/P9/P13 charset, response
   shapes and error classes, P20 the stderr warning for a plain-`http:` base URL (its
-  other-secret case is skipped: the API takes no key). Mock transports or local servers
-  only, never the live API.
+  other-secret case is skipped: the API takes no key), P21 the README's relative links
+  (README.md ships to npmjs.com, so a link to a document the `files` allowlist leaves out
+  must be an absolute GitHub URL). Mock transports or local servers only, never the live
+  API.
 - **`package.test.ts`** — the published package: `npm pack --dry-run` must list the library, the bin, `version.js` and the licence documents, and no sources, tests, maps, skills or site.
 
 ## Continuous integration
