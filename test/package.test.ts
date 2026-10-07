@@ -9,7 +9,9 @@ import { fileURLToPath } from "node:url";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
 
-test("the npm package contains the library, the bin, version.ts and the licence documents — and nothing else", () => {
+// Runs npm as a process, the one slow kind of test here, so it gets 30 s instead of the 5 s
+// default the `test` script sets.
+test("the npm package contains the library, the bin, version.ts and the licence documents — and nothing else", { timeout: 30_000 }, () => {
   const json = execFileSync("npm", ["pack", "--dry-run", "--json", "--ignore-scripts"], {
     cwd: root,
     encoding: "utf8",
