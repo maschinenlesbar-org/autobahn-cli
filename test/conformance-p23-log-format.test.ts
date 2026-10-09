@@ -12,7 +12,8 @@
 // line and every failure has an ERROR (L5); the format is commander's (L6); a malformed
 // answer is `api` (L9); echoed credentials are replaced (L13); an `a:b@c` value that is no
 // URL is left alone (L14). Adapter switches added with them: VALUE_OPTION, OUTPUT_OPTION,
-// errorAnswer, MALFORMED_ANSWERS, secretArgv, and the import of MAX_RECORD_MESSAGE.
+// errorAnswer, MALFORMED_ANSWERS, secretArgv, HELP_AFTER_ERROR, and the import of
+// MAX_RECORD_MESSAGE.
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
