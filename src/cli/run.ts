@@ -323,7 +323,7 @@ function areaOf(err: AutobahnError): string {
 
 /**
  * The log for what happens outside `run()`, in the bin shim: a stdout write error
- * (`handleOutputErrors`). Its format is the one argv asks for (`logFormatFromArgv`), and
+ * (`handleOutputErrors`) and Node's process warnings (`installWarningLog`). Its format is the one argv asks for (`logFormatFromArgv`), and
  * it replaces the secrets of argv and AUTOBAHN_BASE_URL like the run's own log; it
  * writes to the raw stderr.
  */

@@ -376,5 +376,8 @@ testable. stdout carries data only. A failed write to stdout other than a closed
 (EPIPE/ENOTCONN, which exits 0 quietly) is an `ERROR` record of `autobahn.output`
 (`Could not write to stdout: …`) and exits 1: the bin shim's `handleOutputErrors` logs it
 outside `run()`, through `processLogger(argv)`, in the format argv asks for and with the
-run's redaction. Conformance test P23 checks all of this, and its body is shared across
-the *-cli repos.
+run's redaction. Node's own process warnings (`NODE_TLS_REJECT_UNAUTHORIZED=0`) are
+`WARN` records of `autobahn.cli` too: the bin shim installs `installWarningLog`, which
+removes Node's default `warning` listener and logs `(node) <name>: <message>` through the
+same `processLogger(argv)`. Conformance test P23 checks all of this, and its body is
+shared across the *-cli repos.
