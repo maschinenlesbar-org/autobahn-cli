@@ -5,7 +5,7 @@ import { AutobahnClient } from "../src/client/client.js";
 import type { CliDeps } from "../src/cli/io.js";
 import type { EngineOptions } from "../src/client/engine.js";
 import type { HttpRequest, HttpResponse } from "../src/client/http.js";
-import { AutobahnNetworkError, AutobahnValidationError } from "../src/client/errors.js";
+import { AutobahnNetworkError, AutobahnValidationError, credentialsIn } from "../src/client/errors.js";
 import { makeMockTransport, jsonResponse, rawResponse, untimed } from "./helpers.js";
 
 function makeCli(responder: (req: HttpRequest) => HttpResponse | Promise<HttpResponse>) {
@@ -812,4 +812,12 @@ test("the CLI's own usage errors quote a typed value at most 500 characters long
     assert.ok(record.length < 700, `${record.length}`);
     assert.match(record, /x…'/);
   }
+});
+
+test("an a:b@c argument (here a User-Agent) is neither a credential in the log nor rewritten in the JSON on stdout (L14)", async () => {
+  const cli = makeCli(() => jsonResponse({ roads: ["run:2026-10-09@x", "A1"] }));
+  assert.equal(await run(["--user-agent", "run:2026-10-09@x", "roads"], cli.deps), 0);
+  assert.match(cli.out.join("\n"), /"run:2026-10-09@x"/);
+  assert.deepEqual(credentialsIn("run:2026-10-09@x"), []);
+  assert.deepEqual(credentialsIn("https://alice:pw@host"), ["alice:pw"]);
 });

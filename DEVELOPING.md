@@ -85,10 +85,13 @@ CLI's `--base-url` parser applies the same function, and its default is
 exported). Only an omitted (`undefined`) `baseUrl` or `userAgent` selects the
 default; an empty string is rejected like `"  "`, as the CLI rejects `--base-url ""`.
 The reasons never repeat the value. The CLI also redacts on output: `run.ts`
-(`redactionFor`, `withRedactedOutput`) takes the exact userinfo of every argument and of `AUTOBAHN_BASE_URL`
+(`redactionFor`, `withRedactedOutput`) takes the exact userinfo of every URL argument and of `AUTOBAHN_BASE_URL`
 (`credentialsIn`, exported) and replaces it with `***` in everything it prints — commander's
 usage errors, which echo rejected values, its own messages and the help's defaults — so a
-password with spaces, quotes, `#`, `?` or `/` is caught as well as an ordinary one. The
+password with spaces, quotes, `#`, `?` or `/` is caught as well as an ordinary one. Only a
+value that starts with a scheme counts (a bare `a:b@c` is a User-Agent or a road id as often
+as a credential), except as the `--base-url` value or `AUTOBAHN_BASE_URL`, where a
+`user:password@host` typed without its scheme is still redacted. The
 forms a server echoes a userinfo back in are replaced too (`echoedCredentialForms`): the
 `Basic` value (UTF-8, as Node sends it) and the decoded `user:password` on stdout and
 stderr, the password alone (4 characters or more) on stderr only, since it may well

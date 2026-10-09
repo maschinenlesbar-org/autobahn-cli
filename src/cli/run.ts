@@ -179,6 +179,24 @@ export function scanArgv(program: Command, argv: string[]): ArgvScan {
  */
 export const USAGE_ERROR = 2;
 
+/**
+ * The options whose value is the base URL: a `user:password@host` given there without
+ * its scheme is still a credential (anywhere else a bare `a:b@c` is not).
+ */
+const BASE_URL_FLAGS = ["--base-url"];
+
+/** The values of the `flags` in `argv`, in both forms (`--flag value`, `--flag=value`). */
+function flagValues(argv: readonly string[], flags: readonly string[]): string[] {
+  const found: string[] = [];
+  argv.forEach((token, i) => {
+    const next = argv[i + 1];
+    if (flags.includes(token) && next !== undefined) found.push(next);
+    const eq = token.indexOf("=");
+    if (eq > 0 && flags.includes(token.slice(0, eq))) found.push(token.slice(eq + 1));
+  });
+  return found;
+}
+
 /** The secrets of a run, and the two ways they are replaced. */
 export interface Redaction {
   /**
@@ -202,7 +220,12 @@ export interface Redaction {
 export function redactionFor(argv: readonly string[], env: Record<string, string | undefined>): Redaction {
   // An `--option=value` token is echoed as its value alone.
   const values = argv.map((token) => (token.startsWith("-") && token.includes("=") ? token.slice(token.indexOf("=") + 1) : token));
-  const sources = [...argv, ...values, env["AUTOBAHN_BASE_URL"] ?? ""];
+  // A base URL typed without its scheme is read as if it had one (anywhere else a bare
+  // `a:b@c` is no credential: a User-Agent, a road id).
+  const baseUrls = [...flagValues(argv, BASE_URL_FLAGS), env["AUTOBAHN_BASE_URL"] ?? ""].map((value) =>
+    value === "" || /^[A-Za-z][A-Za-z0-9+.-]*:\/\//.test(value) ? value : `http://${value}`,
+  );
+  const sources = [...values, ...baseUrls];
   const secrets = new Set<string>();
   const echoed = new Set<string>();
   const passwords = new Set<string>();
