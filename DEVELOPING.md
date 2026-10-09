@@ -195,7 +195,8 @@ subprocess.
 **Error types.** [`errors.ts`](src/client/errors.ts): `AutobahnApiError`
 (non-2xx, carries `status`/`detail`/`url`/`body`; `detail` is sanitised and cut at
 500 characters, `body` is the full text; the message also cuts the URL at 500
-characters, `url` keeps it whole), `AutobahnNetworkError`
+characters, `url` keeps it whole; a cut never splits a surrogate pair (`cutText`), so the
+message stays well-formed), `AutobahnNetworkError`
 (transport failure/timeout, including anything an injected transport throws, raised as
 `GET <url> failed: <reason>` — the URL redacted, `(after N retries)` when a reset was
 retried — with the original as `cause` — never a configuration error: a bad `baseUrl` or
@@ -335,7 +336,9 @@ and `msg`. A record is always one line: `formatLogRecord` runs `escapeForRecord`
 the message (text) or the whole JSON object (jsonl), which writes CR and LF as `\r`/`\n`,
 every other C0 control but TAB, DEL and C1 as `\u00XX`, and U+2028, U+2029 and the bidi
 controls as `\uXXXX`, so no text that reaches a record, by whatever path, can split it,
-forge another one or steer the terminal. The areas are `cli` (usage errors — commander's and the CLI's own pre-parse
+forge another one or steer the terminal. Before that a lone surrogate (half a
+character, which jq rejects, stopping the whole stream) becomes U+FFFD (`toWellFormed`).
+The areas are `cli` (usage errors — commander's and the CLI's own pre-parse
 checks — the `(run "… --help" for usage)` pointer after them as `INFO`, other errors and
 unexpected ones), `api` (the API's answers: an HTTP error, an unknown road id or
 identifier) and `http` (network errors, the cleartext warning). Code logs through

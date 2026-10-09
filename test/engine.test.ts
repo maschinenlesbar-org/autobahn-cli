@@ -1,13 +1,15 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { DEFAULT_USER_AGENT, RequestEngine, parseRetryAfter, sanitizeServerText } from "../src/client/engine.js";
+import { DEFAULT_USER_AGENT, RequestEngine, parseRetryAfter, quoteValue, sanitizeServerText } from "../src/client/engine.js";
 import {
   AutobahnApiError,
   AutobahnNetworkError,
   AutobahnParseError,
   AutobahnValidationError,
   redactUrl,
+  cutText,
+  toWellFormed,
 } from "../src/client/errors.js";
 import type { HttpResponse } from "../src/client/http.js";
 import { makeMockTransport, jsonResponse, rawResponse } from "./helpers.js";
@@ -751,4 +753,25 @@ test("a 304 or 305 is not called a redirect; a 300 without a target isn't either
   }
   const e = new RequestEngine({ transport: async () => ({ status: 300, headers: { location: "/y" }, body: Buffer.alloc(0) }), maxRetries: 0 });
   await assert.rejects(() => e.getJson("/x"), /redirect to https:\/\/verkehr\.autobahn\.de\/y not followed/);
+});
+
+test("cutText never cuts inside a surrogate pair; toWellFormed replaces half a character", () => {
+  assert.equal(cutText("ab\u{1f600}cd", 3), "ab");
+  assert.equal(cutText("ab\u{1f600}cd", 4), "ab\u{1f600}");
+  assert.equal(cutText("short", 10), "short");
+  assert.equal(toWellFormed("a\ud83d b\ude00 \u{1f600}"), "a\ufffd b\ufffd \u{1f600}");
+});
+
+test("a server detail, a quoted value and a long URL cut at 500 characters keep the message well-formed", async () => {
+  const detail = "a" + "\u{1f600}".repeat(400);
+  const engine = new RequestEngine({ transport: async () => ({ status: 500, headers: { "content-type": "application/json" }, body: Buffer.from(JSON.stringify({ detail })) }) });
+  await assert.rejects(engine.getJson("/o/autobahn/"), (err: Error) => {
+    assert.equal(toWellFormed(err.message), err.message);
+    assert.match(err.message, /…$/);
+    return true;
+  });
+  // quoteValue cuts before quoting: half a character would be the text \ud83d in the message.
+  const quoted = quoteValue(detail);
+  assert.match(quoted, /…$/);
+  assert.doesNotMatch(quoted, /\\ud83d"/);
 });

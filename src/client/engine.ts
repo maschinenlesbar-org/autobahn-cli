@@ -15,6 +15,7 @@ import {
   MAX_MESSAGE_VALUE_LENGTH,
   credentialsIn,
   cutForMessage,
+  cutText,
   isRedirectStatus,
   isRetryableStatus,
   redactCredentials,
@@ -183,10 +184,10 @@ export function isTransientNetworkError(err: unknown): boolean {
   return err instanceof AutobahnNetworkError && hasTransientCode(err.cause);
 }
 
-/** sanitizeServerText, then cut at MAX_DETAIL_LENGTH characters. */
+/** sanitizeServerText, then cut at MAX_DETAIL_LENGTH characters (never inside a surrogate pair). */
 function cleanDetail(text: string): string {
   const clean = sanitizeServerText(text);
-  return clean.length > MAX_DETAIL_LENGTH ? `${clean.slice(0, MAX_DETAIL_LENGTH)}…` : clean;
+  return clean.length > MAX_DETAIL_LENGTH ? `${cutText(clean, MAX_DETAIL_LENGTH)}…` : clean;
 }
 
 /**
@@ -290,7 +291,7 @@ export function sanitizeServerText(text: string): string {
 export function quoteValue(value: string): string {
   const cut = value.length > MAX_MESSAGE_VALUE_LENGTH;
   let out = "";
-  for (const ch of JSON.stringify(cut ? value.slice(0, MAX_MESSAGE_VALUE_LENGTH) : value)) {
+  for (const ch of JSON.stringify(cut ? cutText(value, MAX_MESSAGE_VALUE_LENGTH) : value)) {
     const n = ch.codePointAt(0) ?? 0;
     if ((n >= 0x7f && n <= 0x9f) || n === 0x2028 || n === 0x2029 || FORMAT_CHAR.test(ch)) {
       // One escape per UTF-16 unit, so a character above U+FFFF stays valid JSON.
