@@ -171,7 +171,7 @@ Global options may be given **before or after** the command — both
 | `--base-url <url>` | API base URL (default `https://verkehr.autobahn.de`, or the `AUTOBAHN_BASE_URL` environment variable; the flag wins); a `user:password@` in it is sent as HTTP Basic auth |
 | `--timeout <ms>` | Per-request timeout in milliseconds (default `30000`, `0` disables). A timed-out request is not retried |
 | `--user-agent <ua>` | `User-Agent` header value (default `autobahn-cli/<version> (+https://github.com/maschinenlesbar-org/autobahn-cli)`) |
-| `--max-retries <n>` | Retries for transient `429`/`502`/`503`/`504` responses and reset connections (default `2`, at most `10`) |
+| `--max-retries <n>` | Retries for transient `429`/`502`/`503`/`504` responses and reset connections (default `2`, at most `10`). Each retry logs one WARN record of `autobahn.http` before it waits (`HTTP 503 from host: retry 1 of 3 in 2 s`). |
 | `--max-response-bytes <n>` | Cap response body size in bytes (`0` = unlimited; default 100 MiB) |
 | `--compact` | Print JSON on a single line instead of pretty-printed |
 | `--log-format <format>` | How errors, warnings and notes are written to stderr: `text` (default; log4j style, `2026-10-09T14:03:12.481Z WARN  [autobahn.http] …`) or `jsonl` (one JSON object per line: `ts`, `level`, `topic`, `msg`). stdout is not affected |

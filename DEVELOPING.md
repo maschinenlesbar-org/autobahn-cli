@@ -239,6 +239,13 @@ the past still waits the backoff, so retries never burst.
 `cause`) is retried with the linear backoff too. Only `GET` and `HEAD` are retried: a
 caller of the public `RequestEngine.request` with another method gets one attempt.
 
+Each retry is announced: the engine option `onRetry(event: RetryEvent)` (exported type:
+`{ retry` (1-based), `maxRetries`, `delayMs`, `status?` (absent for a reset), `url` (userinfo
+redacted) `}`) is called once per retry right before the sleep, never when there is none, and
+a throw in it is swallowed. The CLI's `action()` sets it to log one `WARN` record of
+`autobahn.http`, `HTTP 503 from <host>: retry 1 of 3 in 2 s` (`retryMessage`; host only, whole
+seconds, ms under 1 s). Tests: `test/retry-log.test.ts`.
+
 **`maxResponseBytes`.** A hard cap on response body size (default 100 MiB;
 `0` disables) that defends against memory exhaustion from a hostile or buggy
 endpoint. The default transport aborts as soon as the cap is passed; the engine also

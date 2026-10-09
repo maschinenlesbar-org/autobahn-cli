@@ -519,7 +519,9 @@ test("global options flow through to the client engine", async () => {
     deps,
   );
   assert.equal(code, 0);
-  assert.deepEqual(seen[0], {
+  const { onRetry, ...passed } = seen[0] as EngineOptions;
+  assert.equal(typeof onRetry, "function");
+  assert.deepEqual(passed, {
     baseUrl: "https://example.test",
     timeoutMs: 5000,
     maxRetries: 1,

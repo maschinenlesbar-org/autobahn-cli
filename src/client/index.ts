@@ -15,7 +15,7 @@ export {
   quoteValue,
   sanitizeServerText,
 } from "./engine.js";
-export type { EngineOptions, RawResponse } from "./engine.js";
+export type { EngineOptions, RawResponse, RetryEvent } from "./engine.js";
 export { MAX_TIMEOUT_MS, nodeHttpTransport } from "./http.js";
 export { VERSION } from "./version.js";
 export type { Transport, HttpRequest, HttpResponse } from "./http.js";

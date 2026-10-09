@@ -219,7 +219,7 @@ These apply to every command and may be given **before or after** it:
 | `--base-url <url>` | API base URL (default `https://verkehr.autobahn.de`, or the `AUTOBAHN_BASE_URL` environment variable; the flag wins); a `user:password@` in it is sent as HTTP Basic auth |
 | `--timeout <ms>` | Per-request timeout in ms (default `30000`; `0` disables; at most `2147483647`). A timed-out request is not retried |
 | `--user-agent <ua>` | `User-Agent` header value (default `autobahn-cli/<version> (+https://github.com/maschinenlesbar-org/autobahn-cli)`) |
-| `--max-retries <n>` | Retries for transient `429`/`502`/`503`/`504` responses and reset connections (default `2`, at most `10`; each waits a short linear backoff from 200 ms, a `429` from 1 s, doubling, or longer if the server's `Retry-After` asks (up to 30 s); at `10` the waits can add up to 3–5 min, which `--timeout` does not bound) |
+| `--max-retries <n>` | Retries for transient `429`/`502`/`503`/`504` responses and reset connections (default `2`, at most `10`; each waits a short linear backoff from 200 ms, a `429` from 1 s, doubling, or longer if the server's `Retry-After` asks (up to 30 s); at `10` the waits can add up to 3–5 min, which `--timeout` does not bound). Each retry logs one WARN record of `autobahn.http` before it waits (`HTTP 503 from host: retry 1 of 3 in 2 s`). |
 | `--max-response-bytes <n>` | Cap response body size in bytes (`0` = unlimited; default 100 MiB) |
 
 A base URL on plain `http:` to a host other than loopback (`localhost`, `127.0.0.0/8`,
