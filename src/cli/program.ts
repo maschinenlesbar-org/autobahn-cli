@@ -14,7 +14,7 @@ import { VERSION } from "../client/version.js";
 import { parseBaseUrl, parseBoundedInt, parseHeaderValue } from "./shared.js";
 import { registerRoadsCommand } from "./commands/roads.js";
 import { registerServiceCommands } from "./commands/services.js";
-import { DEFAULT_LOG_FORMAT, logFormatProblem } from "./log.js";
+import { DEFAULT_LOG_FORMAT, logFormatProblem, type LogFormat } from "./log.js";
 
 export { VERSION } from "../client/version.js";
 
@@ -85,6 +85,15 @@ export function buildProgram(deps: CliDeps = defaultDeps): Command {
 
   // Command is an EventEmitter at runtime; commander's typings only expose on().
   program.on("option:v", () => (program as unknown as EventEmitter).emit("option:version"));
+
+  // One source for the log format once commander has parsed argv: its value, not the
+  // scan of argv (an option's value can look like --log-format; `--` ends the scan, not
+  // commander's parse of a value). Registered first, so it precedes every other
+  // preAction check (the base URL's below).
+  program.hook("preAction", (_program, actionCommand) => {
+    const format = (actionCommand.optsWithGlobals() as { logFormat?: LogFormat }).logFormat;
+    if (deps.log !== undefined) deps.log.format = format ?? DEFAULT_LOG_FORMAT;
+  });
 
   // commander runs value parsers on flags but not on defaults, so a base URL taken from
   // AUTOBAHN_BASE_URL is checked here, before any command runs (a usage error, exit 2).

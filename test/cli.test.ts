@@ -821,3 +821,16 @@ test("an a:b@c argument (here a User-Agent) is neither a credential in the log n
   assert.deepEqual(credentialsIn("run:2026-10-09@x"), []);
   assert.deepEqual(credentialsIn("https://alice:pw@host"), ["alice:pw"]);
 });
+
+test("the log format is the one commander parsed, before the base-URL check and in a parse error (L6)", async () => {
+  // commander takes "--" as the User-Agent and parses --log-format jsonl; the
+  // AUTOBAHN_BASE_URL check (a preAction hook) then logs in jsonl.
+  const env = makeCli(() => jsonResponse({ roads: ["A1"] }));
+  env.deps.env = { AUTOBAHN_BASE_URL: "ftp://mirror.example" };
+  assert.equal(await run(["--user-agent", "--", "--log-format", "jsonl", "roads"], env.deps), 2);
+  assert.equal((JSON.parse(env.err[0] ?? "") as { topic: string }).topic, "autobahn.cli", env.err.join("\n"));
+  // commander takes "--log-format" as the User-Agent: "jsonl" is an unknown command, logged in text.
+  const ua = makeCli(() => jsonResponse({ roads: ["A1"] }));
+  assert.equal(await run(["--user-agent", "--log-format", "jsonl", "roads"], ua.deps), 2);
+  assert.match(ua.err[0] ?? "", /^ERROR \[autobahn\.cli\] unknown command 'jsonl'/, ua.err.join("\n"));
+});

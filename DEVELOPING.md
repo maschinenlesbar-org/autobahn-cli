@@ -354,7 +354,10 @@ checks — the `(run "… --help" for usage)` pointer after them as `INFO`, othe
 unexpected ones), `api` (the API's answers: an HTTP error, an unknown road id or
 identifier) and `http` (network errors, the cleartext warning). Code logs through
 `logOf(deps)` and never writes diagnostics with `io.err` directly. `run()` builds the
-logger from argv before commander parses it, with the run's redaction
+logger from argv before commander parses it (`logFormatFromArgv`, which skips the value of
+every option that takes one, as commander does; used only for the records of a parse
+error: the program's first `preAction` hook then sets the format commander parsed, so
+`--user-agent --log-format=jsonl` logs text), with the run's redaction
 (`redactionFor`, `withRedactedOutput`), which replaces a secret in the message only,
 before it is escaped, and writes the record to the raw stderr: the frame is never
 touched, and a secret is kept out of the log in either format, also one that holds DEL,

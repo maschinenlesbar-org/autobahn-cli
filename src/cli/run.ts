@@ -95,6 +95,17 @@ export function escapeCommanderError(message: string): string {
   return escapeTerminalText(message.slice(0, hint.index)) + hint[0];
 }
 
+/** The names (long and short) of every option in the tree that requires a value. */
+function valueOptionsOf(command: Command, names: Set<string> = new Set()): Set<string> {
+  for (const option of command.options) {
+    if (!option.required) continue;
+    if (option.long !== undefined) names.add(option.long);
+    if (option.short !== undefined) names.add(option.short);
+  }
+  for (const child of command.commands) valueOptionsOf(child, names);
+  return names;
+}
+
 /**
  * One chunk of commander's stderr output as log records, one per line. Its `error: …`
  * is an ERROR of `cli`, with a following `(Did you mean …?)` line appended to that same
@@ -302,6 +313,10 @@ export async function run(argv: string[], deps: CliDeps = defaultDeps): Promise<
   const program = buildProgram(deps);
   const sink: OutputSink = { out: [], err: [] };
   configureTree(program, sink);
+  // For the records of a parse error: the scan of argv, now knowing which options take
+  // a value, as commander reads them. Once commander has parsed argv, the program's
+  // first preAction hook sets the format it parsed.
+  log.format = logFormatFromArgv(argv, valueOptionsOf(program));
 
   // Flush commander's buffered output. `helpToStdout` routes the buffered writeErr
   // lines to stdout: commander emits no-command help (a bare invocation, a global
