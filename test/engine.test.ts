@@ -781,3 +781,21 @@ test("an unknown charset is quoted at most 500 characters long (L3)", async () =
   const engine = new RequestEngine({ transport: async () => ({ status: 200, headers: { "content-type": `application/json; charset=${charset}` }, body: Buffer.from("{}") }) });
   await assert.rejects(engine.getJson("/o/autobahn/"), (err: Error) => err.message.length < 700 && /^Unsupported response charset "x+…" from /.test(err.message));
 });
+
+test("credentials a server echoes are scrubbed from the error: Basic, user:password, password (L13)", async () => {
+  // Node sends the userinfo's Basic value in UTF-8: "ü" is two bytes there.
+  const basic = Buffer.from("alice:pa ss-pwü", "utf8").toString("base64");
+  const body = JSON.stringify({ detail: `no: Basic ${basic} / alice:pa ss-pwü / pa ss-pwü` });
+  const engine = new RequestEngine({
+    baseUrl: "https://alice:pa%20ss-pw%C3%BC@mirror.example",
+    transport: async () => ({ status: 401, headers: { "content-type": "application/json" }, body: Buffer.from(body) }),
+  });
+  await assert.rejects(engine.getJson("/o/autobahn/"), (err: AutobahnApiError) => {
+    for (const form of [basic, "alice:pa ss-pwü", "pa ss-pwü"]) {
+      assert.ok(!err.message.includes(form), err.message);
+      assert.ok(!err.body.includes(form), err.body);
+    }
+    assert.match(err.message, /no: Basic \*\*\* \/ \*\*\* \/ \*\*\*/);
+    return true;
+  });
+});

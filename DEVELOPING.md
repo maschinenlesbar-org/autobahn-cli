@@ -88,7 +88,12 @@ The reasons never repeat the value. The CLI also redacts on output: `run.ts`
 (`redactionFor`, `withRedactedOutput`) takes the exact userinfo of every argument and of `AUTOBAHN_BASE_URL`
 (`credentialsIn`, exported) and replaces it with `***` in everything it prints — commander's
 usage errors, which echo rejected values, its own messages and the help's defaults — so a
-password with spaces, quotes, `#`, `?` or `/` is caught as well as an ordinary one.
+password with spaces, quotes, `#`, `?` or `/` is caught as well as an ordinary one. The
+forms a server echoes a userinfo back in are replaced too (`echoedCredentialForms`): the
+`Basic` value (UTF-8, as Node sends it) and the decoded `user:password` on stdout and
+stderr, the password alone (4 characters or more) on stderr only, since it may well
+occur in the data. The engine scrubs the same forms from error bodies, details and
+transport text, so `err.message` and `err.body` are clean for library callers too.
 `redactUrl` falls back to the same text-based cut for a value that doesn't parse as a URL. `userAgent` follows
 `headerValueProblem` (exported too), which the CLI's `--user-agent` parser shares; a
 value it rejects throws `AutobahnValidationError` (`Invalid option userAgent: <reason>`).
