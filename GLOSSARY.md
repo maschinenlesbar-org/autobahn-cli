@@ -292,6 +292,14 @@ command, option or argument rejected before any request); `1` any other
 API/network/parse error — including a `404` from the road list or a service listing,
 which never answer `404` to a valid request, so it means a wrong base URL.
 
+**Log record.** Every diagnostic line the CLI writes to stderr: a timestamp, a level
+(`ERROR`, `WARN`, `INFO`) and a topic `autobahn.<area>`, as text (log4j style) or with
+`--log-format jsonl` as one JSON object per line. The areas: `cli` (usage errors,
+commander's messages, unexpected errors), `api` (the API's answers: an error status, an
+unknown road id or identifier, and a malformed answer — bad JSON, the wrong shape, an
+empty body), `http` (the connection, the cleartext warning) and `output` (a failed write
+to stdout). A record is always one line; control characters in it are escaped.
+
 ---
 
 > **Library & internals.** Terms for the TypeScript client and its internals —

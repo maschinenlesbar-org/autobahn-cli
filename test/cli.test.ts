@@ -96,14 +96,15 @@ test("get exits 1 when the API answers about another item", async () => {
   const code = await run(["webcams", "get", "abc"], cli.deps);
   assert.equal(code, 1);
   assert.deepEqual(cli.out, []);
-  assert.match(cli.err.join("\n"), /asked for identifier "abc", got "x"\.$/);
+  assert.match(cli.err.join("\n"), /^ERROR \[autobahn\.api\] .*asked for identifier "abc", got "x"\.$/);
 });
 
 test("a 404 from roads or a list exits 1 (a wrong base URL), not 4", async () => {
   for (const argv of [["roads"], ["roadworks", "list", "A1"]]) {
     const cli = makeCli(() => rawResponse("Cannot GET /x", "text/html", 404));
     assert.equal(await run(argv, cli.deps), 1, argv.join(" "));
-    assert.match(cli.err.join("\n"), /so the base URL is probably wrong\.$/, argv.join(" "));
+    // An answer of the API (an HTTP 404), not a usage error: autobahn.api.
+    assert.match(cli.err.join("\n"), /^ERROR \[autobahn\.api\] HTTP 404 .*so the base URL is probably wrong\.$/, argv.join(" "));
   }
 });
 
@@ -120,7 +121,7 @@ test("a parse error (non-JSON body) maps to exit code 1", async () => {
   const cli = makeCli(() => rawResponse("<html>not json</html>", "text/html"));
   const code = await run(["roads"], cli.deps);
   assert.equal(code, 1);
-  assert.match(cli.err.join("\n"), /^ERROR \[autobahn\.cli\] Failed to parse JSON/);
+  assert.match(cli.err.join("\n"), /^ERROR \[autobahn\.api\] Failed to parse JSON/);
 });
 
 test("an unexpected (non-Autobahn) error maps to exit code 1", async () => {
@@ -554,7 +555,7 @@ test("a 2xx body without the service envelope exits 1 instead of printing []", a
   assert.deepEqual(cli.out, []);
   assert.equal(
     cli.err.join("\n"),
-    "ERROR [autobahn.cli] Unexpected response shape from https://verkehr.autobahn.de/o/autobahn/A1/services/roadworks: expected a JSON object with a roadworks array.",
+    "ERROR [autobahn.api] Unexpected response shape from https://verkehr.autobahn.de/o/autobahn/A1/services/roadworks: expected a JSON object with a roadworks array.",
   );
 });
 
@@ -576,7 +577,7 @@ test("an empty listing whose road-list check fails exits 1 and says the check fa
   assert.deepEqual(cli.out, []);
   assert.equal(
     cli.err.join("\n"),
-    'ERROR [autobahn.cli] Could not check road id "A2" against the API\'s road list (the warning listing was empty): HTTP 500 for GET https://verkehr.autobahn.de/o/autobahn/: boom',
+    'ERROR [autobahn.api] Could not check road id "A2" against the API\'s road list (the warning listing was empty): HTTP 500 for GET https://verkehr.autobahn.de/o/autobahn/: boom',
   );
 });
 
@@ -610,7 +611,7 @@ test("parse and shape errors name the host that answered, credentials redacted",
   assert.equal(code, 1);
   assert.equal(
     cli.err.join("\n"),
-    'ERROR [autobahn.cli] Failed to parse JSON response from https://***@mirror.example/api/o/autobahn/: expected JSON, got Content-Type "text/html"',
+    'ERROR [autobahn.api] Failed to parse JSON response from https://***@mirror.example/api/o/autobahn/: expected JSON, got Content-Type "text/html"',
   );
 });
 
@@ -629,7 +630,7 @@ test("schema-violating bodies exit 1 with a parse error, not an 'Unexpected erro
   ] as const) {
     const cli = makeCli(() => jsonResponse(body));
     assert.equal(await run([...argv], cli.deps), 1, argv.join(" "));
-    assert.match(cli.err.join("\n"), /^ERROR \[autobahn\.cli\] Unexpected response shape from https:\/\/verkehr\.autobahn\.de\/o\/autobahn\//, argv.join(" "));
+    assert.match(cli.err.join("\n"), /^ERROR \[autobahn\.api\] Unexpected response shape from https:\/\/verkehr\.autobahn\.de\/o\/autobahn\//, argv.join(" "));
   }
 });
 
@@ -678,8 +679,8 @@ test("--user-agent that is blank or has control or non-Latin-1 characters is a u
 test("an empty body is not-found (exit 4) only for get; on roads/list it is a parse error (exit 1)", async () => {
   for (const [argv, code, message] of [
     [["roadworks", "get", "x"], 4, /^ERROR \[autobahn\.api\] Not found: the API answered HTTP 20[04] with an empty body for GET \S+\/o\/autobahn\/details\/roadworks\/x$/],
-    [["roads"], 1, /^ERROR \[autobahn\.cli\] Empty response body from https:\/\/verkehr\.autobahn\.de\/o\/autobahn\/$/],
-    [["roadworks", "list", "A1"], 1, /^ERROR \[autobahn\.cli\] Empty response body from https:\/\/verkehr\.autobahn\.de\/o\/autobahn\/A1\/services\/roadworks$/],
+    [["roads"], 1, /^ERROR \[autobahn\.api\] Empty response body from https:\/\/verkehr\.autobahn\.de\/o\/autobahn\/$/],
+    [["roadworks", "list", "A1"], 1, /^ERROR \[autobahn\.api\] Empty response body from https:\/\/verkehr\.autobahn\.de\/o\/autobahn\/A1\/services\/roadworks$/],
   ] as const) {
     for (const status of [200, 204]) {
       const cli = makeCli(() => rawResponse("", "application/json", status));
@@ -833,4 +834,13 @@ test("the log format is the one commander parsed, before the base-URL check and 
   const ua = makeCli(() => jsonResponse({ roads: ["A1"] }));
   assert.equal(await run(["--user-agent", "--log-format", "jsonl", "roads"], ua.deps), 2);
   assert.match(ua.err[0] ?? "", /^ERROR \[autobahn\.cli\] unknown command 'jsonl'/, ua.err.join("\n"));
+});
+
+test("a failing road-list check is logged under the area of its cause: http for a network error", async () => {
+  const cli = makeCli((req) => {
+    if (new URL(req.url).pathname === "/o/autobahn/") throw Object.assign(new Error("socket hang up"), { code: "ECONNREFUSED" });
+    return jsonResponse({ warning: [] });
+  });
+  assert.equal(await run(["--max-retries", "0", "warnings", "list", "A2"], cli.deps), 1);
+  assert.match(cli.err.join("\n"), /^ERROR \[autobahn\.http\] Could not check road id "A2"/);
 });

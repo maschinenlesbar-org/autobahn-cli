@@ -313,6 +313,15 @@ abgelehnt); `1` bei jedem anderen API-, Netzwerk- oder Parse-Fehler – auch bei
 einem `404` der Autobahnliste oder einer Dienstliste, die auf eine gültige Anfrage nie
 `404` antworten; er bedeutet eine falsche Basis-URL.
 
+**Log-Eintrag (log record).** Jede Diagnosezeile, die die CLI nach stderr schreibt: ein
+Zeitstempel, eine Stufe (`ERROR`, `WARN`, `INFO`) und ein Thema `autobahn.<Bereich>`, als
+Text (im Stil von log4j) oder mit `--log-format jsonl` als ein JSON-Objekt pro Zeile. Die
+Bereiche: `cli` (Bedienfehler, Meldungen von commander, unerwartete Fehler), `api` (die
+Antworten der API: ein Fehlerstatus, eine unbekannte Autobahn-Kennung oder Kennung und eine
+fehlerhafte Antwort — ungültiges JSON, die falsche Form, ein leerer Body), `http` (die
+Verbindung, die Klartext-Warnung) und `output` (ein Schreibfehler auf stdout). Ein Eintrag
+ist immer eine Zeile; Steuerzeichen darin werden maskiert.
+
 ---
 
 > **Bibliothek & Interna.** Begriffe zum TypeScript-Client und seinen Interna –

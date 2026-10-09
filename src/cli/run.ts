@@ -307,6 +307,21 @@ export function withRedactedOutput(deps: CliDeps, argv: readonly string[]): CliD
 }
 
 /**
+ * The log area of an `AutobahnError` that is neither an API error, a not-found nor a
+ * usage error: the connection (`http`), else the API's answer (`api`). That covers a
+ * malformed answer (`AutobahnParseError`: bad JSON, the wrong shape or content type, an
+ * empty body, an unknown charset, a detail about another identifier) and the client's
+ * own errors about an answer: a listing that answered 404 (a wrong base URL) and a
+ * failed road-list check, which take the area of their cause (`http` when the road
+ * list could not be fetched at all).
+ */
+function areaOf(err: AutobahnError): string {
+  if (err instanceof AutobahnNetworkError) return "http";
+  if (err.cause instanceof AutobahnError) return areaOf(err.cause);
+  return "api";
+}
+
+/**
  * The log for what happens outside `run()`, in the bin shim: a stdout write error
  * (`handleOutputErrors`). Its format is the one argv asks for (`logFormatFromArgv`), and
  * it replaces the secrets of argv and AUTOBAHN_BASE_URL like the run's own log; it
@@ -427,7 +442,7 @@ export async function run(argv: string[], deps: CliDeps = defaultDeps): Promise<
       return 4;
     }
     if (err instanceof AutobahnError) {
-      log.error(err instanceof AutobahnNetworkError ? "http" : "cli", err.message);
+      log.error(areaOf(err), err.message);
       return 1;
     }
     log.error("cli", `Unexpected error: ${err instanceof Error ? err.message : String(err)}`);

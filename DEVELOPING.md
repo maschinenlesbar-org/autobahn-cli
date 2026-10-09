@@ -352,7 +352,10 @@ the source too, at `MAX_MESSAGE_VALUE_LENGTH` (500, `cutForMessage`, `quoteValue
 library caller's `err.message` is bounded as well. The areas are `cli` (usage errors — commander's and the CLI's own pre-parse
 checks — the `(run "… --help" for usage)` pointer after them as `INFO`, other errors and
 unexpected ones), `api` (the API's answers: an HTTP error, an unknown road id or
-identifier), `http` (network errors, the cleartext warning) and `output` (a failed write
+identifier, and a malformed answer — an `AutobahnParseError`: bad JSON, the wrong shape or
+content type, an empty body, a detail about another identifier — as well as a listing
+that answered 404 and a failed road-list check, which take the area of their cause:
+`areaOf` in `run.ts`), `http` (network errors, the cleartext warning) and `output` (a failed write
 to stdout). Code logs through
 `logOf(deps)` and never writes diagnostics with `io.err` directly. `run()` builds the
 logger from argv before commander parses it (`logFormatFromArgv`, which skips the value of
