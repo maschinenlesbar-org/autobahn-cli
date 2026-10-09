@@ -751,7 +751,7 @@ function decodeBody(body: Buffer, contentType: string, url: string): string {
   try {
     decoder = new TextDecoder(charset);
   } catch {
-    throw new AutobahnParseError(`Unsupported response charset "${sanitizeServerText(charset)}" from ${url}.`);
+    throw new AutobahnParseError(`Unsupported response charset "${cutForMessage(sanitizeServerText(charset))}" from ${url}.`);
   }
   return decoder.decode(body);
 }

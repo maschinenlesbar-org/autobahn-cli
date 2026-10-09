@@ -13,7 +13,9 @@ import {
   AutobahnNotFoundError,
   AutobahnValidationError,
   credentialsIn,
+  cutForMessage,
   redactCredentials,
+  redactUrl,
 } from "../client/errors.js";
 
 interface OutputSink {
@@ -255,7 +257,7 @@ export async function run(argv: string[], deps: CliDeps = defaultDeps): Promise<
   // which doesn't say why; `--timeout=…` works, so say that this flag takes no value.
   if (scan.valueOnBooleanFlag !== undefined) {
     const name = scan.valueOnBooleanFlag.slice(0, scan.valueOnBooleanFlag.indexOf("="));
-    log.error("cli", `option '${name}' takes no value (got '${escapeTerminalText(scan.valueOnBooleanFlag)}')`);
+    log.error("cli", `option '${name}' takes no value (got '${escapeTerminalText(cutForMessage(redactUrl(scan.valueOnBooleanFlag)))}')`);
     log.info("cli", '(run "autobahn --help" for usage)');
     return USAGE_ERROR;
   }
@@ -265,7 +267,10 @@ export async function run(argv: string[], deps: CliDeps = defaultDeps): Promise<
   if (scan.unknown !== undefined) {
     const { name, parent } = scan.unknown;
     const hint = suggestCommand(name, parent.commands.filter((c) => c.name() !== "help").map((c) => c.name()));
-    log.error("cli", escapeCommanderError(`unknown command '${name}'${hint === undefined ? "" : `\n(Did you mean ${hint}?)`}`));
+    // The name is the user's: cut, after its credentials are redacted (a cut could
+    // otherwise leave part of a password without the "@" the redaction keys on).
+    const shown = cutForMessage(redactUrl(name));
+    log.error("cli", escapeCommanderError(`unknown command '${shown}'${hint === undefined ? "" : `\n(Did you mean ${hint}?)`}`));
     log.info("cli", `(run "${commandPath(parent)} --help" for usage)`);
     return USAGE_ERROR;
   }

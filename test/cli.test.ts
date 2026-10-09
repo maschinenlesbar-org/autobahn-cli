@@ -802,3 +802,14 @@ test("U+2028 and U+2029 never reach a record raw: typed (an unknown command) or 
     assert.match(served.err.join("\n"), /did you mean \\?"A\\+u2028\\+u2029 1\\?"/, format);
   }
 });
+
+test("the CLI's own usage errors quote a typed value at most 500 characters long (L3)", async () => {
+  const long = "x".repeat(5000);
+  for (const argv of [[`--compact=${long}`, "roads"], [long, "list", "A1"]]) {
+    const cli = makeCli(() => jsonResponse({}));
+    assert.equal(await run(argv, cli.deps), 2);
+    const record = cli.err[0] ?? "";
+    assert.ok(record.length < 700, `${record.length}`);
+    assert.match(record, /x…'/);
+  }
+});

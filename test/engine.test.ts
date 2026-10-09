@@ -775,3 +775,9 @@ test("a server detail, a quoted value and a long URL cut at 500 characters keep 
   assert.match(quoted, /…$/);
   assert.doesNotMatch(quoted, /\\ud83d"/);
 });
+
+test("an unknown charset is quoted at most 500 characters long (L3)", async () => {
+  const charset = "x".repeat(5000);
+  const engine = new RequestEngine({ transport: async () => ({ status: 200, headers: { "content-type": `application/json; charset=${charset}` }, body: Buffer.from("{}") }) });
+  await assert.rejects(engine.getJson("/o/autobahn/"), (err: Error) => err.message.length < 700 && /^Unsupported response charset "x+…" from /.test(err.message));
+});

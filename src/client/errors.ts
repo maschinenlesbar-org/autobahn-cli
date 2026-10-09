@@ -69,7 +69,10 @@ export function redactCredentials(text: string, credentials: readonly string[]):
 /**
  * Longest URL or echoed value (in characters) an error message shows, like the 500
  * characters kept of a server `detail`. A 20 000-character road id would otherwise put a
- * 20 KB URL on one stderr line. The error's `url` property keeps the full value.
+ * 20 KB URL on one stderr line. The error's `url` property keeps the full value. Every
+ * value an own message quotes from a server answer or the user's input (a road id, an
+ * identifier, a charset, a Content-Type, a redirect target) is cut at this length, so a
+ * library caller's `err.message` stays bounded.
  */
 export const MAX_MESSAGE_VALUE_LENGTH = 500;
 

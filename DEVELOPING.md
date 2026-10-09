@@ -337,8 +337,11 @@ the message (text) or the whole JSON object (jsonl), which writes CR and LF as `
 every other C0 control but TAB, DEL and C1 as `\u00XX`, and U+2028, U+2029 and the bidi
 controls as `\uXXXX`, so no text that reaches a record, by whatever path, can split it,
 forge another one or steer the terminal. Before that a lone surrogate (half a
-character, which jq rejects, stopping the whole stream) becomes U+FFFD (`toWellFormed`).
-The areas are `cli` (usage errors — commander's and the CLI's own pre-parse
+character, which jq rejects, stopping the whole stream) becomes U+FFFD (`toWellFormed`),
+and a message longer than `MAX_RECORD_MESSAGE` (4000 characters, exported) is cut at a
+code point and ends in `… (N more characters)`. Own messages cut a value they quote at
+the source too, at `MAX_MESSAGE_VALUE_LENGTH` (500, `cutForMessage`, `quoteValue`), so a
+library caller's `err.message` is bounded as well. The areas are `cli` (usage errors — commander's and the CLI's own pre-parse
 checks — the `(run "… --help" for usage)` pointer after them as `INFO`, other errors and
 unexpected ones), `api` (the API's answers: an HTTP error, an unknown road id or
 identifier) and `http` (network errors, the cleartext warning). Code logs through
