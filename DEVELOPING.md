@@ -352,7 +352,8 @@ the source too, at `MAX_MESSAGE_VALUE_LENGTH` (500, `cutForMessage`, `quoteValue
 library caller's `err.message` is bounded as well. The areas are `cli` (usage errors — commander's and the CLI's own pre-parse
 checks — the `(run "… --help" for usage)` pointer after them as `INFO`, other errors and
 unexpected ones), `api` (the API's answers: an HTTP error, an unknown road id or
-identifier) and `http` (network errors, the cleartext warning). Code logs through
+identifier), `http` (network errors, the cleartext warning) and `output` (a failed write
+to stdout). Code logs through
 `logOf(deps)` and never writes diagnostics with `io.err` directly. `run()` builds the
 logger from argv before commander parses it (`logFormatFromArgv`, which skips the value of
 every option that takes one, as commander does; used only for the records of a parse
@@ -368,7 +369,9 @@ commander's `error: …` an `ERROR` record of `autobahn.cli`, with a `(Did you m
 line joined to it, and anything else (the `(run "… --help" for usage)` pointer) an
 `INFO` record per non-blank line. A bare command group shows its help on stdout and
 exits 0, so there is no failed run without an `ERROR` record. `CliDeps.now` makes the timestamps
-testable. stdout carries data only. Only the bin shim's `Output error: …` line
-(`handleOutputErrors`, a failed write to stdout) stays a plain line: it is written
-straight to `process.stderr`, outside `run()`. Conformance test P23 checks all of this,
-and its body is shared across the *-cli repos.
+testable. stdout carries data only. A failed write to stdout other than a closed pipe
+(EPIPE/ENOTCONN, which exits 0 quietly) is an `ERROR` record of `autobahn.output`
+(`Could not write to stdout: …`) and exits 1: the bin shim's `handleOutputErrors` logs it
+outside `run()`, through `processLogger(argv)`, in the format argv asks for and with the
+run's redaction. Conformance test P23 checks all of this, and its body is shared across
+the *-cli repos.
