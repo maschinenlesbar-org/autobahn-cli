@@ -85,7 +85,7 @@ CLI's `--base-url` parser applies the same function, and its default is
 exported). Only an omitted (`undefined`) `baseUrl` or `userAgent` selects the
 default; an empty string is rejected like `"  "`, as the CLI rejects `--base-url ""`.
 The reasons never repeat the value. The CLI also redacts on output: `run.ts`
-(`withRedactedOutput`) takes the exact userinfo of every argument and of `AUTOBAHN_BASE_URL`
+(`redactionFor`, `withRedactedOutput`) takes the exact userinfo of every argument and of `AUTOBAHN_BASE_URL`
 (`credentialsIn`, exported) and replaces it with `***` in everything it prints — commander's
 usage errors, which echo rejected values, its own messages and the help's defaults — so a
 password with spaces, quotes, `#`, `?` or `/` is caught as well as an ordinary one.
@@ -346,8 +346,11 @@ checks — the `(run "… --help" for usage)` pointer after them as `INFO`, othe
 unexpected ones), `api` (the API's answers: an HTTP error, an unknown road id or
 identifier) and `http` (network errors, the cleartext warning). Code logs through
 `logOf(deps)` and never writes diagnostics with `io.err` directly. `run()` builds the
-logger from argv before commander parses it, and on top of the redacted `io.err`, so a
-secret is kept out of the log in either format. commander's own output is buffered and
+logger from argv before commander parses it, with the run's redaction
+(`redactionFor`, `withRedactedOutput`), which replaces a secret in the message only,
+before it is escaped, and writes the record to the raw stderr: the frame is never
+touched, and a secret is kept out of the log in either format, also one that holds DEL,
+C1 or bidi characters. commander's own output is buffered and
 flushed once the outcome is known (`flush` in `run.ts`): help shown for a bare command
 goes to stdout as it is, and on stderr commander's `error: …` becomes an `ERROR` record of
 `autobahn.cli` and anything else an `INFO` record. `CliDeps.now` makes the timestamps
