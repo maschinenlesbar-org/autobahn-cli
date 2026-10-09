@@ -368,7 +368,7 @@ test("help suggests the closest command for a typo, like commander does", async 
   ] as const) {
     const cli = makeCli(() => jsonResponse({}));
     assert.equal(await run([...argv], cli.deps), 2, argv.join(" "));
-    assert.equal(cli.err.join("\n").split("\n")[1], hint, argv.join(" "));
+    assert.ok((cli.err[0] ?? "").endsWith(`\\n${hint}`), `${argv.join(" ")}: ${cli.err.join("\n")}`);
   }
   const far = makeCli(() => jsonResponse({}));
   await run(["help", "zzzzzz"], far.deps);
@@ -727,11 +727,11 @@ test("upper-case command names get a suggestion too", async () => {
   ] as const) {
     const cli = makeCli(() => jsonResponse({}));
     assert.equal(await run([...argv], cli.deps), 2, argv.join(" "));
-    assert.equal(cli.err.join("\n").split("\n")[1], hint, argv.join(" "));
+    assert.ok((cli.err[0] ?? "").endsWith(`\\n${hint}`), `${argv.join(" ")}: ${cli.err.join("\n")}`);
   }
 });
 
-test("commander's 'Did you mean' hint stays on its own line", async () => {
+test("commander's 'Did you mean' hint stays in the error's record", async () => {
   for (const [argv, first, hint] of [
     [["roadwork"], "ERROR [autobahn.cli] unknown command 'roadwork'", "(Did you mean roadworks?)"],
     [["--no-compact", "roads"], "ERROR [autobahn.cli] unknown option '--no-compact'", "(Did you mean --compact?)"],
@@ -739,14 +739,13 @@ test("commander's 'Did you mean' hint stays on its own line", async () => {
   ] as const) {
     const cli = makeCli(() => jsonResponse({}));
     assert.equal(await run([...argv], cli.deps), 2, argv.join(" "));
-    const lines = cli.err.join("\n").split("\n");
-    assert.deepEqual(lines.slice(0, 2), [first, hint], argv.join(" "));
-    assert.doesNotMatch(cli.err.join("\n"), /\\u000a/, argv.join(" "));
+    assert.equal(cli.err[0], `${first}\\n${hint}`, argv.join(" "));
+    assert.ok(cli.err.every((record) => !record.includes("\n")), argv.join(" "));
   }
   // A value that mimics the hint is commander-quoted, so it stays escaped.
   const forged = makeCli(() => jsonResponse({}));
   await run(["bogus\n(Did you mean roads?)"], forged.deps);
-  assert.match(forged.err.join("\n"), /^ERROR \[autobahn\.cli\] unknown command 'bogus\\u000a\(Did you mean roads\?\)'/);
+  assert.match(forged.err.join("\n"), /^ERROR \[autobahn\.cli\] unknown command 'bogus\\n\(Did you mean roads\?\)'/);
 });
 
 test("ids echoed in error messages carry no raw control, C1 or bidi characters", async () => {
@@ -756,7 +755,7 @@ test("ids echoed in error messages carry no raw control, C1 or bidi characters",
   const rejected = makeCli(() => jsonResponse({ roadworks: [] }));
   assert.equal(await run(["roadworks", "list", `A1/${RLO}x\nError: forged${ESC}[2J`], rejected.deps), 2);
   const rejectedErr = rejected.err.join("\n");
-  assert.match(rejectedErr, /value 'A1\/\\u202ex\\u000aError: forged\\u001b\[2J' is invalid/);
+  assert.match(rejectedErr, /value 'A1\/\\u202ex\\nError: forged\\u001b\[2J' is invalid/);
   // Accepted, then echoed by the library (an identifier the API answers about another item).
   const unknown = makeCli(() => jsonResponse({ identifier: "x" }));
   assert.equal(await run(["roadworks", "get", `A1${RLO}evil`], unknown.deps), 1);
@@ -784,4 +783,22 @@ test("a rejected --base-url keeps its usage error but not its credentials", asyn
     "ERROR [autobahn.cli] option '--base-url <url>' argument 'ftp://***@h.example' is invalid. " +
       'Unsupported scheme "ftp:". Expected an http(s) URL.',
   );
+});
+
+test("U+2028 and U+2029 never reach a record raw: typed (an unknown command) or from the API (a did-you-mean road id)", async () => {
+  const LS = String.fromCharCode(0x2028);
+  const PS = String.fromCharCode(0x2029);
+  for (const format of ["text", "jsonl"]) {
+    const typed = makeCli(() => jsonResponse({}));
+    assert.equal(await run(["--log-format", format, `road${LS}ERROR forged`], typed.deps), 2);
+    const served = makeCli((req) =>
+      new URL(req.url).pathname.endsWith("/autobahn/") ? jsonResponse({ roads: [`A${LS}${PS} 1`, "A2"] }) : jsonResponse({ roadworks: [] }),
+    );
+    assert.equal(await run(["--log-format", format, "roadworks", "list", "a1"], served.deps), 4);
+    for (const err of [typed.err, served.err]) {
+      assert.ok(err.length > 0, format);
+      for (const record of err) assert.ok(![...record].some((ch) => ch === LS || ch === PS), `${format}: ${JSON.stringify(record)}`);
+    }
+    assert.match(served.err.join("\n"), /did you mean \\?"A\\+u2028\\+u2029 1\\?"/, format);
+  }
 });

@@ -58,16 +58,22 @@ export function redactUserinfo(text: string): string {
 }
 
 /**
- * Escape the characters a terminal acts on in one commander error message: C0 controls
- * (newline included, tab excepted), DEL, C1 and Unicode format characters (bidi
- * overrides, zero-width characters) become `\uXXXX`. Commander repeats a rejected
- * argument raw ("command-argument value '<value>' is invalid"), and a road id can come
- * from a pipeline: a newline in it could forge an `Error:` line, an override reorder
- * the line. The library escapes the values it echoes itself (`quoteValue`).
+ * Escape the characters a terminal acts on in one commander error message: CR and LF
+ * become `\r` and `\n` (as a log record writes them, `escapeForRecord`), the other C0
+ * controls (tab excepted), DEL, C1 and Unicode format characters (bidi overrides,
+ * zero-width characters) `\uXXXX`. Commander repeats a rejected argument raw
+ * ("command-argument value '<value>' is invalid"), and a road id can come from a
+ * pipeline: a newline in it could forge a record, an override reorder the line. The
+ * record escapes these too; this keeps the invisible format characters visible. The
+ * library escapes the values it echoes itself (`quoteValue`).
  */
 export function escapeTerminalText(text: string): string {
   return text.replace(/[\u0000-\u0008\u000a-\u001f\u007f-\u009f]|\p{Cf}/gu, (ch) =>
-    Array.from({ length: ch.length }, (_, i) => `\\u${ch.charCodeAt(i).toString(16).padStart(4, "0")}`).join(""),
+    ch === "\n"
+      ? "\\n"
+      : ch === "\r"
+        ? "\\r"
+        : Array.from({ length: ch.length }, (_, i) => `\\u${ch.charCodeAt(i).toString(16).padStart(4, "0")}`).join(""),
   );
 }
 
@@ -77,7 +83,7 @@ export function escapeTerminalText(text: string): string {
  * That hint is built from this CLI's own command and option names, and it can only
  * end the message: commander quotes the user's value (`unknown command '<value>'`), so
  * a value that contains the same text is followed by its closing quote and stays
- * escaped. Escaping the whole message printed `…'roadwork'\u000a(Did you mean …?)`.
+ * escaped. Escaping the whole message printed `…'roadwork'\n(Did you mean …?)`.
  */
 export function escapeCommanderError(message: string): string {
   const hint = /\n\(Did you mean [^\n]*\?\)$/.exec(message);

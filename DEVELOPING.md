@@ -272,6 +272,8 @@ npm test          # builds, then runs `node --test` over dist/test
 - **`cli.test.ts`** — end-to-end command parsing, rendering, error/exit codes and option flow-through — mocked client.
 - **`parity.test.ts`** — CLI ↔ library parity: the same input through `run()` and through the library must give the same outcome (both reject without a request with the same reason, or both send the same requests).
 - **`io.test.ts`** — the default I/O seam: EPIPE and other stdout/stderr write errors.
+- **`log.test.ts`** — the record helpers of `src/cli/log.ts` on their own
+  (`escapeForRecord`, `formatLogRecord`); the CLI-level checks are P23's.
 - **`types.test.ts`** — compile-time checks of exported library types (e.g. `ServiceResource`).
 - **`conformance-p*.test.ts`** — the checks shared across the `*-cli` repos, the same files
   everywhere with only an adapter block at the top: P1 CLI redaction, P2 library
@@ -329,7 +331,11 @@ Every diagnostic line on stderr is a log record (`src/cli/log.ts`): a timestamp,
 (`ERROR`, `WARN`, `INFO`) and a topic, `autobahn.<area>`. `--log-format text` (the default)
 writes it log4j style, `<ISO 8601 UTC> <LEVEL padded to 5> [<topic>] <message>`;
 `--log-format jsonl` writes one JSON object per line with exactly `ts`, `level`, `topic`
-and `msg`. The areas are `cli` (usage errors — commander's and the CLI's own pre-parse
+and `msg`. A record is always one line: `formatLogRecord` runs `escapeForRecord` over
+the message (text) or the whole JSON object (jsonl), which writes CR and LF as `\r`/`\n`,
+every other C0 control but TAB, DEL and C1 as `\u00XX`, and U+2028, U+2029 and the bidi
+controls as `\uXXXX`, so no text that reaches a record, by whatever path, can split it,
+forge another one or steer the terminal. The areas are `cli` (usage errors — commander's and the CLI's own pre-parse
 checks — the `(run "… --help" for usage)` pointer after them as `INFO`, other errors and
 unexpected ones), `api` (the API's answers: an HTTP error, an unknown road id or
 identifier) and `http` (network errors, the cleartext warning). Code logs through
