@@ -366,12 +366,14 @@ error: the program's first `preAction` hook then sets the format commander parse
 before it is escaped, and writes the record to the raw stderr: the frame is never
 touched, and a secret is kept out of the log in either format, also one that holds DEL,
 C1 or bidi characters. commander's own output is buffered and
-flushed once the outcome is known (`flush` in `run.ts`): help shown for a bare command
+flushed once the outcome is known (`flush` in `run.ts`): help shown for a bare invocation
 goes to stdout as it is, and on stderr it is one record per line (`commanderRecords`):
 commander's `error: …` an `ERROR` record of `autobahn.cli`, with a `(Did you mean …?)`
 line joined to it, and anything else (the `(run "… --help" for usage)` pointer) an
-`INFO` record per non-blank line. A bare command group shows its help on stdout and
-exits 0, so there is no failed run without an `ERROR` record. `CliDeps.now` makes the timestamps
+`INFO` record per non-blank line. A bare `autobahn` with no arguments shows its help on stdout and exits 0; a command group or
+global options without a command log an `ERROR` "missing command: `autobahn roadworks
+<subcommand>`" first, then the help as `INFO` records, and exit 2, so there is no failed run
+without an `ERROR` record. `CliDeps.now` makes the timestamps
 testable. stdout carries data only. A failed write to stdout other than a closed pipe
 (EPIPE/ENOTCONN, which exits 0 quietly) is an `ERROR` record of `autobahn.output`
 (`Could not write to stdout: …`) and exits 1: the bin shim's `handleOutputErrors` logs it

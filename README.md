@@ -174,9 +174,9 @@ autobahn --compact roadworks list A1
 
 | Code | Meaning |
 | --- | --- |
-| `0` | Success — also `--help` / `--version`, and `autobahn` or a command group (`autobahn roadworks`) given without a subcommand, which prints its help |
+| `0` | Success — also `--help` / `--version`, and `autobahn` with no arguments, which prints its help |
 | `4` | Not found — a `get <identifier>` matched no item (an empty answer or `404`), or a `list <roadId>` named a road the API does not know |
-| `2` | Usage error — a command, option or argument the CLI rejects before any request |
+| `2` | Usage error — a command, option or argument the CLI rejects before any request; also a command group (`autobahn roadworks`) or global options without a command (an `ERROR` record, then the help) |
 | `1` | Any other API, network or parse error — including a `404` from `roads` or a `list`, which never answer `404` to a valid request (a wrong `--base-url`) |
 
 A `list` returning zero items for a known road is not an error — it exits `0` with `[]`.

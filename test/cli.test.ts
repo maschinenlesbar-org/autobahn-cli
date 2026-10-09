@@ -285,20 +285,18 @@ test("a bare invocation prints help to stdout (not stderr), exit 0", async () =>
   assert.match(cli.out.join("\n"), /Usage: autobahn/);
 });
 
-test("a global flag with no command prints help to stdout, exit 0", async () => {
-  const cli = makeCli(() => jsonResponse({}));
-  const code = await run(["--compact"], cli.deps);
-  assert.equal(code, 0);
-  assert.equal(cli.err.length, 0);
-  assert.match(cli.out.join("\n"), /Usage: autobahn/);
-});
-
-test("a bare command group prints its help to stdout, exit 0", async () => {
-  const cli = makeCli(() => jsonResponse({}));
-  const code = await run(["roadworks"], cli.deps);
-  assert.equal(code, 0);
-  assert.equal(cli.err.length, 0);
-  assert.match(cli.out.join("\n"), /list|get/);
+test("a global flag with no command, and a bare command group, log an ERROR 'missing command' before the help, exit 2", async () => {
+  for (const [argv, path] of [[["--compact"], "autobahn"], [["roadworks"], "autobahn roadworks"], [["--log-format", "text", "charging"], "autobahn charging"]] as const) {
+    const cli = makeCli(() => jsonResponse({}));
+    assert.equal(await run([...argv], cli.deps), 2, argv.join(" "));
+    const records = cli.err.map(untimed);
+    assert.equal(records[0], `ERROR [autobahn.cli] missing command: \`${path} <subcommand>\``, records.join("\n"));
+    assert.ok(records.length > 2, records.join("\n"));
+    for (const record of records.slice(1)) assert.match(record, /^INFO  \[autobahn\.cli\] .*\S$/);
+    assert.ok(records.some((record) => /\] Usage: autobahn /.test(record)), records.join("\n"));
+    assert.deepEqual(cli.out, []);
+    assert.equal(cli.mt.calls.length, 0);
+  }
 });
 
 test("an unknown command still errors on stderr with exit 2", async () => {

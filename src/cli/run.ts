@@ -23,6 +23,8 @@ import {
 interface OutputSink {
   out: string[];
   err: string[];
+  /** The command that wrote the first line to `err` (the one a missing subcommand is named after). */
+  errFrom?: Command;
 }
 
 /**
@@ -44,7 +46,10 @@ function configureTree(command: Command, sink: OutputSink): void {
   command.showHelpAfterError(`(run "${commandPath(command)} --help" for usage)`);
   command.configureOutput({
     writeOut: (str) => sink.out.push(str.replace(/\n$/, "")),
-    writeErr: (str) => sink.err.push(str.replace(/\n$/, "")),
+    writeErr: (str) => {
+      sink.errFrom ??= command;
+      sink.err.push(str.replace(/\n$/, ""));
+    },
     // The error message alone (help after an error goes through writeErr): escape it,
     // keeping the line break before commander's own "(Did you mean …?)" hint.
     outputError: (str, write) => write(escapeCommanderError(str.replace(/\n$/, ""))),
@@ -355,7 +360,10 @@ export async function run(argv: string[], deps: CliDeps = defaultDeps): Promise<
   // invalid."), so the userinfo of any URL in them is redacted, as the library does.
   // On stderr commander's own messages are log records too, one per line
   // (`commanderRecords`).
-  const flush = (helpToStdout: boolean): void => {
+  const flush = (helpToStdout: boolean, missingCommand = false): void => {
+    // A group or the program run without its command: commander shows its help as an
+    // error with no `error:` line, so the ERROR record comes first.
+    if (missingCommand) log.error("cli", `missing command: \`${commandPath(sink.errFrom ?? program)} <subcommand>\``);
     for (const line of sink.out) deps.io.out(line);
     for (const raw of sink.err) {
       const text = redactUserinfo(raw);
@@ -363,6 +371,12 @@ export async function run(argv: string[], deps: CliDeps = defaultDeps): Promise<
       else commanderRecords(log, text);
     }
   };
+
+  // No arguments at all is a discovery request, not an error: the help on stdout, exit 0.
+  if (argv.length === 0) {
+    deps.io.out(program.helpInformation().replace(/\n$/, ""));
+    return 0;
+  }
 
   // Read argv against the command tree before commander parses it: an unknown command,
   // a version flag after a command, help flags after `help` and a value on a boolean
@@ -412,15 +426,16 @@ export async function run(argv: string[], deps: CliDeps = defaultDeps): Promise<
   } catch (err) {
     if (err instanceof CommanderError) {
       // A help/version display is a success: commander shows the requested text —
-      // help from an explicit `--help` ("commander.helpDisplayed") or from a bare
-      // invocation / global-flag-only / bare command group ("commander.help"), or
-      // the version from `--version` — so we exit 0. Help written for those bare
-      // forms lands on writeErr, so route it to stdout to match `--help`. Every other
-      // commander error is a usage error (unknown command or option, a rejected or
-      // missing argument): exit 2, on stderr.
-      const isHelp =
-        err.code === "commander.help" || err.code === "commander.helpDisplayed";
-      flush(isHelp);
+      // help from an explicit `--help` ("commander.helpDisplayed") or from the `help`
+      // command ("commander.help", exit code 0), or the version from `--version` — so
+      // we exit 0. A group or the program with only global options, run without its
+      // command, is also "commander.help", but with exit code 1: a usage error with an
+      // ERROR record, then the help on stderr as records. Every other commander error
+      // is a usage error too (unknown command or option, a rejected or missing
+      // argument): exit 2, on stderr.
+      const missingCommand = err.code === "commander.help" && err.exitCode !== 0;
+      const isHelp = err.code === "commander.helpDisplayed" || (err.code === "commander.help" && !missingCommand);
+      flush(isHelp, missingCommand);
       return isHelp || err.exitCode === 0 ? 0 : USAGE_ERROR;
     }
     flush(false);
