@@ -134,6 +134,21 @@ autobahn roadworks list A7 | jq '[.[] | select(.future | not)] | length'
 Every command prints **pretty JSON to stdout**. Errors and diagnostics go to
 stderr, so piping stdout into `jq` stays clean.
 
+Each line on stderr is a **log record**: a timestamp (UTC), a level (`ERROR`, `WARN`,
+`INFO`) and a topic, the program and the area it comes from (`autobahn.cli` for usage
+errors, `autobahn.api` for the API's answers — an HTTP error, an unknown road id or
+identifier — and `autobahn.http` for the connection). By default it is written log4j
+style; `--log-format jsonl` writes one JSON object per line instead:
+
+```text
+2026-10-09T14:03:12.481Z WARN  [autobahn.http] requests to mirror.example are sent unencrypted (http:, not https:)
+2026-10-09T14:03:12.902Z ERROR [autobahn.api] Unknown road id "a1": not in the API's road list (did you mean "A1"?).
+```
+
+```bash
+autobahn --log-format jsonl roadworks list a1 2>log.jsonl   # {"ts":"…","level":"ERROR","topic":"autobahn.api","msg":"Unknown road id …"}
+```
+
 ```bash
 # First roadwork title on the A3
 autobahn roadworks list A3 | jq -r '.[0].title'
@@ -174,7 +189,7 @@ A `list` returning zero items for a known road is not an error — it exits `0` 
   that motorway. This is normal and exits `0`. (A road id the API does not know
   exits `4` with `Unknown road id …` instead; ids are case-sensitive — take them
   from `autobahn roads`.)
-- **Exit `2` / `error: …`** — a usage error: the command, an option or an argument
+- **Exit `2` / `ERROR [autobahn.cli] …`** — a usage error: the command, an option or an argument
   was rejected before any request (a typo, a value out of range, a road id with
   characters no road id has). The message says what; `autobahn <command> --help`
   shows the usage. Retrying the same command won't help.
@@ -195,6 +210,7 @@ These apply to every command and may be given **before or after** it:
 | `-V, --version` | Print the version number — before the command only (`-v` works too); after a command it is a usage error |
 | `-h, --help` | Show help for the program or a command |
 | `--compact` | Print JSON on a single line instead of pretty-printed |
+| `--log-format <format>` | How errors, warnings and notes are written to stderr: `text` (default; log4j style, `2026-10-09T14:03:12.481Z WARN  [autobahn.http] …`) or `jsonl` (one JSON object per line: `ts`, `level`, `topic`, `msg`). stdout is not affected |
 | `--base-url <url>` | API base URL (default `https://verkehr.autobahn.de`, or the `AUTOBAHN_BASE_URL` environment variable; the flag wins); a `user:password@` in it is sent as HTTP Basic auth |
 | `--timeout <ms>` | Per-request timeout in ms (default `30000`; `0` disables; at most `2147483647`). A timed-out request is not retried |
 | `--user-agent <ua>` | `User-Agent` header value (default `autobahn-cli/<version> (+https://github.com/maschinenlesbar-org/autobahn-cli)`) |
@@ -202,9 +218,9 @@ These apply to every command and may be given **before or after** it:
 | `--max-response-bytes <n>` | Cap response body size in bytes (`0` = unlimited; default 100 MiB) |
 
 A base URL on plain `http:` to a host other than loopback (`localhost`, `127.0.0.0/8`,
-`::1`) works, but the CLI writes one line to stderr before the first request, e.g.
-`warning: requests to mirror.example are sent unencrypted (http:, not https:)`, or
-`warning: the base URL's credentials are sent unencrypted to mirror.example (http:, not https:)`
+`::1`) works, but the CLI writes one warning record to stderr before the first request, e.g.
+`… WARN  [autobahn.http] requests to mirror.example are sent unencrypted (http:, not https:)`, or
+`… WARN  [autobahn.http] the base URL's credentials are sent unencrypted to mirror.example (http:, not https:)`
 when it carries a `user:password@` (never printed). stdout and the exit code are unchanged.
 
 ## Learn more

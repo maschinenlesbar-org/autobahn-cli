@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import { AutobahnClient } from "../src/client/client.js";
 import { jsonResponse, parity } from "./helpers.js";
 
-/** The reason commander appends to `error: option '...' argument '...' is invalid.` */
+/** The reason commander appends to `option '...' argument '...' is invalid.` (an ERROR record of autobahn.cli) */
 function cliReason(err: string): string | undefined {
   return /is invalid\. (.*)$/m.exec(err)?.[1];
 }

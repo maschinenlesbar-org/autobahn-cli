@@ -174,12 +174,13 @@ Global options may be given **before or after** the command — both
 | `--max-retries <n>` | Retries for transient `429`/`502`/`503`/`504` responses and reset connections (default `2`, at most `10`) |
 | `--max-response-bytes <n>` | Cap response body size in bytes (`0` = unlimited; default 100 MiB) |
 | `--compact` | Print JSON on a single line instead of pretty-printed |
+| `--log-format <format>` | How errors, warnings and notes are written to stderr: `text` (default; log4j style, `2026-10-09T14:03:12.481Z WARN  [autobahn.http] …`) or `jsonl` (one JSON object per line: `ts`, `level`, `topic`, `msg`). stdout is not affected |
 | `-h, --help` | Display help for a command |
 
 A base URL on plain `http:` to a host other than loopback (`localhost`, `127.0.0.0/8`,
-`::1`) works, but the CLI writes one line to stderr before the first request, e.g.
-`warning: requests to mirror.example are sent unencrypted (http:, not https:)`, or
-`warning: the base URL's credentials are sent unencrypted to mirror.example (http:, not https:)`
+`::1`) works, but the CLI writes one warning record to stderr before the first request, e.g.
+`… WARN  [autobahn.http] requests to mirror.example are sent unencrypted (http:, not https:)`, or
+`… WARN  [autobahn.http] the base URL's credentials are sent unencrypted to mirror.example (http:, not https:)`
 when it carries a `user:password@` (never printed). stdout and the exit code are unchanged.
 
 Commands: `roads`, and the six service groups `roadworks`, `webcams`,

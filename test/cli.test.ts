@@ -6,7 +6,7 @@ import type { CliDeps } from "../src/cli/io.js";
 import type { EngineOptions } from "../src/client/engine.js";
 import type { HttpRequest, HttpResponse } from "../src/client/http.js";
 import { AutobahnNetworkError, AutobahnValidationError } from "../src/client/errors.js";
-import { makeMockTransport, jsonResponse, rawResponse } from "./helpers.js";
+import { makeMockTransport, jsonResponse, rawResponse, untimed } from "./helpers.js";
 
 function makeCli(responder: (req: HttpRequest) => HttpResponse | Promise<HttpResponse>) {
   const out: string[] = [];
@@ -16,7 +16,9 @@ function makeCli(responder: (req: HttpRequest) => HttpResponse | Promise<HttpRes
   const deps: CliDeps = {
     io: {
       out: (s) => out.push(s),
-      err: (s) => err.push(s),
+      // Each log record without its timestamp (`ERROR [autobahn.api] …`); the record format
+      // itself is conformance test P23's.
+      err: (s) => err.push(untimed(s)),
     },
     env: {},
     createClient: (opts) => new AutobahnClient({ ...opts, transport: mt.transport }),
@@ -72,7 +74,7 @@ test("a 404 from the API maps to exit code 4", async () => {
   const cli = makeCli(() => jsonResponse({ detail: "missing" }, 404));
   const code = await run(["warnings", "get", "nope"], cli.deps);
   assert.equal(code, 4);
-  assert.match(cli.err.join("\n"), /Error: HTTP 404/);
+  assert.match(cli.err.join("\n"), /^ERROR \[autobahn\.api\] HTTP 404/);
 });
 
 test("an unknown command is a usage error (non-zero, no request)", async () => {
@@ -111,14 +113,14 @@ test("a network error maps to exit code 1", async () => {
   });
   const code = await run(["roads"], cli.deps);
   assert.equal(code, 1);
-  assert.match(cli.err.join("\n"), /^Error: GET https:\/\/verkehr\.autobahn\.de\/o\/autobahn\/ failed: connect ECONNREFUSED$/);
+  assert.match(cli.err.join("\n"), /^ERROR \[autobahn\.http\] GET https:\/\/verkehr\.autobahn\.de\/o\/autobahn\/ failed: connect ECONNREFUSED$/);
 });
 
 test("a parse error (non-JSON body) maps to exit code 1", async () => {
   const cli = makeCli(() => rawResponse("<html>not json</html>", "text/html"));
   const code = await run(["roads"], cli.deps);
   assert.equal(code, 1);
-  assert.match(cli.err.join("\n"), /Error: Failed to parse JSON/);
+  assert.match(cli.err.join("\n"), /^ERROR \[autobahn\.cli\] Failed to parse JSON/);
 });
 
 test("an unexpected (non-Autobahn) error maps to exit code 1", async () => {
@@ -128,7 +130,7 @@ test("an unexpected (non-Autobahn) error maps to exit code 1", async () => {
   };
   const code = await run(["roads"], cli.deps);
   assert.equal(code, 1);
-  assert.match(cli.err.join("\n"), /Unexpected error: kaboom/);
+  assert.match(cli.err.join("\n"), /^ERROR \[autobahn\.cli\] Unexpected error: kaboom/);
 });
 
 test("an error thrown by an injected transport is a network error, not 'Unexpected error'", async () => {
@@ -137,7 +139,7 @@ test("an error thrown by an injected transport is a network error, not 'Unexpect
   });
   const code = await run(["roads"], cli.deps);
   assert.equal(code, 1);
-  assert.equal(cli.err.join("\n"), "Error: GET https://verkehr.autobahn.de/o/autobahn/ failed: kaboom");
+  assert.equal(cli.err.join("\n"), "ERROR [autobahn.http] GET https://verkehr.autobahn.de/o/autobahn/ failed: kaboom");
 });
 
 test("--help exits 0", async () => {
@@ -167,7 +169,7 @@ test("combined short flags are read like separate ones by the -v and unknown-com
     const cli = makeCli(() => jsonResponse({ roads: ["A1"] }));
     assert.equal(await run(argv, cli.deps), 2, argv.join(" "));
     assert.equal(cli.out.length, 0, argv.join(" "));
-    assert.match(cli.err.join("\n"), /^error: the version flag \(-V, --version, or -v\) only works before the command/, argv.join(" "));
+    assert.match(cli.err.join("\n"), /^ERROR \[autobahn\.cli\] the version flag \(-V, --version, or -v\) only works before the command/, argv.join(" "));
   }
   const unknown = makeCli(() => jsonResponse({}));
   assert.equal(await run(["bogus", "-hV"], unknown.deps), 2);
@@ -187,7 +189,7 @@ test("a version flag after a command is a usage error, not the version instead o
     assert.equal(await run(argv, cli.deps), 2, argv.join(" "));
     assert.equal(cli.out.length, 0, argv.join(" "));
     assert.equal(cli.mt.calls.length, 0, argv.join(" "));
-    assert.match(cli.err.join("\n"), /^error: the version flag \(-V, --version, or -v\) only works before the command/, argv.join(" "));
+    assert.match(cli.err.join("\n"), /^ERROR \[autobahn\.cli\] the version flag \(-V, --version, or -v\) only works before the command/, argv.join(" "));
   }
   // Before the command all three print the version.
   for (const argv of [["-v"], ["-v", "roads"], ["-V", "roads"], ["--version", "roads"], ["--version"]]) {
@@ -223,7 +225,7 @@ test("a value given to a flag that takes none is explained", async () => {
     const cli = makeCli(() => jsonResponse({ roads: ["A1"] }));
     assert.equal(await run(argv, cli.deps), 2, argv.join(" "));
     assert.equal(cli.mt.calls.length, 0, argv.join(" "));
-    assert.match(cli.err.join("\n"), /^error: option '--compact' takes no value \(got '--compact=(1|true)'\)/, argv.join(" "));
+    assert.match(cli.err.join("\n"), /^ERROR \[autobahn\.cli\] option '--compact' takes no value \(got '--compact=(1|true)'\)/, argv.join(" "));
   }
   // An option that takes a value still accepts the = form.
   const ok = makeCli(() => jsonResponse({ roads: ["A1"] }));
@@ -386,8 +388,8 @@ test("help walks the whole command path and rejects an unknown name", async () =
     assert.equal(cli.mt.calls.length, 0);
   }
   for (const [argv, message] of [
-    [["help", "roads", "extra"], "error: 'autobahn roads' has no subcommands (got 'extra')"],
-    [["roadworks", "help", "list", "extra"], "error: 'autobahn roadworks list' has no subcommands (got 'extra')"],
+    [["help", "roads", "extra"], "ERROR [autobahn.cli] 'autobahn roads' has no subcommands (got 'extra')"],
+    [["roadworks", "help", "list", "extra"], "ERROR [autobahn.cli] 'autobahn roadworks list' has no subcommands (got 'extra')"],
   ] as const) {
     const cli = makeCli(() => jsonResponse({}));
     assert.equal(await run([...argv], cli.deps), 2, argv.join(" "));
@@ -396,7 +398,7 @@ test("help walks the whole command path and rejects an unknown name", async () =
   for (const argv of [["help", "foo"], ["help", "roadworks", "bogus"], ["roadworks", "help", "bogus"]]) {
     const cli = makeCli(() => jsonResponse({}));
     assert.equal(await run(argv, cli.deps), 2, argv.join(" "));
-    assert.match(cli.err.join("\n"), /^error: unknown command '(foo|bogus)'/, argv.join(" "));
+    assert.match(cli.err.join("\n"), /^ERROR \[autobahn\.cli\] unknown command '(foo|bogus)'/, argv.join(" "));
   }
   const root = makeCli(() => jsonResponse({}));
   await run(["--help"], root.deps);
@@ -413,8 +415,8 @@ test("a usage error is the error plus a one-line pointer to the command's help, 
     assert.equal(await run([...argv], cli.deps), 2, argv.join(" "));
     const lines = cli.err.join("\n").split("\n");
     assert.equal(lines.length, 2, argv.join(" "));
-    assert.match(lines[0]!, /^error: /, argv.join(" "));
-    assert.equal(lines[1], hint, argv.join(" "));
+    assert.match(lines[0]!, /^ERROR \[autobahn\.cli\] /, argv.join(" "));
+    assert.equal(lines[1], `INFO  [autobahn.cli] ${hint}`, argv.join(" "));
   }
 });
 
@@ -449,9 +451,9 @@ test("--timeout accepts up to the largest timer Node supports", async () => {
 
 test("an http: base URL draws a cleartext warning naming any credentials; https: does not", async () => {
   for (const [baseUrl, warning] of [
-    ["http://user:s3cret@mirror.example", "warning: the base URL's credentials are sent unencrypted to mirror.example (http:, not https:)"],
+    ["http://user:s3cret@mirror.example", "WARN  [autobahn.http] the base URL's credentials are sent unencrypted to mirror.example (http:, not https:)"],
     ["https://user:s3cret@mirror.example", undefined],
-    ["http://mirror.example", "warning: requests to mirror.example are sent unencrypted (http:, not https:)"],
+    ["http://mirror.example", "WARN  [autobahn.http] requests to mirror.example are sent unencrypted (http:, not https:)"],
     ["http://user:s3cret@127.0.0.1:9", undefined],
   ] as const) {
     const cli = makeCli(() => jsonResponse({ roads: ["A1"] }));
@@ -471,7 +473,7 @@ test("AUTOBAHN_BASE_URL sets the base URL; --base-url wins; a bad value is a usa
       env,
       createClient: (opts) => new AutobahnClient({ ...opts, transport: mt.transport }),
     });
-    return { code, out: out.join("\n"), err: err.join("\n"), urls: mt.calls.map((c) => c.url) };
+    return { code, out: out.join("\n"), err: untimed(err.join("\n")), urls: mt.calls.map((c) => c.url) };
   };
   const fromEnv = await runWith({ AUTOBAHN_BASE_URL: "https://mirror.example/api" }, ["roads"]);
   assert.equal(fromEnv.code, 0);
@@ -483,7 +485,7 @@ test("AUTOBAHN_BASE_URL sets the base URL; --base-url wins; a bad value is a usa
   const bad = await runWith({ AUTOBAHN_BASE_URL: "ftp://x" }, ["roads"]);
   assert.equal(bad.code, 2);
   assert.deepEqual(bad.urls, []);
-  assert.match(bad.err, /^error: AUTOBAHN_BASE_URL: Unsupported scheme "ftp:"/);
+  assert.match(bad.err, /^ERROR \[autobahn\.cli\] AUTOBAHN_BASE_URL: Unsupported scheme "ftp:"/);
   const help = await runWith({ AUTOBAHN_BASE_URL: "https://user:s3cret@mirror.example" }, ["--help"]);
   assert.match(help.out, /env AUTOBAHN_BASE_URL/);
   assert.doesNotMatch(help.out, /s3cret/);
@@ -533,7 +535,7 @@ test("a road id of .. exits 2 without a request instead of printing another endp
   assert.equal(code, 2);
   assert.equal(cli.mt.calls.length, 0);
   assert.deepEqual(cli.out, []);
-  assert.match(cli.err.join("\n"), /^error: command-argument value '\.\.' is invalid for argument 'roadId'\. "\." and "\.\." are not ids\./);
+  assert.match(cli.err.join("\n"), /^ERROR \[autobahn\.cli\] command-argument value '\.\.' is invalid for argument 'roadId'\. "\." and "\.\." are not ids\./);
 });
 
 test("a road id with / exits 2 without a request instead of printing another road's data", async () => {
@@ -552,7 +554,7 @@ test("a 2xx body without the service envelope exits 1 instead of printing []", a
   assert.deepEqual(cli.out, []);
   assert.equal(
     cli.err.join("\n"),
-    "Error: Unexpected response shape from https://verkehr.autobahn.de/o/autobahn/A1/services/roadworks: expected a JSON object with a roadworks array.",
+    "ERROR [autobahn.cli] Unexpected response shape from https://verkehr.autobahn.de/o/autobahn/A1/services/roadworks: expected a JSON object with a roadworks array.",
   );
 });
 
@@ -563,7 +565,7 @@ test("a mistyped or wrong-case road id exits 4 instead of printing [] (a false a
   const code = await run(["--compact", "warnings", "list", "a1"], cli.deps);
   assert.equal(code, 4);
   assert.deepEqual(cli.out, []);
-  assert.equal(cli.err.join("\n"), 'Error: Unknown road id "a1": not in the API\'s road list (did you mean "A1"?).');
+  assert.equal(cli.err.join("\n"), 'ERROR [autobahn.api] Unknown road id "a1": not in the API\'s road list (did you mean "A1"?).');
 });
 
 test("an empty listing whose road-list check fails exits 1 and says the check failed", async () => {
@@ -574,7 +576,7 @@ test("an empty listing whose road-list check fails exits 1 and says the check fa
   assert.deepEqual(cli.out, []);
   assert.equal(
     cli.err.join("\n"),
-    'Error: Could not check road id "A2" against the API\'s road list (the warning listing was empty): HTTP 500 for GET https://verkehr.autobahn.de/o/autobahn/: boom',
+    'ERROR [autobahn.cli] Could not check road id "A2" against the API\'s road list (the warning listing was empty): HTTP 500 for GET https://verkehr.autobahn.de/o/autobahn/: boom',
   );
 });
 
@@ -608,7 +610,7 @@ test("parse and shape errors name the host that answered, credentials redacted",
   assert.equal(code, 1);
   assert.equal(
     cli.err.join("\n"),
-    'Error: Failed to parse JSON response from https://***@mirror.example/api/o/autobahn/: expected JSON, got Content-Type "text/html"',
+    'ERROR [autobahn.cli] Failed to parse JSON response from https://***@mirror.example/api/o/autobahn/: expected JSON, got Content-Type "text/html"',
   );
 });
 
@@ -627,7 +629,7 @@ test("schema-violating bodies exit 1 with a parse error, not an 'Unexpected erro
   ] as const) {
     const cli = makeCli(() => jsonResponse(body));
     assert.equal(await run([...argv], cli.deps), 1, argv.join(" "));
-    assert.match(cli.err.join("\n"), /^Error: Unexpected response shape from https:\/\/verkehr\.autobahn\.de\/o\/autobahn\//, argv.join(" "));
+    assert.match(cli.err.join("\n"), /^ERROR \[autobahn\.cli\] Unexpected response shape from https:\/\/verkehr\.autobahn\.de\/o\/autobahn\//, argv.join(" "));
   }
 });
 
@@ -638,7 +640,7 @@ test("credentials in --base-url are redacted from error messages", async () => {
   // ...but still sent: the request URL keeps the userinfo (Node turns it into Basic auth).
   assert.equal(cli.mt.last().url, "http://user:s3cret@127.0.0.1:18103/s500/o/autobahn/");
   // A loopback host draws no cleartext warning: nothing leaves the machine.
-  assert.deepEqual(cli.err, ["Error: HTTP 500 for GET http://***@127.0.0.1:18103/s500/o/autobahn/: boom"]);
+  assert.deepEqual(cli.err, ["ERROR [autobahn.api] HTTP 500 for GET http://***@127.0.0.1:18103/s500/o/autobahn/: boom"]);
 });
 
 test("--max-retries is bounded to 0..10", async () => {
@@ -675,9 +677,9 @@ test("--user-agent that is blank or has control or non-Latin-1 characters is a u
 
 test("an empty body is not-found (exit 4) only for get; on roads/list it is a parse error (exit 1)", async () => {
   for (const [argv, code, message] of [
-    [["roadworks", "get", "x"], 4, /^Error: Not found: the API answered HTTP 20[04] with an empty body for GET \S+\/o\/autobahn\/details\/roadworks\/x$/],
-    [["roads"], 1, /^Error: Empty response body from https:\/\/verkehr\.autobahn\.de\/o\/autobahn\/$/],
-    [["roadworks", "list", "A1"], 1, /^Error: Empty response body from https:\/\/verkehr\.autobahn\.de\/o\/autobahn\/A1\/services\/roadworks$/],
+    [["roadworks", "get", "x"], 4, /^ERROR \[autobahn\.api\] Not found: the API answered HTTP 20[04] with an empty body for GET \S+\/o\/autobahn\/details\/roadworks\/x$/],
+    [["roads"], 1, /^ERROR \[autobahn\.cli\] Empty response body from https:\/\/verkehr\.autobahn\.de\/o\/autobahn\/$/],
+    [["roadworks", "list", "A1"], 1, /^ERROR \[autobahn\.cli\] Empty response body from https:\/\/verkehr\.autobahn\.de\/o\/autobahn\/A1\/services\/roadworks$/],
   ] as const) {
     for (const status of [200, 204]) {
       const cli = makeCli(() => rawResponse("", "application/json", status));
@@ -700,7 +702,7 @@ test("bidi formatting characters in server data are escaped in the JSON output",
   }
 });
 
-test("an AutobahnValidationError raised in an action is a usage error: exit 2, 'Error: <message>'", async () => {
+test("an AutobahnValidationError raised in an action is a usage error: exit 2, an ERROR record", async () => {
   const out: string[] = [];
   const err: string[] = [];
   const client = new AutobahnClient({ transport: makeMockTransport(() => jsonResponse({})).transport });
@@ -714,7 +716,7 @@ test("an AutobahnValidationError raised in an action is a usage error: exit 2, '
   });
   assert.equal(code, 2);
   assert.deepEqual(out, []);
-  assert.deepEqual(err, ["Error: Invalid roadId: Expected a non-empty value."]);
+  assert.deepEqual(err.map(untimed), ["ERROR [autobahn.cli] Invalid roadId: Expected a non-empty value."]);
 });
 
 test("upper-case command names get a suggestion too", async () => {
@@ -731,9 +733,9 @@ test("upper-case command names get a suggestion too", async () => {
 
 test("commander's 'Did you mean' hint stays on its own line", async () => {
   for (const [argv, first, hint] of [
-    [["roadwork"], "error: unknown command 'roadwork'", "(Did you mean roadworks?)"],
-    [["--no-compact", "roads"], "error: unknown option '--no-compact'", "(Did you mean --compact?)"],
-    [["roadworks", "lst", "A1"], "error: unknown command 'lst'", "(Did you mean list?)"],
+    [["roadwork"], "ERROR [autobahn.cli] unknown command 'roadwork'", "(Did you mean roadworks?)"],
+    [["--no-compact", "roads"], "ERROR [autobahn.cli] unknown option '--no-compact'", "(Did you mean --compact?)"],
+    [["roadworks", "lst", "A1"], "ERROR [autobahn.cli] unknown command 'lst'", "(Did you mean list?)"],
   ] as const) {
     const cli = makeCli(() => jsonResponse({}));
     assert.equal(await run([...argv], cli.deps), 2, argv.join(" "));
@@ -744,7 +746,7 @@ test("commander's 'Did you mean' hint stays on its own line", async () => {
   // A value that mimics the hint is commander-quoted, so it stays escaped.
   const forged = makeCli(() => jsonResponse({}));
   await run(["bogus\n(Did you mean roads?)"], forged.deps);
-  assert.match(forged.err.join("\n"), /^error: unknown command 'bogus\\u000a\(Did you mean roads\?\)'/);
+  assert.match(forged.err.join("\n"), /^ERROR \[autobahn\.cli\] unknown command 'bogus\\u000a\(Did you mean roads\?\)'/);
 });
 
 test("ids echoed in error messages carry no raw control, C1 or bidi characters", async () => {
@@ -779,7 +781,7 @@ test("a rejected --base-url keeps its usage error but not its credentials", asyn
   assert.equal(cli.mt.calls.length, 0);
   assert.equal(
     cli.err[0],
-    "error: option '--base-url <url>' argument 'ftp://***@h.example' is invalid. " +
+    "ERROR [autobahn.cli] option '--base-url <url>' argument 'ftp://***@h.example' is invalid. " +
       'Unsupported scheme "ftp:". Expected an http(s) URL.',
   );
 });

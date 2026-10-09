@@ -4,10 +4,12 @@
 
 import { CommanderError, type Command } from "commander";
 import { buildProgram, commandPath, defaultDeps, suggestCommand } from "./program.js";
-import type { CliDeps } from "./io.js";
+import { logOf, type CliDeps } from "./io.js";
+import { createLogger, logFormatFromArgv } from "./log.js";
 import {
   AutobahnApiError,
   AutobahnError,
+  AutobahnNetworkError,
   AutobahnNotFoundError,
   AutobahnValidationError,
   credentialsIn,
@@ -26,8 +28,8 @@ interface OutputSink {
  *
  * Commander's own output (help, version, parse-error text) is buffered into
  * `sink` so run() can route it *after* it knows the outcome: a help display goes
- * to stdout (matching `--help`), genuine errors to stderr. Action output is
- * written through deps.io directly and never passes through here.
+ * to stdout (matching `--help`), genuine errors to stderr as log records. Action
+ * output is written through deps.io directly and never passes through here.
  */
 function configureTree(command: Command, sink: OutputSink): void {
   command.exitOverride();
@@ -196,6 +198,14 @@ export function withRedactedOutput(deps: CliDeps, argv: readonly string[]): CliD
 
 export async function run(argv: string[], deps: CliDeps = defaultDeps): Promise<number> {
   deps = withRedactedOutput(deps, argv);
+  // Every record goes through the redacted `io.err`, so a secret is kept out of the
+  // log in either format.
+  const redacted = deps;
+  deps = {
+    ...deps,
+    log: createLogger({ format: logFormatFromArgv(argv), write: (line) => redacted.io.err(line), ...(deps.now === undefined ? {} : { now: deps.now }) }),
+  };
+  const log = logOf(deps);
   const program = buildProgram(deps);
   const sink: OutputSink = { out: [], err: [] };
   configureTree(program, sink);
@@ -206,10 +216,18 @@ export async function run(argv: string[], deps: CliDeps = defaultDeps): Promise<
   // to match an explicit `--help` (stdout, exit 0) rather than landing on stderr.
   // Commander's parse errors repeat a rejected argument raw ("argument '<value>' is
   // invalid."), so the userinfo of any URL in them is redacted, as the library does.
+  // On stderr commander's own messages are log records too: its "error: …" an ERROR,
+  // anything else (the "(run … --help for usage)" pointer after it) an INFO.
   const flush = (helpToStdout: boolean): void => {
     for (const line of sink.out) deps.io.out(line);
-    const errSink = helpToStdout ? deps.io.out : deps.io.err;
-    for (const line of sink.err) errSink(redactUserinfo(line));
+    for (const raw of sink.err) {
+      const line = redactUserinfo(raw);
+      if (helpToStdout) deps.io.out(line);
+      // The blank line commander writes between an error and the help it shows after.
+      else if (line === "") continue;
+      else if (line.startsWith("error: ")) log.error("cli", line.slice("error: ".length));
+      else log.info("cli", line);
+    }
   };
 
   // Read argv against the command tree before commander parses it: an unknown command,
@@ -219,19 +237,20 @@ export async function run(argv: string[], deps: CliDeps = defaultDeps): Promise<
   // A version flag after a command would print the version and drop the command
   // silently (and `-v` there is more likely a "verbose" guess): a usage error instead.
   if (scan.versionFlagAfterCommand && !scan.unknownCommand) {
-    deps.io.err(
-      "error: the version flag (-V, --version, or -v) only works before the command " +
+    log.error(
+      "cli",
+      "the version flag (-V, --version, or -v) only works before the command " +
         "(`autobahn --version`); this CLI has no verbose mode",
     );
-    deps.io.err('(run "autobahn --help" for usage)');
+    log.info("cli", '(run "autobahn --help" for usage)');
     return USAGE_ERROR;
   }
   // Commander answers `--compact=1` with "unknown option … (Did you mean --compact?)",
   // which doesn't say why; `--timeout=…` works, so say that this flag takes no value.
   if (scan.valueOnBooleanFlag !== undefined) {
     const name = scan.valueOnBooleanFlag.slice(0, scan.valueOnBooleanFlag.indexOf("="));
-    deps.io.err(`error: option '${name}' takes no value (got '${escapeTerminalText(scan.valueOnBooleanFlag)}')`);
-    deps.io.err('(run "autobahn --help" for usage)');
+    log.error("cli", `option '${name}' takes no value (got '${escapeTerminalText(scan.valueOnBooleanFlag)}')`);
+    log.info("cli", '(run "autobahn --help" for usage)');
     return USAGE_ERROR;
   }
   // An unknown command is reported here rather than by commander: its "Did you mean"
@@ -240,8 +259,8 @@ export async function run(argv: string[], deps: CliDeps = defaultDeps): Promise<
   if (scan.unknown !== undefined) {
     const { name, parent } = scan.unknown;
     const hint = suggestCommand(name, parent.commands.filter((c) => c.name() !== "help").map((c) => c.name()));
-    deps.io.err(escapeCommanderError(`error: unknown command '${name}'${hint === undefined ? "" : `\n(Did you mean ${hint}?)`}`));
-    deps.io.err(`(run "${commandPath(parent)} --help" for usage)`);
+    log.error("cli", escapeCommanderError(`unknown command '${name}'${hint === undefined ? "" : `\n(Did you mean ${hint}?)`}`));
+    log.info("cli", `(run "${commandPath(parent)} --help" for usage)`);
     return USAGE_ERROR;
   }
   // `help <path> --help` asks for the help of <path>, which the help command prints;
@@ -269,7 +288,7 @@ export async function run(argv: string[], deps: CliDeps = defaultDeps): Promise<
     }
     flush(false);
     if (err instanceof AutobahnApiError) {
-      deps.io.err(`Error: ${err.message}`);
+      log.error("api", err.message);
       // Map a few notable statuses to distinct exit codes for scripting.
       if (err.status === 404) return 4;
       return 1;
@@ -277,19 +296,19 @@ export async function run(argv: string[], deps: CliDeps = defaultDeps): Promise<
     if (err instanceof AutobahnValidationError) {
       // An input the library rejected before any request: a usage error, which
       // exits 2 like commander's own parse errors.
-      deps.io.err(`Error: ${err.message}`);
+      log.error("cli", err.message);
       return USAGE_ERROR;
     }
     if (err instanceof AutobahnNotFoundError) {
       // e.g. an unknown road id: not found, like a 404.
-      deps.io.err(`Error: ${err.message}`);
+      log.error("api", err.message);
       return 4;
     }
     if (err instanceof AutobahnError) {
-      deps.io.err(`Error: ${err.message}`);
+      log.error(err instanceof AutobahnNetworkError ? "http" : "cli", err.message);
       return 1;
     }
-    deps.io.err(`Unexpected error: ${err instanceof Error ? err.message : String(err)}`);
+    log.error("cli", `Unexpected error: ${err instanceof Error ? err.message : String(err)}`);
     return 1;
   }
 }

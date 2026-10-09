@@ -28,7 +28,7 @@ answer, not an error. An unknown road id (ids are case-sensitive: `A7`, not `a7`
 with `Unknown road id …` — fix the id rather than reporting "no chargers". Any other
 non-zero exit (`1`: an HTTP error, a timeout, a parse error) means the stations could not
 be fetched: retry once, and if it fails again say the road's stations are unavailable —
-never "no chargers". Exit `2` is a **usage error** (`error: command-argument value 'A1/' is invalid …`) — a bad input, not an upstream failure: fix the command, don't retry it or report the service as unavailable.
+never "no chargers". Exit `2` is a **usage error** (`ERROR [autobahn.cli] command-argument value 'A1/' is invalid …` on stderr) — a bad input, not an upstream failure: fix the command, don't retry it or report the service as unavailable.
 
 ## Step 1 — Resolve the road(s)
 

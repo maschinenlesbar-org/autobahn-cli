@@ -121,7 +121,7 @@ A plain-`http:` base URL gets a warning, not a refusal: `cleartextProblem(baseUr
 and what travels unencrypted — the base URL's credentials when it carries userinfo — or
 `undefined` for `https:`, an unparseable URL and loopback hosts (`localhost`,
 `127.0.0.0/8`, `::1`; nothing leaves the machine). The CLI's `action()` wrapper
-(`shared.ts`, `warnOnCleartext`) prints it once per run as `warning: <sentence>` on stderr
+(`shared.ts`, `warnOnCleartext`) logs it once per run as a `WARN` record of `autobahn.http` on stderr
 for the effective base URL (flag > `AUTOBAHN_BASE_URL` > default), after the options are
 parsed and before the first request; `--help`, `--version` and usage errors never get
 there. (It replaces the CLI-internal `warnOnCleartextCredentials`, which warned only for
@@ -141,7 +141,8 @@ src/
     client.ts    # AutobahnClient — a generic ServiceResource per service group
     version.ts   # VERSION from package.json (the CLI's --version and the default User-Agent)
   cli/
-    io.ts        # injectable I/O seam (stdout/stderr)
+    io.ts        # injectable I/O seam (stdout/stderr), the logger and the clock
+    log.ts       # the stderr log: records with ts, level, topic; --log-format text|jsonl
     shared.ts    # option parsers, global-option resolver, JSON renderer
     commands/    # roads + the six service command groups
     program.ts   # assembles the commander program from injectable deps
@@ -215,7 +216,7 @@ message `Invalid <name>: <reason>`; a method that returns a promise rejects with
 CLI's option and argument parsers call the same `…Problem` functions (`parseId` wraps
 `idProblem` for the `<roadId>`/`<identifier>` arguments), so an input gets the same
 outcome on both sides, and `run.ts` reports an `AutobahnValidationError` raised in an
-action as a usage error (`Error: <message>`, exit `2`, like commander's own parse errors).
+action as a usage error (an `ERROR` record of `autobahn.cli`, exit `2`, like commander's own parse errors).
 
 **Retry / backoff.** Transient `429` (rate-limited), `503` (service
 unavailable) and the gateway errors `502`/`504` are retried automatically with backoff, up to `maxRetries`
@@ -279,7 +280,7 @@ npm test          # builds, then runs `node --test` over dist/test
   shapes and error classes, P20 the stderr warning for a plain-`http:` base URL (its
   other-secret case is skipped: the API takes no key), P21 the README's relative links
   (README.md ships to npmjs.com, so a link to a document the `files` allowlist leaves out
-  must be an absolute GitHub URL). Mock transports or local servers only, never the live
+  must be an absolute GitHub URL), P23 the log records on stderr and `--log-format`. Mock transports or local servers only, never the live
   API.
 - **`package.test.ts`** — the published package: `npm pack --dry-run` must list the library, the bin, `version.js` and the licence documents, and no sources, tests, maps, skills or site.
 
@@ -321,3 +322,24 @@ npm run serve                        # http://127.0.0.1:4000/autobahn-cli/
 Dual-licensed under **[AGPL-3.0-or-later](LICENSE)** or a commercial license — see
 **[LICENSING.md](LICENSING.md)**. This project does **not** accept external code
 contributions; see **[CONTRIBUTING.md](CONTRIBUTING.md)**.
+
+## The log on stderr
+
+Every diagnostic line on stderr is a log record (`src/cli/log.ts`): a timestamp, a level
+(`ERROR`, `WARN`, `INFO`) and a topic, `autobahn.<area>`. `--log-format text` (the default)
+writes it log4j style, `<ISO 8601 UTC> <LEVEL padded to 5> [<topic>] <message>`;
+`--log-format jsonl` writes one JSON object per line with exactly `ts`, `level`, `topic`
+and `msg`. The areas are `cli` (usage errors — commander's and the CLI's own pre-parse
+checks — the `(run "… --help" for usage)` pointer after them as `INFO`, other errors and
+unexpected ones), `api` (the API's answers: an HTTP error, an unknown road id or
+identifier) and `http` (network errors, the cleartext warning). Code logs through
+`logOf(deps)` and never writes diagnostics with `io.err` directly. `run()` builds the
+logger from argv before commander parses it, and on top of the redacted `io.err`, so a
+secret is kept out of the log in either format. commander's own output is buffered and
+flushed once the outcome is known (`flush` in `run.ts`): help shown for a bare command
+goes to stdout as it is, and on stderr commander's `error: …` becomes an `ERROR` record of
+`autobahn.cli` and anything else an `INFO` record. `CliDeps.now` makes the timestamps
+testable. stdout carries data only. Only the bin shim's `Output error: …` line
+(`handleOutputErrors`, a failed write to stdout) stays a plain line: it is written
+straight to `process.stderr`, outside `run()`. Conformance test P23 checks all of this,
+and its body is shared across the *-cli repos.
