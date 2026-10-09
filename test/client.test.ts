@@ -165,6 +165,20 @@ test("an empty listing for a road id the API does not know raises AutobahnNotFou
   }
 });
 
+test("a did-you-mean road id from the API carries its line and paragraph separators escaped", async () => {
+  const LS = String.fromCharCode(0x2028);
+  const PS = String.fromCharCode(0x2029);
+  const mt = makeMockTransport((req) =>
+    new URL(req.url).pathname === "/o/autobahn/" ? jsonResponse({ roads: [`A${LS}${PS} 1`, "A2"] }) : jsonResponse({ warning: [] }),
+  );
+  await assert.rejects(
+    () => clientWith(mt).warnings.list("a1"),
+    (err: unknown) =>
+      err instanceof AutobahnNotFoundError &&
+      err.message === 'Unknown road id "a1": not in the API\'s road list (did you mean "A\\u2028\\u2029 1"?).',
+  );
+});
+
 test("a failing road-list check after an empty listing names the check, not just the road list endpoint", async () => {
   const cases: Array<[unknown, number, (cause: unknown) => boolean, string]> = [
     [{ message: "maintenance" }, 503, (c) => c instanceof AutobahnApiError && c.status === 503, "HTTP 503 for GET https://verkehr.autobahn.de/o/autobahn/: maintenance (after 2 retries)"],
