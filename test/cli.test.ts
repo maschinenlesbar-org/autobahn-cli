@@ -368,7 +368,7 @@ test("help suggests the closest command for a typo, like commander does", async 
   ] as const) {
     const cli = makeCli(() => jsonResponse({}));
     assert.equal(await run([...argv], cli.deps), 2, argv.join(" "));
-    assert.ok((cli.err[0] ?? "").endsWith(`\\n${hint}`), `${argv.join(" ")}: ${cli.err.join("\n")}`);
+    assert.ok((cli.err[0] ?? "").endsWith(`' ${hint}`), `${argv.join(" ")}: ${cli.err.join("\n")}`);
   }
   const far = makeCli(() => jsonResponse({}));
   await run(["help", "zzzzzz"], far.deps);
@@ -727,7 +727,7 @@ test("upper-case command names get a suggestion too", async () => {
   ] as const) {
     const cli = makeCli(() => jsonResponse({}));
     assert.equal(await run([...argv], cli.deps), 2, argv.join(" "));
-    assert.ok((cli.err[0] ?? "").endsWith(`\\n${hint}`), `${argv.join(" ")}: ${cli.err.join("\n")}`);
+    assert.ok((cli.err[0] ?? "").endsWith(`' ${hint}`), `${argv.join(" ")}: ${cli.err.join("\n")}`);
   }
 });
 
@@ -739,7 +739,7 @@ test("commander's 'Did you mean' hint stays in the error's record", async () => 
   ] as const) {
     const cli = makeCli(() => jsonResponse({}));
     assert.equal(await run([...argv], cli.deps), 2, argv.join(" "));
-    assert.equal(cli.err[0], `${first}\\n${hint}`, argv.join(" "));
+    assert.equal(cli.err[0], `${first} ${hint}`, argv.join(" "));
     assert.ok(cli.err.every((record) => !record.includes("\n")), argv.join(" "));
   }
   // A value that mimics the hint is commander-quoted, so it stays escaped.

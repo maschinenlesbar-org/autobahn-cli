@@ -5,7 +5,7 @@
 import { CommanderError, type Command } from "commander";
 import { buildProgram, commandPath, defaultDeps, suggestCommand } from "./program.js";
 import { logOf, type CliDeps } from "./io.js";
-import { createLogger, logFormatFromArgv } from "./log.js";
+import { createLogger, logFormatFromArgv, type Logger } from "./log.js";
 import {
   AutobahnApiError,
   AutobahnError,
@@ -93,6 +93,27 @@ export function escapeCommanderError(message: string): string {
   const hint = /\n\(Did you mean [^\n]*\?\)$/.exec(message);
   if (hint === null) return escapeTerminalText(message);
   return escapeTerminalText(message.slice(0, hint.index)) + hint[0];
+}
+
+/**
+ * One chunk of commander's stderr output as log records, one per line. Its `error: …`
+ * is an ERROR of `cli`, with a following `(Did you mean …?)` line appended to that same
+ * record; anything else (the `(run "… --help" for usage)` pointer after an error) is one
+ * INFO record per non-blank line. The blank line commander writes between an error and
+ * what follows is dropped.
+ */
+function commanderRecords(log: Logger, text: string): void {
+  if (text.trim() === "") return;
+  if (text.startsWith("error: ")) {
+    log.error("cli", joinHint(text.slice("error: ".length)));
+    return;
+  }
+  for (const line of text.split("\n")) if (line.trim() !== "") log.info("cli", line.trimEnd());
+}
+
+/** `message` with a final `\n(Did you mean …?)` line joined to it by a space: one record. */
+function joinHint(message: string): string {
+  return message.replace(/\n(\(Did you mean [^\n]*\?\))$/, " $1");
 }
 
 /** Flags that make commander print something and exit 0: help, and the version (`-v` is its alias). */
@@ -288,17 +309,14 @@ export async function run(argv: string[], deps: CliDeps = defaultDeps): Promise<
   // to match an explicit `--help` (stdout, exit 0) rather than landing on stderr.
   // Commander's parse errors repeat a rejected argument raw ("argument '<value>' is
   // invalid."), so the userinfo of any URL in them is redacted, as the library does.
-  // On stderr commander's own messages are log records too: its "error: …" an ERROR,
-  // anything else (the "(run … --help for usage)" pointer after it) an INFO.
+  // On stderr commander's own messages are log records too, one per line
+  // (`commanderRecords`).
   const flush = (helpToStdout: boolean): void => {
     for (const line of sink.out) deps.io.out(line);
     for (const raw of sink.err) {
-      const line = redactUserinfo(raw);
-      if (helpToStdout) deps.io.out(line);
-      // The blank line commander writes between an error and the help it shows after.
-      else if (line === "") continue;
-      else if (line.startsWith("error: ")) log.error("cli", line.slice("error: ".length));
-      else log.info("cli", line);
+      const text = redactUserinfo(raw);
+      if (helpToStdout) deps.io.out(text);
+      else commanderRecords(log, text);
     }
   };
 
@@ -334,7 +352,7 @@ export async function run(argv: string[], deps: CliDeps = defaultDeps): Promise<
     // The name is the user's: cut, after its credentials are redacted (a cut could
     // otherwise leave part of a password without the "@" the redaction keys on).
     const shown = cutForMessage(redactUrl(name));
-    log.error("cli", escapeCommanderError(`unknown command '${shown}'${hint === undefined ? "" : `\n(Did you mean ${hint}?)`}`));
+    log.error("cli", joinHint(escapeCommanderError(`unknown command '${shown}'${hint === undefined ? "" : `\n(Did you mean ${hint}?)`}`)));
     log.info("cli", `(run "${commandPath(parent)} --help" for usage)`);
     return USAGE_ERROR;
   }

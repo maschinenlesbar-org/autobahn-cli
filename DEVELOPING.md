@@ -360,8 +360,11 @@ before it is escaped, and writes the record to the raw stderr: the frame is neve
 touched, and a secret is kept out of the log in either format, also one that holds DEL,
 C1 or bidi characters. commander's own output is buffered and
 flushed once the outcome is known (`flush` in `run.ts`): help shown for a bare command
-goes to stdout as it is, and on stderr commander's `error: …` becomes an `ERROR` record of
-`autobahn.cli` and anything else an `INFO` record. `CliDeps.now` makes the timestamps
+goes to stdout as it is, and on stderr it is one record per line (`commanderRecords`):
+commander's `error: …` an `ERROR` record of `autobahn.cli`, with a `(Did you mean …?)`
+line joined to it, and anything else (the `(run "… --help" for usage)` pointer) an
+`INFO` record per non-blank line. A bare command group shows its help on stdout and
+exits 0, so there is no failed run without an `ERROR` record. `CliDeps.now` makes the timestamps
 testable. stdout carries data only. Only the bin shim's `Output error: …` line
 (`handleOutputErrors`, a failed write to stdout) stays a plain line: it is written
 straight to `process.stderr`, outside `run()`. Conformance test P23 checks all of this,
