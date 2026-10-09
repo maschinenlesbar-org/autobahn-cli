@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { redactUserinfo, run } from "../src/cli/run.js";
+import { redactUserinfo, run, valueOptionsOf } from "../src/cli/run.js";
+import { buildProgram } from "../src/cli/program.js";
 import { AutobahnClient } from "../src/client/client.js";
 import type { CliDeps } from "../src/cli/io.js";
 import type { EngineOptions } from "../src/client/engine.js";
@@ -841,4 +842,21 @@ test("a failing road-list check is logged under the area of its cause: http for 
   });
   assert.equal(await run(["--max-retries", "0", "warnings", "list", "A2"], cli.deps), 1);
   assert.match(cli.err.join("\n"), /^ERROR \[autobahn\.http\] Could not check road id "A2"/);
+});
+
+test("the argv scan for a parse error's log format skips the values of the program's own options only (L6)", () => {
+  // No CLI test can be red here: autobahn has no subcommand option that takes a value, so no
+  // argv tells the program-only scan from the whole-tree one. The set itself is the check.
+  const program = buildProgram(makeCli(() => jsonResponse({})).deps);
+  const own = new Set<string>();
+  for (const option of program.options) {
+    if (!option.required) continue;
+    if (option.long !== undefined) own.add(option.long);
+    if (option.short !== undefined) own.add(option.short);
+  }
+  assert.ok(own.has("--user-agent") && own.has("--base-url"), [...own].join(" "));
+  assert.deepEqual(valueOptionsOf(program), own);
+  // A value option added to a subcommand later must not enter the set.
+  program.commands.find((c) => c.name() === "roads")?.option("--sort-by <field>", "x");
+  assert.deepEqual(valueOptionsOf(program), own);
 });

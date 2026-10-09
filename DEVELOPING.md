@@ -359,7 +359,8 @@ that answered 404 and a failed road-list check, which take the area of their cau
 to stdout). Code logs through
 `logOf(deps)` and never writes diagnostics with `io.err` directly. `run()` builds the
 logger from argv before commander parses it (`logFormatFromArgv`, which skips the value of
-every option that takes one, as commander does; used only for the records of a parse
+one of the program's own value options, as commander does (`valueOptionsOf`: a subcommand's
+value option does not count, since commander takes the program's options out of argv first); used only for the records of a parse
 error: the program's first `preAction` hook then sets the format commander parsed, so
 `--user-agent --log-format=jsonl` logs text), with the run's redaction
 (`redactionFor`, `withRedactedOutput`), which replaces a secret in the message only,

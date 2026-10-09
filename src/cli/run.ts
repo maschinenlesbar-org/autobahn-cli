@@ -100,14 +100,19 @@ export function escapeCommanderError(message: string): string {
   return escapeTerminalText(message.slice(0, hint.index)) + hint[0];
 }
 
-/** The names (long and short) of every option in the tree that requires a value. */
-function valueOptionsOf(command: Command, names: Set<string> = new Set()): Set<string> {
-  for (const option of command.options) {
+/**
+ * The names (long and short) of the program's own options that require a value
+ * (`--user-agent`). Only the program's: commander takes them out of argv wherever they
+ * stand, before a subcommand sees the rest, so a subcommand's value option never
+ * swallows a `--log-format` after it.
+ */
+export function valueOptionsOf(program: Command): Set<string> {
+  const names = new Set<string>();
+  for (const option of program.options) {
     if (!option.required) continue;
     if (option.long !== undefined) names.add(option.long);
     if (option.short !== undefined) names.add(option.short);
   }
-  for (const child of command.commands) valueOptionsOf(child, names);
   return names;
 }
 
@@ -348,7 +353,7 @@ export async function run(argv: string[], deps: CliDeps = defaultDeps): Promise<
   const sink: OutputSink = { out: [], err: [] };
   configureTree(program, sink);
   // For the records of a parse error: the scan of argv, now knowing which options take
-  // a value, as commander reads them. Once commander has parsed argv, the program's
+  // a value (the program's own, as commander reads them). Once commander has parsed argv, the program's
   // first preAction hook sets the format it parsed.
   log.format = logFormatFromArgv(argv, valueOptionsOf(program));
 
