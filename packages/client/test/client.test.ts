@@ -1,0 +1,539 @@
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { AutobahnClient } from "../src/client.js";
+import {
+  AutobahnApiError,
+  AutobahnError,
+  AutobahnNetworkError,
+  AutobahnNotFoundError,
+  AutobahnParseError,
+  AutobahnValidationError,
+} from "../src/errors.js";
+import type { AutobahnServiceItem } from "../src/types.js";
+import { makeMockTransport, jsonResponse, rawResponse, constantJson, echoDetail } from "./helpers.js";
+
+function clientWith(mt: ReturnType<typeof makeMockTransport>): AutobahnClient {
+  return new AutobahnClient({ transport: mt.transport });
+}
+
+test("roads() trims ids, drops blank ones and removes duplicates, keeping the API's order", async () => {
+  // Live on 2026-09-15 the API listed both "A60" and "A60 ".
+  for (const [served, expected] of [
+    [["A6", "A60", "A60 ", " A61", "A61"], ["A6", "A60", "A61"]],
+    [[" A2", "A2", "", " ", "\tA3\n", "A3", "A2"], ["A2", "A3"]],
+    [[], []],
+  ] as const) {
+    const roads = await clientWith(constantJson({ roads: served })).roads();
+    assert.deepEqual(roads, expected, JSON.stringify(served));
+  }
+});
+
+test("roads() unwraps the roads array", async () => {
+  const mt = constantJson({ roads: ["A1", "A2", "A99"] });
+  const roads = await clientWith(mt).roads();
+  assert.deepEqual(roads, ["A1", "A2", "A99"]);
+  assert.equal(new URL(mt.last().url).pathname, "/o/autobahn/");
+});
+
+test("roadworks.list builds the right path and unwraps the envelope", async () => {
+  const mt = constantJson({ roadworks: [{ identifier: "abc", title: "A1 roadwork" }] });
+  const items = await clientWith(mt).roadworks.list("A1");
+  assert.equal(items.length, 1);
+  assert.equal(items[0]?.identifier, "abc");
+  assert.equal(new URL(mt.last().url).pathname, "/o/autobahn/A1/services/roadworks");
+});
+
+test("charging.list uses the electric_charging_station service + key", async () => {
+  const mt = constantJson({ electric_charging_station: [{ identifier: "x" }] });
+  const items = await clientWith(mt).chargingStations.list("A8");
+  assert.equal(items.length, 1);
+  assert.equal(
+    new URL(mt.last().url).pathname,
+    "/o/autobahn/A8/services/electric_charging_station",
+  );
+});
+
+test("warnings.get builds the details path and url-encodes the identifier", async () => {
+  const mt = echoDetail({ title: "x" });
+  await clientWith(mt).warnings.get("a b+c=");
+  assert.equal(
+    new URL(mt.last().url).pathname,
+    "/o/autobahn/details/warning/a%20b%2Bc%3D",
+  );
+});
+
+test("get() trims surrounding whitespace from the identifier, like list() does for road ids", async () => {
+  for (const id of [" DE-BY-000131", "DE-BY-000131 ", "\tDE-BY-000131\n"]) {
+    const mt = constantJson({ identifier: "DE-BY-000131" });
+    await clientWith(mt).parkingLorries.get(id);
+    assert.equal(new URL(mt.last().url).pathname, "/o/autobahn/details/parking_lorry/DE-BY-000131", JSON.stringify(id));
+  }
+});
+
+test("list() items type each coordinate shape the API returns", async () => {
+  // Shapes seen live on 2026-09-15: parking gives a GeoJSON Point and no point
+  // string, warnings give numbers, charging gives strings.
+  const parking = await clientWith(
+    constantJson({
+      parking_lorry: [
+        { identifier: "DE-SL-000031", point: null, coordinate: { type: "Point", coordinates: [6.373376, 49.483848] } },
+      ],
+    }),
+  ).parkingLorries.list("A8");
+  const p = parking[0]?.coordinate;
+  assert.ok(p && "coordinates" in p);
+  assert.deepEqual(p.coordinates, [6.373376, 49.483848]);
+  assert.equal(parking[0]?.point, null);
+
+  const warnings = await clientWith(
+    constantJson({ warning: [{ identifier: "w1", coordinate: { lat: 49.45, long: 6.51 } }] }),
+  ).warnings.list("A8");
+  const w = warnings[0]?.coordinate;
+  assert.ok(w && "lat" in w);
+  assert.equal(w.lat, 49.45);
+
+  const charging = await clientWith(
+    constantJson({ electric_charging_station: [{ identifier: "30388", coordinate: { lat: "54.6", long: "9.44" } }] }),
+  ).chargingStations.list("A7");
+  const c = charging[0]?.coordinate;
+  assert.ok(c && "long" in c);
+  assert.equal(Number(c.long), 9.44);
+});
+
+test("list() items type the warning and roadwork fields the API sends", async () => {
+  // Values as seen live on the A1 on 2026-10-04.
+  const [w] = await clientWith(
+    constantJson({
+      warning: [{
+        identifier: "INRIX--vi-avl.de0",
+        delayTimeValue: "10",
+        abnormalTrafficType: "QUEUING_TRAFFIC",
+        averageSpeed: "25",
+        source: "inrix",
+        startLcPosition: "62",
+        lorryParkingFeatureIcons: [],
+      }],
+    }),
+  ).warnings.list("A1");
+  const delay: string | null | undefined = w?.delayTimeValue;
+  assert.equal(Number(delay), 10);
+  assert.equal(w?.abnormalTrafficType, "QUEUING_TRAFFIC");
+  assert.equal(w?.source, "inrix");
+
+  const [r] = await clientWith(
+    constantJson({
+      roadworks: [{ identifier: "r1", impact: { lower: "Eppelborn", upper: "Saarbrücken", symbols: ["CLOSED"] } }],
+    }),
+  ).roadworks.list("A1");
+  assert.deepEqual(r?.impact?.symbols, ["CLOSED"]);
+});
+
+/** Answers the road list at /o/autobahn/ and `listing` everywhere else. */
+function roadsAnd(listing: unknown, roads: string[] = ["A1", "A2", "A60 ", "A64a"]) {
+  return makeMockTransport((req) =>
+    new URL(req.url).pathname === "/o/autobahn/" ? jsonResponse({ roads }) : jsonResponse(listing),
+  );
+}
+
+test("list() returns an empty envelope array as [] for a known road", async () => {
+  for (const road of ["A2", "A60", " A64a "]) {
+    const mt = roadsAnd({ closure: [] });
+    const items = await clientWith(mt).closures.list(road);
+    assert.deepEqual(items, [], road);
+    // The empty listing is checked against the road list: one extra request.
+    assert.equal(mt.calls.length, 2, road);
+  }
+});
+
+test("an empty listing for a road id the API does not know raises AutobahnNotFoundError, not []", async () => {
+  for (const [road, message] of [
+    ["a1", 'Unknown road id "a1": not in the API\'s road list (did you mean "A1"?).'],
+    ["a64A", 'Unknown road id "a64A": not in the API\'s road list (did you mean "A64a"?).'],
+    ["A 1", 'Unknown road id "A 1": not in the API\'s road list (did you mean "A1"?).'],
+    ["A-1", 'Unknown road id "A-1": not in the API\'s road list (did you mean "A1"?).'],
+    ["A01", 'Unknown road id "A01": not in the API\'s road list (did you mean "A1"?).'],
+    ["A 60", 'Unknown road id "A 60": not in the API\'s road list (did you mean "A60"?).'],
+    ["A999", 'Unknown road id "A999": not in the API\'s road list.'],
+    ["A10", 'Unknown road id "A10": not in the API\'s road list.'],
+  ] as const) {
+    const mt = roadsAnd({ warning: [] });
+    await assert.rejects(
+      () => clientWith(mt).warnings.list(road),
+      (err: unknown) => err instanceof AutobahnNotFoundError && err.message === message,
+      road,
+    );
+  }
+});
+
+test("a did-you-mean road id from the API carries its line and paragraph separators escaped", async () => {
+  const LS = String.fromCharCode(0x2028);
+  const PS = String.fromCharCode(0x2029);
+  const mt = makeMockTransport((req) =>
+    new URL(req.url).pathname === "/o/autobahn/" ? jsonResponse({ roads: [`A${LS}${PS} 1`, "A2"] }) : jsonResponse({ warning: [] }),
+  );
+  await assert.rejects(
+    () => clientWith(mt).warnings.list("a1"),
+    (err: unknown) =>
+      err instanceof AutobahnNotFoundError &&
+      err.message === 'Unknown road id "a1": not in the API\'s road list (did you mean "A\\u2028\\u2029 1"?).',
+  );
+});
+
+test("a failing road-list check after an empty listing names the check, not just the road list endpoint", async () => {
+  const cases: Array<[unknown, number, (cause: unknown) => boolean, string]> = [
+    [{ message: "maintenance" }, 503, (c) => c instanceof AutobahnApiError && c.status === 503, "HTTP 503 for GET https://verkehr.autobahn.de/o/autobahn/: maintenance (after 2 retries)"],
+    [{ roads: ["A1", null] }, 200, (c) => c instanceof AutobahnParseError, "Unexpected response shape from https://verkehr.autobahn.de/o/autobahn/: expected a JSON object with a roads array of strings."],
+  ];
+  for (const [roadsBody, status, isCause, reason] of cases) {
+    const mt = makeMockTransport((req) =>
+      new URL(req.url).pathname === "/o/autobahn/" ? jsonResponse(roadsBody, status) : jsonResponse({ roadworks: [] }),
+    );
+    const client = new AutobahnClient({ transport: mt.transport, sleep: async () => {} });
+    await assert.rejects(
+      () => client.roadworks.list("A1"),
+      (err: unknown) => {
+        assert.ok(err instanceof AutobahnError);
+        assert.equal(err.constructor, AutobahnError); // not a 404/not-found, not the road list's own class
+        assert.equal(
+          err.message,
+          `Could not check road id "A1" against the API's road list (the roadworks listing was empty): ${reason}`,
+        );
+        assert.ok(isCause(err.cause));
+        return true;
+      },
+      String(status),
+    );
+  }
+});
+
+test("a listing item that is not an object with a string identifier raises AutobahnParseError", async () => {
+  for (const item of [null, 5, "x", [], {}, { identifier: 7 }, { identifier: null }]) {
+    await assert.rejects(
+      () => clientWith(constantJson({ roadworks: [{ identifier: "ok" }, item] })).roadworks.list("A1"),
+      (err: unknown) =>
+        err instanceof AutobahnParseError &&
+        err.message ===
+          "Unexpected response shape from https://verkehr.autobahn.de/o/autobahn/A1/services/roadworks: expected every roadworks item to be a JSON object with a string identifier.",
+      JSON.stringify(item),
+    );
+  }
+});
+
+test("an empty road list makes the road check fail (AutobahnError), not report the road unknown", async () => {
+  const mt = roadsAnd({ roadworks: [] }, []);
+  await assert.rejects(() => clientWith(mt).roadworks.list("A1"), (err: unknown) => {
+    assert.ok(err instanceof AutobahnError);
+    assert.ok(!(err instanceof AutobahnNotFoundError));
+    assert.equal(
+      (err as Error).message,
+      'Could not check road id "A1" against the API\'s road list (the roadworks listing was empty): the road list itself is empty.',
+    );
+    return true;
+  });
+});
+
+test("a listing item whose typed field has the wrong type raises AutobahnParseError", async () => {
+  for (const [item, problem] of [
+    [{ identifier: "a", description: "not an array" }, '"description" as an array of strings'],
+    [{ identifier: "a", coordinate: "x" }, '"coordinate" as an object'],
+    [{ identifier: "a", future: "false" }, '"future" as a boolean'],
+    [{ identifier: "a", point: 49.3 }, '"point" as a string or null'],
+  ] as const) {
+    const mt = constantJson({ roadworks: [{ identifier: "ok" }, item] });
+    await assert.rejects(
+      () => clientWith(mt).roadworks.list("A1"),
+      (err: unknown) =>
+        err instanceof AutobahnParseError &&
+        err.message ===
+          `Unexpected response shape from https://verkehr.autobahn.de/o/autobahn/A1/services/roadworks: expected roadworks item 1 to have ${problem}.`,
+      problem,
+    );
+  }
+  // A display-only field of the wrong type is dropped from its item; the listing survives.
+  const cosmetic = constantJson({
+    roadworks: [{ identifier: "a", icon: 123, startLcPosition: 5, title: "t" }, { identifier: "b", icon: "x" }],
+  });
+  assert.deepEqual(await clientWith(cosmetic).roadworks.list("A1"), [{ identifier: "a", title: "t" }, { identifier: "b", icon: "x" }]);
+  // null where null is allowed, and unknown extra fields, pass.
+  const ok = constantJson({ roadworks: [{ identifier: "a", point: null, geometry: null, extra: 1 }] });
+  assert.equal((await clientWith(ok).roadworks.list("A1")).length, 1);
+});
+
+test("a non-empty listing is returned without consulting the road list", async () => {
+  const mt = roadsAnd({ warning: [{ identifier: "w" }] });
+  assert.equal((await clientWith(mt).warnings.list("X9")).length, 1);
+  assert.equal(mt.calls.length, 1);
+});
+
+test("a 2xx body without the expected envelope raises AutobahnParseError, not []", async () => {
+  for (const body of [{}, { closure: "oops", error: "down" }, [1, 2], "hello", null, { closures: [] }]) {
+    await assert.rejects(
+      () => clientWith(constantJson(body)).closures.list("A2"),
+      (err: unknown) =>
+        err instanceof AutobahnParseError &&
+        err.message ===
+          "Unexpected response shape from https://verkehr.autobahn.de/o/autobahn/A2/services/closure: expected a JSON object with a closure array.",
+      JSON.stringify(body),
+    );
+  }
+  for (const body of [{}, { roads: "A1" }, [1, 2], "hello", null, { roads: [null, 5, "A1"] }]) {
+    await assert.rejects(
+      () => clientWith(constantJson(body)).roads(),
+      (err: unknown) =>
+        err instanceof AutobahnParseError &&
+        err.message === "Unexpected response shape from https://verkehr.autobahn.de/o/autobahn/: expected a JSON object with a roads array of strings.",
+      JSON.stringify(body),
+    );
+  }
+});
+
+test("get() turns an empty 2xx body into AutobahnNotFoundError naming the real status", async () => {
+  for (const status of [200, 204]) {
+    const mt = makeMockTransport(() => ({ status, headers: {}, body: Buffer.alloc(0) }));
+    await assert.rejects(() => clientWith(mt).roadworks.get("nope"), (err: unknown) => {
+      assert.ok(err instanceof AutobahnNotFoundError, String(status));
+      assert.ok(!(err instanceof AutobahnApiError), String(status));
+      assert.equal(
+        (err as Error).message,
+        `Not found: the API answered HTTP ${status} with an empty body for GET ` +
+          "https://verkehr.autobahn.de/o/autobahn/details/roadworks/nope",
+      );
+      return true;
+    });
+  }
+});
+
+test("get() rejects an answer about another item instead of returning it as the one asked for", async () => {
+  for (const [served, got] of [
+    [{ identifier: "x" }, '"x"'],
+    [{ title: "no id" }, "none"],
+    [{ identifier: 123 }, "123 (a number)"],
+    [{ identifier: null }, "null"],
+    [{ identifier: ["abc"] }, "an array"],
+  ] as const) {
+    const mt = constantJson(served);
+    await assert.rejects(() => clientWith(mt).roadworks.get("abc"), (err: unknown) => {
+      assert.ok(err instanceof AutobahnParseError);
+      assert.equal(
+        (err as Error).message,
+        `Unexpected response from https://verkehr.autobahn.de/o/autobahn/details/roadworks/abc: asked for identifier "abc", got ${got}.`,
+      );
+      return true;
+    });
+  }
+  const spaced = await clientWith(constantJson({ identifier: "abc ", title: "t" })).roadworks.get("abc");
+  assert.equal(spaced.identifier, "abc "); // accepted, and passed on as sent
+  const echoed = await clientWith(echoDetail({ title: "t" })).roadworks.get(" abc ");
+  assert.deepEqual(echoed, { identifier: "abc", title: "t" });
+});
+
+test("error messages cut a very long URL or road id at 500 characters; err.url keeps it whole", async () => {
+  const long = "A".repeat(20_000);
+  const tooLong = makeMockTransport(() => jsonResponse({ message: "header too large" }, 431));
+  await assert.rejects(() => clientWith(tooLong).roadworks.list(long), (err: unknown) => {
+    assert.ok(err instanceof AutobahnApiError);
+    assert.ok(err.message.length < 700, String(err.message.length));
+    assert.match(err.message, /^HTTP 431 for GET https:\/\/verkehr\.autobahn\.de\/o\/autobahn\/A+…: header too large$/);
+    assert.ok(err.url.endsWith(`${long}/services/roadworks`));
+    return true;
+  });
+  const unknown = roadsAnd({ roadworks: [] });
+  await assert.rejects(() => clientWith(unknown).roadworks.list(long), (err: unknown) => {
+    assert.ok(err instanceof AutobahnNotFoundError);
+    assert.ok(err.message.length < 600, String(err.message.length));
+    // The cut marker sits outside the quotes, so it does not read as part of the id.
+    assert.ok(err.message.startsWith(`Unknown road id "${"A".repeat(500)}"…: `), err.message.slice(0, 40));
+    return true;
+  });
+});
+
+test("a 404 raises AutobahnApiError with status 404", async () => {
+  const mt = makeMockTransport(() => jsonResponse({ detail: "not found" }, 404));
+  await assert.rejects(
+    () => clientWith(mt).roadworks.get("nope"),
+    (err) => err instanceof AutobahnApiError && err.status === 404,
+  );
+});
+
+test("a 404 from the road list or a listing is a base-URL problem (AutobahnError), not not-found", async () => {
+  for (const [label, call] of [
+    ["roads", (c: AutobahnClient) => c.roads()],
+    ["list", (c: AutobahnClient) => c.roadworks.list("A1")],
+  ] as const) {
+    const mt = makeMockTransport(() => rawResponse("Cannot GET /x", "text/html", 404));
+    await assert.rejects(() => call(clientWith(mt)), (err: unknown) => {
+      assert.ok(err instanceof AutobahnError && !(err instanceof AutobahnApiError), label);
+      assert.ok(err.cause instanceof AutobahnApiError && err.cause.status === 404, label);
+      assert.match(err.message, /^HTTP 404 for GET \S+ — the road list and the service listings never answer 404, so the base URL is probably wrong\.$/, label);
+      return true;
+    });
+  }
+});
+
+test("a base URL that already ends in /o/autobahn gets the exact fix in the 404 message", async () => {
+  const mt = makeMockTransport(() => rawResponse("Cannot GET", "text/html", 404));
+  const client = new AutobahnClient({ baseUrl: "https://verkehr.autobahn.de/o/autobahn", transport: mt.transport });
+  await assert.rejects(() => client.roads(), /probably wrong \(it already ends in \/o\/autobahn: drop that part\)\.$/);
+});
+
+test("a client with a file: base URL throws before its custom transport sees a request", () => {
+  const mt = makeMockTransport(() => jsonResponse({}));
+  assert.throws(
+    () => new AutobahnClient({ baseUrl: "file:///etc/passwd", transport: mt.transport }),
+    (err: unknown) => err instanceof AutobahnError && !(err instanceof AutobahnNetworkError),
+  );
+  assert.equal(mt.calls.length, 0);
+});
+
+// ---- Dot segments ----
+
+test("a road id or identifier of . or .. is rejected before any request instead of re-targeting the URL", async () => {
+  for (const [name, call] of [
+    ["roadworks.list ..", (c: AutobahnClient) => c.roadworks.list("..")],
+    ["warnings.list .", (c: AutobahnClient) => c.warnings.list(" . ")],
+    ["roadworks.get ..", (c: AutobahnClient) => c.roadworks.get("..")],
+    ["chargingStations.get .", (c: AutobahnClient) => c.chargingStations.get(".")],
+  ] as const) {
+    const mt = constantJson({ roadworks: [], warning: [] });
+    await assert.rejects(() => call(clientWith(mt)), (err: unknown) => {
+      assert.ok(err instanceof AutobahnValidationError, name);
+      assert.match((err as Error).message, /^Invalid (roadId|identifier): "\." and "\.\." are not ids\.$/, name);
+      return true;
+    });
+    assert.equal(mt.calls.length, 0, name);
+  }
+});
+
+test("a road id with characters no road id has is rejected before any request", async () => {
+  for (const roadId of ["%", "~", "A1;x", "A1 ..", "Ä1"]) {
+    const mt = constantJson({ roadworks: [] });
+    await assert.rejects(() => clientWith(mt).roadworks.list(roadId), (err: unknown) => {
+      assert.ok(err instanceof AutobahnValidationError, roadId);
+      assert.equal((err as Error).message, "Invalid roadId: Not a road id: road ids look like A1 or A64a.", roadId);
+      return true;
+    });
+    assert.equal(mt.calls.length, 0, roadId);
+  }
+  // Spaces, dashes and leading zeros still reach the did-you-mean.
+  const near = roadsAnd({ roadworks: [] }, ["A1"]);
+  await assert.rejects(() => clientWith(near).roadworks.list("A 1"), /did you mean "A1"/);
+});
+
+test("a road id containing / is rejected before any request instead of re-targeting the road", async () => {
+  for (const roadId of ["A1/../A2", "A2/", "/A1", "A1/x"]) {
+    const mt = constantJson({ roadworks: [{ identifier: "a" }] });
+    await assert.rejects(() => clientWith(mt).roadworks.list(roadId), (err: unknown) => {
+      assert.ok(err instanceof AutobahnValidationError, roadId);
+      assert.equal(
+        (err as Error).message,
+        'Invalid roadId: An id cannot contain "/": the API reads it as a path separator.',
+        roadId,
+      );
+      return true;
+    });
+    assert.equal(mt.calls.length, 0, roadId);
+  }
+});
+
+test("an identifier containing / is rejected before any request instead of re-targeting the item", async () => {
+  for (const identifier of ["x/../2026-1.de1", "2026-1.de1/", "a/b"]) {
+    const mt = constantJson({ identifier: "2026-1.de1" });
+    await assert.rejects(() => clientWith(mt).roadworks.get(identifier), (err: unknown) => {
+      assert.ok(err instanceof AutobahnValidationError, identifier);
+      assert.equal(
+        (err as Error).message,
+        'Invalid identifier: An id cannot contain "/": the API reads it as a path separator.',
+        identifier,
+      );
+      return true;
+    });
+    assert.equal(mt.calls.length, 0, identifier);
+  }
+});
+
+test("ids that merely contain dots are still encoded and sent", async () => {
+  const mt = echoDetail();
+  await clientWith(mt).roadworks.get("2026-1.2.3");
+  await clientWith(mt).roadworks.get("...");
+  await clientWith(mt).roadworks.get("%2e%2e");
+  assert.equal(new URL(mt.calls[0]!.url).pathname, "/o/autobahn/details/roadworks/2026-1.2.3");
+  assert.equal(new URL(mt.calls[1]!.url).pathname, "/o/autobahn/details/roadworks/...");
+  assert.equal(new URL(mt.calls[2]!.url).pathname, "/o/autobahn/details/roadworks/%252e%252e");
+});
+
+test("get() raises AutobahnParseError for a 2xx body that is not a JSON object", async () => {
+  for (const body of [null, [1], "x", 5]) {
+    await assert.rejects(
+      () => clientWith(constantJson(body)).parkingLorries.get("DE-SL-000009"),
+      (err: unknown) =>
+        err instanceof AutobahnParseError &&
+        err.message ===
+          "Unexpected response shape from https://verkehr.autobahn.de/o/autobahn/details/parking_lorry/DE-SL-000009: expected a JSON object.",
+      JSON.stringify(body),
+    );
+  }
+});
+
+test("numeric engine options must be integers in range; a bad one throws instead of disabling a limit", () => {
+  const bad: [string, number][] = [
+    ["timeoutMs", -1],
+    ["timeoutMs", Number.NaN],
+    ["timeoutMs", 1.5],
+    ["timeoutMs", 2_147_483_648],
+    ["maxRetries", -1],
+    ["maxRetries", Number.POSITIVE_INFINITY],
+    ["maxRetries", Number.NaN],
+    ["maxRetries", 11],
+    ["retryDelayMs", -1],
+    ["retryDelayMs", 30_001],
+    ["maxResponseBytes", -1],
+    ["maxResponseBytes", 0.5],
+  ];
+  for (const [name, value] of bad) {
+    assert.throws(
+      () => new AutobahnClient({ [name]: value }),
+      (e: unknown) =>
+        e instanceof AutobahnError &&
+        new RegExp(`^Invalid option ${name}: expected an integer from 0 to \\d+, got `).test(e.message),
+      `${name}=${value}`,
+    );
+  }
+  for (const [name, value] of [
+    ["timeoutMs", 0],
+    ["timeoutMs", 2_147_483_647],
+    ["maxRetries", 10],
+    ["retryDelayMs", 0],
+    ["maxResponseBytes", 0],
+  ] as const) {
+    assert.doesNotThrow(() => new AutobahnClient({ [name]: value }), `${name}=${value}`);
+  }
+});
+
+test("every input the library rejects before a request is an AutobahnValidationError", async () => {
+  const mt = constantJson({ roadworks: [] });
+  const client = clientWith(mt);
+  for (const [label, call] of [
+    ["blank roadId", () => client.roadworks.list("  ")],
+    ["non-string roadId", () => client.roadworks.list(42 as unknown as string)],
+    ["blank identifier", () => client.roadworks.get("")],
+    ["dot roadId", () => client.roadworks.list("..")],
+    ["dot identifier", () => client.roadworks.get(".")],
+    ["timeoutMs -1", async () => new AutobahnClient({ timeoutMs: -1 })],
+    ["retryDelayMs 1.5", async () => new AutobahnClient({ retryDelayMs: 1.5 })],
+    ["maxRetries 11", async () => new AutobahnClient({ maxRetries: 11 })],
+    ["maxResponseBytes NaN", async () => new AutobahnClient({ maxResponseBytes: Number.NaN })],
+  ] as const) {
+    await assert.rejects(call, AutobahnValidationError, label);
+  }
+  assert.equal(mt.calls.length, 0);
+});
+
+test("startTimestamp is typed to allow the null that lorry parking returns", async () => {
+  // Live on 2026-09-26: `parking get DE-SL-000009` carried "startTimestamp": null.
+  const items = await clientWith(
+    constantJson({ parking_lorry: [{ identifier: "DE-SL-000009", startTimestamp: null }] }),
+  ).parkingLorries.list("A1");
+  // Compile-time check: this assignment did not type-check while the field was `string`.
+  const item: AutobahnServiceItem = { identifier: "DE-SL-000009", startTimestamp: null };
+  assert.equal(items[0]?.startTimestamp, item.startTimestamp);
+});
