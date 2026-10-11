@@ -20,14 +20,14 @@ The package ships both a CLI (`autobahn`) and a typed API client
 
 ```bash
 npm install
-npm run build        # compiles TypeScript to dist/
+npm run build        # compiles every workspace (tsc -b) to its dist/
 ```
 
 Run the locally built CLI without a global install:
 
 ```bash
-node dist/src/cli/index.js --help
-# or, after `npm link`:
+node apps/cli/dist/src/cli/index.js --help    # or: npm start -- --help
+# or, after `npm link --workspace apps/cli`:
 autobahn --help
 ```
 
@@ -137,9 +137,51 @@ userinfo, loopback included.)
 
 ## Architecture
 
+The repository is an **npm workspace** with two folders: `apps/` holds the programs it
+publishes, `packages/` the libraries they are built from.
+
 ```
-src/
-  client/
+package.json         # private workspace manifest: no version, never packed
+apps/cli/            # @maschinenlesbar.org/autobahn-cli — the published package
+  package.json       # its version, bin, files, bundleDependencies
+  src/index.ts       # library entry: re-exports @maschinenlesbar.org/autobahn-client, + VERSION
+  src/cli/           # the CLI (below)
+  test/              # CLI tests and every conformance-*.test.ts
+packages/client/     # @maschinenlesbar.org/autobahn-client — private, bundled into the CLI
+  src/               # the API client (below)
+  test/              # tests that only touch the client, + the transport helpers
+tools/pack/          # prepack/postpack: bundle the client and commander into the tarball
+tools/bump.mjs       # version bump + commit + tag (npm run bump)
+tsconfig.docs.json   # TypeDoc only: the package entry, with the client read from its sources
+```
+
+- **The client is its own package** so a later MCP app can share it with the CLI. It is
+  never published on its own: `apps/cli`'s `prepack` copies it (and commander) into the
+  app's `node_modules`, and `bundleDependencies` ships it inside the tarball. The library
+  entry re-exports the client's `"."`, so `import { AutobahnClient } from
+  "@maschinenlesbar.org/autobahn-cli"` is unchanged.
+- **The client's exports:** `"."` is the public library surface (`src/index.ts`);
+  `"./internal/*"` maps to any module (`…/autobahn-client/internal/engine`) for what the
+  CLI needs beyond that; `"./test/*"` reaches the client's test helpers from the CLI's
+  tests (not bundled). Only `"."` is part of the library.
+- **Dependencies point one way:** the app depends on the client, the client on nothing
+  in the workspace.
+- **The version lives in `apps/cli/package.json`** and belongs to the CLI: `version.ts` is
+  in `apps/cli/src/cli/`, the library entry exports its `VERSION`, and the CLI sends
+  `autobahn-cli/<version> (+https://github.com/maschinenlesbar-org/autobahn-cli)` as its
+  User-Agent (`USER_AGENT`, handed to the client by `defaultDeps.createClient`). The client
+  has no release version of its own; its `DEFAULT_USER_AGENT`, sent by a library user who
+  sets no `userAgent`, names the project without one. The root has no version; a plain
+  `npm version` at the root is refused. Release with `npm run bump -- <patch|minor|major>`,
+  which bumps the app, commits (the bare version as the message) and tags `vX.Y.Z`.
+- **TypeScript:** `tsconfig.base.json` holds the compiler options; every workspace has a
+  `tsconfig.json` (`src/`) and a `tsconfig.test.json` (`test/`), and the root
+  `tsconfig.json`/`tsconfig.test.json` reference them, built with `tsc -b`.
+
+The client (`packages/client/src/`) and the CLI (`apps/cli/src/`):
+
+```
+packages/client/src/
     types.ts     # response interfaces (typed list items; details as JsonObject)
     query.ts     # dependency-free query-string builder
     http.ts      # the Transport interface + default node:http/https transport
@@ -147,8 +189,9 @@ src/
     errors.ts    # AutobahnError / AutobahnApiError / AutobahnNetworkError / AutobahnParseError / AutobahnValidationError
     validate.ts  # the Problem type + assertValid(): input rules shared by library and CLI
     client.ts    # AutobahnClient — a generic ServiceResource per service group
-    version.ts   # VERSION from package.json (the CLI's --version and the default User-Agent)
-  cli/
+    index.ts     # the client's public surface (the library entry re-exports it)
+apps/cli/src/cli/
+    version.ts   # VERSION from apps/cli/package.json (--version, the library entry) + USER_AGENT
     io.ts        # injectable I/O seam (stdout/stderr), the logger and the clock
     log.ts       # the stderr log: records with ts, level, topic; --log-format text|jsonl
     shared.ts    # option parsers, global-option resolver, JSON renderer
@@ -168,7 +211,7 @@ src/
 
 ### Library / technical terms
 
-**API client.** [`AutobahnClient`](src/client/client.ts) — the typed,
+**API client.** [`AutobahnClient`](packages/client/src/client.ts) — the typed,
 service-grouped wrapper over the API. Usable as a library independently of the
 CLI; defaults to `https://verkehr.autobahn.de`.
 
@@ -178,10 +221,10 @@ CLI; defaults to `https://verkehr.autobahn.de`.
 `.chargingStations`, plus the standalone `client.roads()`.
 
 **Transport.** A single function `(HttpRequest) => Promise<HttpResponse>`
-([`http.ts`](src/client/http.ts)). The default uses Node's built-in
+([`http.ts`](packages/client/src/http.ts)). The default uses Node's built-in
 `http`/`https`; tests inject a mock. This is the only HTTP seam.
 
-**Request engine.** [`RequestEngine`](src/client/engine.ts) — builds URLs,
+**Request engine.** [`RequestEngine`](packages/client/src/engine.ts) — builds URLs,
 serialises queries, applies retry/backoff, decodes JSON responses (by the
 Content-Type charset, UTF-8 by default, a leading BOM dropped) and maps
 errors. Sits between the client's resource methods and the transport.
@@ -189,18 +232,18 @@ errors. Sits between the client's resource methods and the transport.
 **RawResponse.** The low-level result of a request: `{ data: Buffer,
 contentType, status }` — raw bytes plus metadata, before JSON decoding.
 
-**Query-string builder.** [`query.ts`](src/client/query.ts) — a dependency-free
+**Query-string builder.** [`query.ts`](packages/client/src/query.ts) — a dependency-free
 serialiser: omits `undefined`/`null`, repeats keys for arrays (`?id=a&id=b`),
 renders booleans as `"true"`/`"false"`, dates as ISO-8601, and encodes spaces as
 `%20`.
 
 **CliDeps / CliIO.** The dependency-injection seam for the CLI
-([`io.ts`](src/cli/io.ts)): a client factory, an I/O object (`out`/`err`) and the
+([`io.ts`](apps/cli/src/cli/io.ts)): a client factory, an I/O object (`out`/`err`) and the
 environment (`env`, read for `AUTOBAHN_BASE_URL`; tests pass `{}`).
 Lets the whole CLI run in tests with a mocked client and captured output — no
 subprocess.
 
-**Error types.** [`errors.ts`](src/client/errors.ts): `AutobahnApiError`
+**Error types.** [`errors.ts`](packages/client/src/errors.ts): `AutobahnApiError`
 (non-2xx, carries `status`/`detail`/`url`/`body`; `detail` is sanitised and cut at
 500 characters, `body` is the full text; the message also cuts the URL at 500
 characters, `url` keeps it whole; a cut never splits a surrogate pair (`cutText`), so the
@@ -217,7 +260,7 @@ URL with userinfo redacted), all extending
 identifier the detail endpoint answers with an empty body; CLI exit `4`) extends
 `AutobahnError` too — it is not an `AutobahnApiError`.
 
-**Input validation.** [`validate.ts`](src/client/validate.ts): a rule is a pure
+**Input validation.** [`validate.ts`](packages/client/src/validate.ts): a rule is a pure
 `<thing>Problem(value)` function that returns why a value is invalid, or `undefined`.
 The library enforces it with `assertValid(name, value, problem)` before any request,
 which throws `AutobahnValidationError` (extends `AutobahnError`, exported) with the
@@ -276,19 +319,24 @@ parse error. Everywhere else an empty body raises
 ## Testing
 
 ```bash
-npm test          # builds, then runs `node --test` over dist/test
+npm test          # builds, then runs `node --test` over each workspace's dist/test
+npm run coverage  # the same tests in one run, with a coverage report
+node --test apps/cli/dist/test/cli.test.js   # one file, after a build
 ```
+
+The client's tests are in `packages/client/test/` (`query`, `http`, `engine`, `client`,
+`types`), everything that drives the CLI is in `apps/cli/test/`.
 
 - **`query.test.ts`** — query-string serialisation.
 - **`http.test.ts`** — the default transport against a real loopback `http.createServer`.
 - **`engine.test.ts`** — URL building, JSON decoding, error mapping, 429/502/503/504 retry — mocked transport.
 - **`client.test.ts`** — every resource's method/URL mapping — mocked transport.
-- **`validate.test.ts`** — `assertValid` and the `parity()` helper (`test/helpers.ts`), which sends one input through `run()` and through the library, each on a recording mock transport, so a test can assert both give the same outcome.
+- **`validate.test.ts`** — `assertValid` and the `parity()` helper (`apps/cli/test/helpers.ts`), which sends one input through `run()` and through the library, each on a recording mock transport, so a test can assert both give the same outcome.
 - **`shared.test.ts`** — option parsing (`parseIntArg`) and `toEngineOptions` mapping.
 - **`cli.test.ts`** — end-to-end command parsing, rendering, error/exit codes and option flow-through — mocked client.
 - **`parity.test.ts`** — CLI ↔ library parity: the same input through `run()` and through the library must give the same outcome (both reject without a request with the same reason, or both send the same requests).
 - **`io.test.ts`** — the default I/O seam: EPIPE and other stdout/stderr write errors.
-- **`log.test.ts`** — the record helpers of `src/cli/log.ts` on their own
+- **`log.test.ts`** — the record helpers of `apps/cli/src/cli/log.ts` on their own
   (`escapeForRecord`, `formatLogRecord`); the CLI-level checks are P23's.
 - **`types.test.ts`** — compile-time checks of exported library types (e.g. `ServiceResource`).
 - **`conformance-p*.test.ts`** — the checks shared across the `*-cli` repos, the same files
@@ -300,15 +348,17 @@ npm test          # builds, then runs `node --test` over dist/test
   (README.md ships to npmjs.com, so a link to a document the `files` allowlist leaves out
   must be an absolute GitHub URL), P23 the log records on stderr and `--log-format`. Mock transports or local servers only, never the live
   API.
-- **`package.test.ts`** — the published package: `npm pack --dry-run` must list the library, the bin, `version.js` and the licence documents, and no sources, tests, maps, skills or site.
+- **`package.test.ts`** — the published package: `npm pack --dry-run` in `apps/cli` must list the library, the bin and `version.js`, and no sources, tests, maps, skills or site; the documents `prepack` copies in (README, LICENSE, the licence documents) must exist at the root and be shipped, and every dependency must be bundled. (The dry run skips `prepack`: running it during the tests would put the bundled copies in front of the workspace links. CI packs and installs the real tarball.)
 
 ## Continuous integration
 
 GitHub Actions workflows under `.github/workflows/`:
 
-- **ci.yml** — type-check, build and test on Node 22/24 for every push and PR.
-- **release.yml** — on a `v*` tag: verify the tag matches `package.json`, test, `npm pack`, and create a GitHub Release with the tarball. The release notes come from the Conventional-Commit subjects since the previous tag (`.github/scripts/changelog.mjs`); mark a change a script or library caller must adapt to with `type!:` or a `BREAKING CHANGE: <what to do>` footer, and it is also listed under **Behaviour changes** at the top. A change that wasn't marked when committed can still be listed: put a `BREAKING CHANGE:` footer per change into the release commit (the bare `npm version` commit is left out of the type groups, but its footers are read).
-- **publish.yml** — manual dispatch from the release tag (`gh workflow run publish.yml --ref vX.Y.Z`; the version is the tag's): publish to npm via OIDC **Trusted Publishing** (no stored `NPM_TOKEN`) with provenance.
+- **ci.yml** — type-check, build and test on Node 22/24 for every push and PR; then pack the
+  real tarball, check the pack left nothing behind, install it globally with the registry out
+  of reach and run the bin.
+- **release.yml** — on a `v*` tag (made by `npm run bump`): verify the tag matches `apps/cli/package.json`, test, write the SBOMs (scoped to the `apps/cli` workspace), then `npm pack --workspace apps/cli`, and create a GitHub Release with the tarball. The release notes come from the Conventional-Commit subjects since the previous tag (`.github/scripts/changelog.mjs`); mark a change a script or library caller must adapt to with `type!:` or a `BREAKING CHANGE: <what to do>` footer, and it is also listed under **Behaviour changes** at the top. A change that wasn't marked when committed can still be listed: put a `BREAKING CHANGE:` footer per change into the release commit (the bare version commit `npm run bump` makes is left out of the type groups, but its footers are read).
+- **publish.yml** — manual dispatch from the release tag (`gh workflow run publish.yml --ref vX.Y.Z`; the version is the tag's): `npm publish --workspace apps/cli` via OIDC **Trusted Publishing** (no stored `NPM_TOKEN`) with provenance.
 - **docs.yml** — build the project website (`site/`, English and German) with the TypeDoc API docs
   under `/api/`, and deploy both to GitHub Pages on each `v*` tag.
   TypeDoc runs from the isolated, lockfile-pinned `tools/docs/` toolchain because it
@@ -324,7 +374,9 @@ The project website — <https://maschinenlesbar-org.github.io/autobahn-cli/> in
 reference under `/api/`. Its content comes from this repository: the README intro and quick
 start, the command tree of the built CLI (`site/scripts/cli-reference.mjs`), `Usage.md`,
 `GLOSSARY.md` and its German version `GLOSSARY.de.md`, the skills, and the skill examples in
-`EXAMPLE.md` and `EXAMPLE.de.md`. The only repo-specific files are `site/_config.yml` and
+`EXAMPLE.md` and `EXAMPLE.de.md`. The only repo-specific files are `site/_config.yml` (which
+also says where the published manifest and the built program are: `manifest:
+apps/cli/package.json`, `program: apps/cli/dist/src/cli/program.js`) and
 `site/_data/project.yml` (the German intro and the access requirements); the rest of `site/` is
 identical in every maschinenlesbar.org CLI, so change it in all of them together. When the
 README intro changes, update the German intro in `site/_data/project.yml`.
@@ -343,7 +395,7 @@ contributions; see **[CONTRIBUTING.md](CONTRIBUTING.md)**.
 
 ## The log on stderr
 
-Every diagnostic line on stderr is a log record (`src/cli/log.ts`): a timestamp, a level
+Every diagnostic line on stderr is a log record (`apps/cli/src/cli/log.ts`): a timestamp, a level
 (`ERROR`, `WARN`, `INFO`) and a topic, `autobahn.<area>`. `--log-format text` (the default)
 writes it log4j style, `<ISO 8601 UTC> <LEVEL padded to 5> [<topic>] <message>`;
 `--log-format jsonl` writes one JSON object per line with exactly `ts`, `level`, `topic`

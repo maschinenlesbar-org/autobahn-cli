@@ -13,7 +13,7 @@ npm i -g @maschinenlesbar.org/autobahn-cli
 ```
 
 This installs the `autobahn` bin. To run without a global install, use
-`node dist/src/cli/index.js` (after `npm run build`) in place of `autobahn` in
+`node apps/cli/dist/src/cli/index.js` (after `npm run build`) in place of `autobahn` in
 any example below.
 
 ## Use cases
