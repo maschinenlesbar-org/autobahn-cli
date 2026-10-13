@@ -50,7 +50,7 @@
   "bugs": {
     "url": "https://github.com/maschinenlesbar-org/autobahn-cli/issues"
   },
-  "homepage": "https://maschinenlesbar-org.github.io/autobahn-cli/",
+  "homepage": "https://maschinenlesbar.org/autobahn-cli/",
   "funding": {
     "type": "github",
     "url": "https://github.com/sponsors/sebs"
