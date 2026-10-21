@@ -358,7 +358,12 @@ The client's tests are in `packages/client/test/` (`query`, `http`, `engine`, `c
   shapes and error classes, P20 the stderr warning for a plain-`http:` base URL (its
   other-secret case is skipped: the API takes no key), P21 the README's relative links
   (README.md ships to npmjs.com, so a link to a document the `files` allowlist leaves out
-  must be an absolute GitHub URL), P23 the log records on stderr and `--log-format`. Mock transports or local servers only, never the live
+  must be an absolute GitHub URL), P23 the log records on stderr and `--log-format`, P24 the
+  input corpus (every id that goes into a path is sent trimmed or refused, on the CLI and in the
+  library alike; the API takes no free text, so its text-filter case has no inputs), P25 the
+  response corpus (a number a double can't carry, or an empty listing, is an error, never a
+  changed value). P26 (`-o` integrity) does not apply: autobahn has no `-o`. Mock transports or
+  local servers only, never the live
   API.
 - **`package.test.ts`** — the published package: `npm pack --dry-run` in `apps/cli` must list the library, the bin and `version.js`, and no sources, tests, maps, skills or site; the documents `prepack` copies in (README, LICENSE, the licence documents) must exist at the root and be shipped, and every dependency must be bundled. (The dry run skips `prepack`: running it during the tests would put the bundled copies in front of the workspace links. CI packs and installs the real tarball.)
 
