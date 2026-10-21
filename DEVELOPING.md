@@ -393,8 +393,9 @@ The client's tests are in `packages/client/test/` (`query`, `http`, `engine`, `c
   input corpus (every id that goes into a path is sent trimmed or refused, on the CLI and in the
   library alike; the API takes no free text, so its text-filter case has no inputs), P25 the
   response corpus (a number a double can't carry, or an empty listing, is an error, never a
-  changed value; a subnormal that prints changed too; the error names the request), P26 (`-o`
-  integrity) does not apply: autobahn has no `-o`, P27 big and odd answers (a large flat answer
+  changed value; a subnormal that prints changed too; the error names the request), P26 output
+  integrity (stdout redirected to a file and cut short is an `ERROR` record, exit 1; its `-o`
+  tests are skipped, `HAS_OUTPUT_OPTION = false`: autobahn has no `-o`), P27 big and odd answers (a large flat answer
   and one of DEL characters print within a small heap, or are "too large" past V8's longest
   string; a lone surrogate or invalid bytes become U+FFFD with a `WARN` record of
   `autobahn.api`). Mock transports or local servers only, never the live
@@ -500,7 +501,10 @@ global options without a command log an `ERROR` "missing command: `autobahn road
 without an `ERROR` record. `CliDeps.now` makes the timestamps
 testable. stdout carries data only. A failed write to stdout other than a closed pipe
 (EPIPE/ENOTCONN, which exits 0 quietly) is an `ERROR` record of `autobahn.output`
-(`Could not write to stdout: …`) and exits 1: the bin shim's `handleOutputErrors` logs it
+(`Could not write to stdout: …`) and exits 1 — also a write cut short when stdout is a
+regular file (`> out.json` under a file-size limit or on a full disk: EFBIG, ENOSPC), which
+`stdoutWriter` (`io.ts`) writes with `writeAll` and reports as stdout's `error`, where Node's
+stream ignored the short count and exited 0 —: the bin shim's `handleOutputErrors` logs it
 outside `run()`, through `processLogger(argv)`, in the format argv asks for and with the
 run's redaction. Node's own process warnings (`NODE_TLS_REJECT_UNAUTHORIZED=0`) are
 `WARN` records of `autobahn.cli` too: the bin shim installs `installWarningLog`, which

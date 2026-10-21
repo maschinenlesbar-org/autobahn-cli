@@ -299,7 +299,7 @@ which never answer `404` to a valid request, so it means a wrong base URL.
 `--log-format jsonl` as one JSON object per line. The areas: `cli` (usage errors,
 commander's messages, unexpected errors), `api` (the API's answers: an error status, an
 unknown road id or identifier, and a malformed answer — bad JSON, the wrong shape, an
-empty body, a number it can't carry exactly), `http` (the connection, the cleartext warning, and one WARN per retry before it waits) and `output` (a failed write
+empty body, a number it can't carry exactly), `http` (the connection, the cleartext warning, and one WARN per retry before it waits) and `output` (a failed or cut-short write
 to stdout, an answer too deeply nested or too large to print). A record is always one line; control characters in it are escaped.
 
 **Replaced text.** Bytes of an answer that are not valid in its charset, and half characters

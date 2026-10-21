@@ -1,11 +1,15 @@
-// The output sink (src/cli/output.ts): rendering a result to stdout. autobahn has no `-o`, so
-// the kit's `-o` cases (and conformance test P26) do not apply here.
+// The output sink (src/cli/output.ts, and stdout's writer in io.ts): rendering a result to
+// stdout. autobahn has no `-o`, so the kit's `-o` cases (and P26's -o tests) do not apply here;
+// a write to stdout cut short is P26's too.
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { run } from "../src/cli/run.js";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { renderJson } from "../src/cli/output.js";
-import type { CliDeps } from "../src/cli/io.js";
+import { stdoutWriter, type CliDeps } from "../src/cli/io.js";
 import { AutobahnClient } from "@maschinenlesbar.org/autobahn-client/internal/client";
 import type { HttpRequest, HttpResponse } from "@maschinenlesbar.org/autobahn-client/internal/http";
 import { jsonResponse, makeMockTransport, untimed } from "./helpers.js";
@@ -94,4 +98,41 @@ test("terminal controls are escaped in chunks: the same text as one pass, across
     (ch) => `\\u${ch.charCodeAt(0).toString(16).padStart(4, "0")}`);
   assert.equal(out[0], expected);
   assert.deepEqual(JSON.parse(out[0]!), { text });
+});
+
+/** Run `body` with a fresh temp directory that is always removed. */
+async function inTempDir(body: (dir: string) => Promise<void>): Promise<void> {
+  const dir = mkdtempSync(join(tmpdir(), "autobahn-output-"));
+  try {
+    await body(dir);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+test("stdout to a regular file gets every byte or an error: a short write is never exit 0 (D6)", async () => {
+  await inTempDir(async (dir) => {
+    const { openSync, closeSync } = await import("node:fs");
+    const path = join(dir, "stdout.txt");
+    const fd = openSync(path, "w");
+    try {
+      const errors: Error[] = [];
+      const streamed: string[] = [];
+      const fake = { fd, write: (text: string) => streamed.push(text), emit: (_event: "error", err: Error) => errors.push(err) };
+      // The real writer: every byte reaches the file, none goes through the stream.
+      stdoutWriter(fake)("x".repeat(100_000));
+      assert.equal(readFileSync(path, "utf8").length, 100_000);
+      assert.deepEqual(streamed, []);
+      // A write the file system cuts short: the error reaches stdout's "error" event (exit 1 there).
+      const efbig = Object.assign(new Error("EFBIG: file too large, write"), { code: "EFBIG" });
+      stdoutWriter(fake, () => { throw efbig; })("more");
+      assert.deepEqual(errors, [efbig]);
+    } finally {
+      closeSync(fd);
+    }
+    // Not a file (a pipe, a terminal): the stream writes it, as before.
+    const piped: string[] = [];
+    stdoutWriter({ write: (text: string) => piped.push(text), emit: () => true })("data");
+    assert.deepEqual(piped, ["data"]);
+  });
 });

@@ -139,7 +139,7 @@ stderr, so piping stdout into `jq` stays clean.
 Each line on stderr is a **log record**: a timestamp (UTC), a level (`ERROR`, `WARN`,
 `INFO`) and a topic, the program and the area it comes from (`autobahn.cli` for usage
 errors, `autobahn.api` for the API's answers — an HTTP error, an unknown road id or
-identifier, a malformed answer — `autobahn.http` for the connection and `autobahn.output` for a failed write
+identifier, a malformed answer — `autobahn.http` for the connection and `autobahn.output` for a failed or cut-short write
 to stdout or an answer too deeply nested or too large to print). An error about an answer
 names the request (`GET <url>: the answer is not valid JSON`). Text in an answer is never
 changed silently: bytes that are not valid in its charset and half characters (lone
