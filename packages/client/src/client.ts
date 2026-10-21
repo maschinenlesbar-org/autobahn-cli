@@ -139,7 +139,7 @@ export class ServiceResource<K extends string> {
     if (typeof answered !== "string" || answered.trim() !== id) {
       const got = describeIdentifier(body["identifier"]);
       throw new AutobahnParseError(
-        `Unexpected response from ${this.engine.describeUrl(path)}: asked for identifier ${quoteValue(id)}, got ${got}.`,
+        `GET ${this.engine.describeUrl(path)}: asked for identifier ${quoteValue(id)}, got ${got}.`,
       );
     }
     return body as JsonObject;
@@ -299,7 +299,11 @@ function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-/** The error for a 2xx body that lacks the shape the client relies on. */
+/**
+ * The error for a 2xx body that lacks the shape the client relies on. Like every error about an
+ * answer it names the request: `GET <url>: …`, the URL as `describeUrl` gives it (userinfo
+ * redacted, cut).
+ */
 function shapeError(url: string, expected: string): AutobahnParseError {
-  return new AutobahnParseError(`Unexpected response shape from ${url}: expected ${expected}.`);
+  return new AutobahnParseError(`GET ${url}: unexpected response shape: expected ${expected}.`);
 }

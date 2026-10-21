@@ -110,7 +110,7 @@ test("a number the JSON cannot carry exactly is a parse error, never a changed v
     const e = new RequestEngine({ transport: makeMockTransport(() => rawResponse(body(n), "application/json")).transport });
     await assert.rejects(e.getJson("/items/a"), (err: unknown) => {
       assert.ok(err instanceof AutobahnParseError, n);
-      assert.equal(err.message, `Unexpected response from https://verkehr.autobahn.de/items/a: the number ${n} cannot be represented exactly.`);
+      assert.equal(err.message, `GET https://verkehr.autobahn.de/items/a: the number ${n} cannot be represented exactly.`);
       return true;
     });
   }
@@ -189,7 +189,7 @@ test("a compressed body names its Content-Encoding instead of failing as non-JSO
     () => new RequestEngine({ transport: gzip.transport }).getJson("/x"),
     (err: unknown) =>
       err instanceof AutobahnParseError &&
-      err.message === 'Unsupported Content-Encoding "gzip" from https://verkehr.autobahn.de/x: the client does not decompress responses.',
+      err.message === 'GET https://verkehr.autobahn.de/x: unsupported Content-Encoding "gzip" (the client does not decompress responses).',
   );
   const identity = makeMockTransport(() => ({
     status: 200,
@@ -209,9 +209,9 @@ test("a compressed body names its Content-Encoding instead of failing as non-JSO
 
 test("a non-JSON body names its Content-Type when that is not JSON", async () => {
   for (const [contentType, message] of [
-    ["text/html; charset=utf-8", 'Failed to parse JSON response from https://verkehr.autobahn.de/x: expected JSON, got Content-Type "text/html"'],
-    ["application/json", "Failed to parse JSON response from https://verkehr.autobahn.de/x"],
-    ["", "Failed to parse JSON response from https://verkehr.autobahn.de/x"],
+    ["text/html; charset=utf-8", 'GET https://verkehr.autobahn.de/x: the answer is not valid JSON (expected JSON, got Content-Type "text/html").'],
+    ["application/json", "GET https://verkehr.autobahn.de/x: the answer is not valid JSON."],
+    ["", "GET https://verkehr.autobahn.de/x: the answer is not valid JSON."],
   ] as const) {
     const e = new RequestEngine({ transport: makeMockTransport(() => rawResponse("<html>maintenance</html>", contentType)).transport });
     await assert.rejects(
@@ -433,7 +433,7 @@ test("getJson drops a leading BOM and decodes by the Content-Type charset", asyn
   });
   await assert.rejects(
     () => e3.getJson("/x"),
-    (err: unknown) => err instanceof AutobahnParseError && err.message === 'Unsupported response charset "x-bogus" from https://verkehr.autobahn.de/x.',
+    (err: unknown) => err instanceof AutobahnParseError && err.message === 'GET https://verkehr.autobahn.de/x: unsupported response charset "x-bogus".',
   );
 });
 
@@ -830,7 +830,7 @@ test("a server detail, a quoted value and a long URL cut at 500 characters keep 
 test("an unknown charset is quoted at most 500 characters long (L3)", async () => {
   const charset = "x".repeat(5000);
   const engine = new RequestEngine({ transport: async () => ({ status: 200, headers: { "content-type": `application/json; charset=${charset}` }, body: Buffer.from("{}") }) });
-  await assert.rejects(engine.getJson("/o/autobahn/"), (err: Error) => err.message.length < 700 && /^Unsupported response charset "x+…" from /.test(err.message));
+  await assert.rejects(engine.getJson("/o/autobahn/"), (err: Error) => err.message.length < 700 && /^GET \S+: unsupported response charset "x+…"\.$/.test(err.message));
 });
 
 test("credentials a server echoes are scrubbed from the error: Basic, user:password, password (L13)", async () => {
@@ -856,7 +856,7 @@ test("a header named __proto__ is an ordinary header, never the prototype of the
   const headers = JSON.parse('{"__proto__":{"content-type":"text/html"}}') as Record<string, string>;
   const e = new RequestEngine({ transport: async () => ({ status: 200, headers, body: Buffer.from("<html>") }) });
   // With the prototype set, "text/html" was read as the Content-Type and named in the message.
-  await assert.rejects(e.getJson("/x"), (err: Error) => err.message === "Failed to parse JSON response from https://verkehr.autobahn.de/x");
+  await assert.rejects(e.getJson("/x"), (err: Error) => err.message === "GET https://verkehr.autobahn.de/x: the answer is not valid JSON.");
   const fetchLike = new Headers([["__proto__", "x"], ["content-type", "application/json"]]);
   const f = new RequestEngine({ transport: async () => ({ status: 200, headers: fetchLike as unknown as Record<string, string>, body: Buffer.from('{"a":1}') }) });
   assert.deepEqual(await f.getJson("/x"), { a: 1 });
@@ -882,7 +882,7 @@ test("bigIntegerKeys: a declared member's number is its exact literal as a strin
   await assert.rejects(other.getJson("/x"), /the number 12345678901234567890 cannot be represented exactly/);
   // Malformed stays malformed: a declared member with a leading zero still fails JSON.parse.
   const malformed = new RequestEngine({ bigIntegerKeys: new Set(["_version_"]), transport: makeMockTransport(() => rawResponse('{"_version_":01}', "application/json")).transport });
-  await assert.rejects(malformed.getJson("/x"), /Failed to parse JSON/);
+  await assert.rejects(malformed.getJson("/x"), /not valid JSON/);
   for (const bad of [new Set([""]), new Set([1]), "x", 5, null]) {
     assert.throws(() => new RequestEngine({ bigIntegerKeys: bad as unknown as ReadonlySet<string> }),
       (err: unknown) => err instanceof AutobahnValidationError && err.message === "Invalid option bigIntegerKeys: expected a set of non-empty member names.");
@@ -897,4 +897,27 @@ test("bigIntegerKeys: a declared member's number is its exact literal as a strin
   // Without declarations the scan is the plain number check.
   assert.equal(firstInexactNumber('{"a":"1e400","b":3e-324}'), "3e-324");
   assert.deepEqual(scanNumbers('{"a":1}'), { json: '{"a":1}', inexact: undefined });
+});
+
+test("an answer error names the request: method and URL, userinfo redacted (D9)", async () => {
+  const answers: Array<[string, () => HttpResponse]> = [
+    ["not valid JSON", () => rawResponse("<html>", "text/html")],
+    ["empty response body", () => rawResponse(" ", "application/json")],
+    ["cannot be represented exactly", () => rawResponse('{"n":1e400}', "application/json")],
+    ["unsupported response charset", () => rawResponse("{}", "application/json; charset=x-bogus")],
+    ["unsupported Content-Encoding", () => ({ status: 200, headers: { "content-type": "application/json", "content-encoding": "br" }, body: Buffer.from("{}") })],
+  ];
+  const base = new URL("https://verkehr.autobahn.de");
+  base.username = "alice";
+  base.password = "s3cret";
+  for (const [what, respond] of answers) {
+    const e = new RequestEngine({ baseUrl: base.href, transport: makeMockTransport(respond).transport });
+    await assert.rejects(e.getJson("/items", { q: "x" }), (err: unknown) => {
+      assert.ok(err instanceof AutobahnParseError, what);
+      assert.ok(err.message.startsWith(`GET ${base.protocol}//***@${base.host}`), err.message);
+      assert.ok(err.message.includes("/items?q=x: ") && err.message.includes(what), err.message);
+      assert.ok(!err.message.includes("s3cret"), err.message);
+      return true;
+    });
+  }
 });

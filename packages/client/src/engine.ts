@@ -746,7 +746,8 @@ export class RequestEngine {
   /**
    * Perform a GET expecting JSON and parse it into `T`. An empty (or whitespace-only)
    * body is an AutobahnParseError, or with `emptyIsNotFound` an AutobahnNotFoundError
-   * that names the status the server really sent.
+   * that names the status the server really sent. Every error about the answer names the
+   * request (`GET <url>: …`, userinfo redacted).
    */
   async getJson<T>(
     path: string,
@@ -754,17 +755,17 @@ export class RequestEngine {
     options: { emptyIsNotFound?: boolean | undefined } = {},
   ): Promise<T> {
     const res = await this.request("GET", path, { query, accept: "application/json" });
+    const request = `GET ${this.describeUrl(path, query)}`;
     // The client sends no Accept-Encoding and does not decompress; a compressed body can
     // only come from a misbehaving proxy. Name it rather than fail as "not JSON".
     // A list of codings is allowed (RFC 9110 §8.4); only `identity` ones mean "not encoded".
     const codings = res.contentEncoding.split(",").map((c) => c.trim()).filter((c) => c !== "");
     if (codings.some((c) => !/^identity$/i.test(c))) {
       throw new AutobahnParseError(
-        `Unsupported Content-Encoding "${cleanDetail(res.contentEncoding)}" from ${this.describeUrl(path, query)}: ` +
-          "the client does not decompress responses.",
+        `${request}: unsupported Content-Encoding "${cleanDetail(res.contentEncoding)}" (the client does not decompress responses).`,
       );
     }
-    const text = decodeBody(res.data, res.contentType, this.describeUrl(path, query));
+    const text = decodeBody(res.data, res.contentType, request);
     if (text.trim() === "") {
       // Only the detail endpoint answers an unknown identifier with HTTP 200 and an
       // *empty* body rather than a 404, so only there (emptyIsNotFound) does an empty
@@ -772,7 +773,7 @@ export class RequestEngine {
       // HTTP 404: the server sent a 2xx, and the message says which. Elsewhere — the
       // road list, a service listing — it is a broken response, not a missing resource.
       if (!options.emptyIsNotFound) {
-        throw new AutobahnParseError(`Empty response body from ${this.describeUrl(path, query)}`);
+        throw new AutobahnParseError(`${request}: empty response body.`);
       }
       throw new AutobahnNotFoundError(
         `Not found: the API answered HTTP ${res.status} with an empty body for GET ` +
@@ -788,17 +789,13 @@ export class RequestEngine {
       // An HTML maintenance or proxy page is the usual non-JSON answer: name its type,
       // so it reads as an upstream problem rather than a client bug.
       const type = res.contentType.split(";")[0]?.trim() ?? "";
-      const hint = type !== "" && !/json/i.test(type) ? `: expected JSON, got Content-Type "${cleanDetail(type)}"` : "";
-      throw new AutobahnParseError(`Failed to parse JSON response from ${this.describeUrl(path, query)}${hint}`, {
-        cause,
-      });
+      const hint = type !== "" && !/json/i.test(type) ? ` (expected JSON, got Content-Type "${cleanDetail(type)}")` : "";
+      throw new AutobahnParseError(`${request}: the answer is not valid JSON${hint}.`, { cause });
     }
     // JSON.parse rounds and overflows numbers silently: refuse the answer rather than print a
     // changed value.
     if (inexact !== undefined) {
-      throw new AutobahnParseError(
-        `Unexpected response from ${this.describeUrl(path, query)}: the number ${cutForMessage(inexact)} cannot be represented exactly.`,
-      );
+      throw new AutobahnParseError(`${request}: the number ${cutForMessage(inexact)} cannot be represented exactly.`);
     }
     return parsed;
   }
@@ -838,13 +835,13 @@ export class RequestEngine {
  * a valid answer into a parse error. An unknown charset label is an
  * AutobahnParseError.
  */
-function decodeBody(body: Buffer, contentType: string, url: string): string {
+function decodeBody(body: Buffer, contentType: string, request: string): string {
   const charset = /;\s*charset\s*=\s*"?([^";\s]+)"?/i.exec(contentType)?.[1] ?? "utf-8";
   let decoder: TextDecoder;
   try {
     decoder = new TextDecoder(charset);
   } catch {
-    throw new AutobahnParseError(`Unsupported response charset "${cutForMessage(sanitizeServerText(charset))}" from ${url}.`);
+    throw new AutobahnParseError(`${request}: unsupported response charset "${cutForMessage(sanitizeServerText(charset))}".`);
   }
   return decoder.decode(body);
 }

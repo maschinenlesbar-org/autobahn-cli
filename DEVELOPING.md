@@ -271,17 +271,20 @@ message stays well-formed), `AutobahnNetworkError`
 retried — with the original as `cause` — never a configuration error: a bad `baseUrl` or
 `userAgent`, a numeric option out of range or a blank, `.`/`..` or `/`-containing road
 id or identifier throws an `AutobahnValidationError` before any request),
-`AutobahnParseError` (bad JSON, or a 2xx body without the
-expected shape: `Unexpected response shape from <url>: expected …`, the full request
-URL with userinfo redacted; or with a number JSON.parse can't carry exactly — out of a
-double's range, past 2^53 in any written form, too small and turned into 0, or a subnormal
-(below 2.2250738585072014e-308) that does not print as written, `3e-324` becoming `5e-324`: `Unexpected
-response from <url>: the number … cannot be represented exactly.`; below 2^53 and above the
-subnormal range a decimal fraction keeps a double's precision, as JSON means it; past 2^53 and
-below the normal range the number as printed,
-`String(value)`, is compared with the number as written, so `12345678901234567890`, which
-prints as `12345678901234567000`, is refused, while `1e23` or `1.7976931348623157E308`, a
-double a server printed in its own shortest form, passes), all extending
+`AutobahnParseError` (bad JSON, an empty body, an unknown charset or a compressed
+body, a 2xx body without the expected shape, a detail about another identifier, or a number
+JSON.parse can't carry exactly — out of a double's range, past 2^53 in any written form, too
+small and turned into 0, or a subnormal (below 2.2250738585072014e-308) that does not print as
+written, `3e-324` becoming `5e-324`; below 2^53 and above the subnormal range a decimal
+fraction keeps a double's precision, as JSON means it; past 2^53 and below the normal range
+the number as printed, `String(value)`, is compared with the number as written, so
+`12345678901234567890`, which prints as `12345678901234567000`, is refused, while `1e23` or
+`1.7976931348623157E308`, a double a server printed in its own shortest form, passes). Every
+error about an answer names the request like a network error does: `GET <url>: …`, the full
+request URL with userinfo redacted and cut at 500 characters (`GET <url>: the answer is not
+valid JSON (expected JSON, got Content-Type "text/html").`, `GET <url>: empty response body.`,
+`GET <url>: unexpected response shape: expected …`, `GET <url>: asked for identifier "…", got
+"…".`, `GET <url>: the number … cannot be represented exactly.`). All extend
 `AutobahnError`. `AutobahnNotFoundError` (a road id the API does not know, or an
 identifier the detail endpoint answers with an empty body; CLI exit `4`) extends
 `AutobahnError` too — it is not an `AutobahnApiError`.
@@ -340,7 +343,7 @@ HTTP 200 and an empty body rather than a true `404`. For `get` (the engine's
 not-found: an `AutobahnNotFoundError` naming the status the server really sent (CLI
 exit `4`) — not an `AutobahnApiError` with an invented `404` — instead of a misleading
 parse error. Everywhere else an empty body raises
-`AutobahnParseError` (`Empty response body from <url>`, exit `1`).
+`AutobahnParseError` (`GET <url>: empty response body.`, exit `1`).
 
 ## Testing
 
