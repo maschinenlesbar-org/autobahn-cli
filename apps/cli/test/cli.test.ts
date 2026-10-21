@@ -922,3 +922,43 @@ test("an option with an array default is repeatable: each value adds to the list
   await program.parseAsync(["collect", "--tag", "a", "--tag", "b"], { from: "user" });
   assert.deepEqual(seen, [["a", "b"]]);
 });
+
+test("a boolean that can be switched both ways may be given only once: optional value, or --x / --no-x (T11)", async () => {
+  // commander calls no value parser for a bare `--is-open`, so `--is-open false --is-open` turned
+  // into true without a word (fragdenstaat-cli); `--x --no-x` keeps the last one the same way.
+  const build = () => {
+    const program = buildProgram(makeCli(() => jsonResponse({ roads: [] })).deps);
+    const seen: unknown[] = [];
+    program
+      .command("flags")
+      .option("--is-open [bool]", "optional value", (value: string) => value === "true")
+      .option("--cache", "negatable")
+      .option("--no-cache", "negatable")
+      .option("--archived", "plain flag")
+      .action((opts: Record<string, unknown>) => void seen.push(opts));
+    forbidRepeatedOptions(program);
+    for (const command of program.commands) command.exitOverride().configureOutput({ writeErr: () => {}, outputError: () => {} });
+    program.exitOverride();
+    return { program, seen };
+  };
+  for (const argv of [
+    ["--is-open", "false", "--is-open"],
+    ["--is-open", "--is-open", "false"],
+    ["--is-open", "--is-open"],
+    ["--cache", "--no-cache"],
+    ["--no-cache", "--no-cache"],
+  ]) {
+    const { program, seen } = build();
+    await assert.rejects(program.parseAsync(["flags", ...argv], { from: "user" }), (err: Error) => /may be given only once/.test(err.message), argv.join(" "));
+    assert.deepEqual(seen, [], argv.join(" "));
+  }
+  for (const [argv, expected] of [
+    [["--is-open", "false"], { isOpen: false }],
+    [["--is-open"], { isOpen: true }],
+    [["--no-cache", "--archived", "--archived"], { cache: false, archived: true }],
+  ] as const) {
+    const { program, seen } = build();
+    await program.parseAsync(["flags", ...argv], { from: "user" });
+    assert.deepEqual(seen, [expected], argv.join(" "));
+  }
+});
