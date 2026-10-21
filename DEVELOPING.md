@@ -371,7 +371,7 @@ The client's tests are in `packages/client/test/` (`query`, `http`, `engine`, `c
 
 GitHub Actions workflows under `.github/workflows/`:
 
-- **ci.yml** — type-check, build and test on Node 22/24 for every push and PR; then pack the
+- **ci.yml** — type-check, build and test on Node 22/24/26 for every push and PR; then pack the
   real tarball, check the pack left nothing behind, install it globally with the registry out
   of reach and run the bin.
 - **release.yml** — on a `v*` tag (made by `npm run bump`): verify the tag matches `apps/cli/package.json`, test, write the SBOMs (scoped to the `apps/cli` workspace), then `npm pack --workspace apps/cli`, and create a GitHub Release with the tarball. The release notes come from the Conventional-Commit subjects since the previous tag (`.github/scripts/changelog.mjs`); mark a change a script or library caller must adapt to with `type!:` or a `BREAKING CHANGE: <what to do>` footer, and it is also listed under **Behaviour changes** at the top. A change that wasn't marked when committed can still be listed: put a `BREAKING CHANGE:` footer per change into the release commit (the bare version commit `npm run bump` makes is left out of the type groups, but its footers are read).
