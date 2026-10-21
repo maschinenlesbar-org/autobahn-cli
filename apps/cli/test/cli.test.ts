@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { redactUserinfo, run, valueOptionsOf } from "../src/cli/run.js";
 import { readFileSync } from "node:fs";
 import { buildProgram, defaultDeps } from "../src/cli/program.js";
+import { forbidRepeatedOptions } from "../src/cli/shared.js";
 import { VERSION } from "../src/index.js";
 import { AutobahnClient } from "@maschinenlesbar.org/autobahn-client/internal/client";
 import type { CliDeps } from "../src/cli/io.js";
@@ -882,4 +883,37 @@ test("the argv scan for a parse error's log format skips the values of the progr
   // A value option added to a subcommand later must not enter the set.
   program.commands.find((c) => c.name() === "roads")?.option("--sort-by <field>", "x");
   assert.deepEqual(valueOptionsOf(program), own);
+});
+
+test("a single-value option given twice is a usage error, never 'the last one wins'", async () => {
+  // commander keeps the last value silently: `--timeout 1000 --timeout 0` switched the timeout off.
+  for (const argv of [
+    ["--timeout", "1000", "--timeout", "0", "roads"],
+    ["--timeout=1000", "roads", "--timeout", "1000"],
+    ["--base-url", "https://verkehr.autobahn.de", "--base-url", "https://verkehr.autobahn.de", "roads"],
+    ["--log-format", "jsonl", "--log-format", "text", "roads"],
+    ["--max-retries", "1", "roadworks", "list", "A1", "--max-retries", "2"],
+    ["--user-agent", "a", "--user-agent", "b", "roads"],
+    ["--max-response-bytes", "1", "--max-response-bytes", "2", "roads"],
+  ]) {
+    const cli = makeCli(() => jsonResponse({ roads: ["A1"] }));
+    assert.equal(await run(argv, cli.deps), 2, argv.join(" "));
+    assert.equal(cli.mt.calls.length, 0, `${argv.join(" ")} sent a request`);
+    assert.match(cli.err.join("\n"), /may be given only once/, argv.join(" "));
+  }
+  // Flags may repeat.
+  const flags = makeCli(() => jsonResponse({ roads: ["A1"] }));
+  assert.equal(await run(["--compact", "--compact", "roads"], flags.deps), 0);
+});
+
+test("an option with an array default is repeatable: each value adds to the list", async () => {
+  const program = buildProgram(makeCli(() => jsonResponse({ roads: [] })).deps);
+  const seen: string[][] = [];
+  program
+    .command("collect")
+    .option("--tag <t>", "repeatable", (value: string, previous: string[]) => [...previous, value], [] as string[])
+    .action((opts: { tag: string[] }) => void seen.push(opts.tag));
+  forbidRepeatedOptions(program);
+  await program.parseAsync(["collect", "--tag", "a", "--tag", "b"], { from: "user" });
+  assert.deepEqual(seen, [["a", "b"]]);
 });

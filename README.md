@@ -210,7 +210,9 @@ A `list` returning zero items for a known road is not an error — it exits `0` 
 
 ## Global options
 
-These apply to every command and may be given **before or after** it:
+These apply to every command and may be given **before or after** it. Each takes one value:
+giving one twice (`--timeout 1000 --timeout 0`) is a usage error (exit `2`), never "the last
+one wins"; a flag such as `--compact` may repeat.
 
 | Option | Description |
 | --- | --- |

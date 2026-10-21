@@ -163,7 +163,8 @@ autobahn --base-url https://verkehr.autobahn.de roads
 ## Global options
 
 Global options may be given **before or after** the command — both
-`autobahn --compact roads` and `autobahn roads --compact` work.
+`autobahn --compact roads` and `autobahn roads --compact` work. Each takes one value: giving
+one twice is a usage error (exit `2`).
 
 | Option | Description |
 | --- | --- |

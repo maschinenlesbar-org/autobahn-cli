@@ -201,7 +201,7 @@ apps/cli/src/cli/
     version.ts   # VERSION from apps/cli/package.json (--version, the library entry) + USER_AGENT
     io.ts        # injectable I/O seam (stdout/stderr), the logger and the clock
     log.ts       # the stderr log: records with ts, level, topic; --log-format text|jsonl
-    shared.ts    # option parsers, global-option resolver
+    shared.ts    # option parsers (one value each: forbidRepeatedOptions), global-option resolver
     output.ts    # the JSON renderer: control characters escaped, a too-deep answer an OutputError
     commands/    # roads + the six service command groups
     program.ts   # assembles the commander program from injectable deps

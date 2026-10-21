@@ -11,7 +11,7 @@ import { MAX_TIMEOUT_MS } from "@maschinenlesbar.org/autobahn-client/internal/ht
 import { DEFAULT_BASE_URL, MAX_RETRIES } from "@maschinenlesbar.org/autobahn-client/internal/engine";
 import { redactUrl } from "@maschinenlesbar.org/autobahn-client/internal/errors";
 import { USER_AGENT, VERSION } from "./version.js";
-import { parseBaseUrl, parseBoundedInt, parseHeaderValue } from "./shared.js";
+import { forbidRepeatedOptions, parseBaseUrl, parseBoundedInt, parseHeaderValue } from "./shared.js";
 import { registerRoadsCommand } from "./commands/roads.js";
 import { registerServiceCommands } from "./commands/services.js";
 import { DEFAULT_LOG_FORMAT, logFormatProblem, type LogFormat } from "./log.js";
@@ -112,6 +112,7 @@ export function buildProgram(deps: CliDeps = defaultDeps): Command {
 
   registerRoadsCommand(program, deps);
   registerServiceCommands(program, deps);
+  forbidRepeatedOptions(program);
   addHelpCommands(program);
   showGlobalOptions(program);
 

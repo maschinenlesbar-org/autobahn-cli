@@ -288,7 +288,7 @@ endpoint.
 
 **Exit codes.** `0` success (incl. `--help`/`--version`); `4` not-found (a `get`
 answered `404` or with an empty body, or an unknown road id); `2` a usage error (a
-command, option or argument rejected before any request); `1` any other
+command, option or argument rejected before any request, or an option given twice); `1` any other
 API/network/parse error — including a `404` from the road list or a service listing,
 which never answer `404` to a valid request, so it means a wrong base URL.
 
