@@ -145,6 +145,35 @@ export function toWellFormed(text: string): string {
   return text.replace(/[\ud800-\udbff](?![\udc00-\udfff])|(?<![\ud800-\udbff])[\udc00-\udfff]/g, "\ufffd");
 }
 
+/** Unicode General Category Cf (format): bidi controls, zero-width characters, U+00AD, U+FEFF, … */
+const FORMAT_CHAR = /\p{Cf}/u;
+
+/**
+ * Quote a value for an error message, as `JSON.stringify` does, and also escape what it
+ * leaves raw although a terminal acts on it: DEL, the C1 controls, every Unicode
+ * format character (bidi overrides, zero-width characters) and the line and paragraph
+ * separators U+2028/U+2029, which a viewer may break the line at. A road id or
+ * identifier is echoed in messages, and it can come from a pipeline or from the API
+ * (the did-you-mean road id); an override in it would reorder the rest of the line
+ * ("Trojan Source"). A value longer than MAX_MESSAGE_VALUE_LENGTH
+ * characters is cut, and the "…" goes after the closing quote (`"AAAA"…`), so it does
+ * not read as part of the value. The quoted part stays a valid JSON string.
+ */
+export function quoteValue(value: string): string {
+  const cut = value.length > MAX_MESSAGE_VALUE_LENGTH;
+  let out = "";
+  for (const ch of JSON.stringify(cut ? cutText(value, MAX_MESSAGE_VALUE_LENGTH) : value)) {
+    const n = ch.codePointAt(0) ?? 0;
+    if ((n >= 0x7f && n <= 0x9f) || n === 0x2028 || n === 0x2029 || FORMAT_CHAR.test(ch)) {
+      // One escape per UTF-16 unit, so a character above U+FFFF stays valid JSON.
+      for (let i = 0; i < ch.length; i++) out += `\\u${ch.charCodeAt(i).toString(16).padStart(4, "0")}`;
+    } else {
+      out += ch;
+    }
+  }
+  return cut ? `${out}…` : out;
+}
+
 /**
  * True for the statuses the engine retries as transient: `429` (rate-limited), `503`
  * (service unavailable), and `502`/`504`, which the gateway in front of the API answers

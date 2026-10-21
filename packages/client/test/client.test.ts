@@ -451,6 +451,34 @@ test("an identifier containing / is rejected before any request instead of re-ta
   }
 });
 
+test("an identifier or road id with half a character is an AutobahnValidationError before any request, not a raw URIError", async () => {
+  // encodeURIComponent throws URIError("URI malformed") for a lone surrogate, which is no AutobahnError.
+  for (const [call, name, value] of [
+    [(c: AutobahnClient, v: string) => c.roadworks.get(v), "identifier", "abc\ud800"],
+    [(c: AutobahnClient, v: string) => c.chargingStations.get(v), "identifier", "\udc00x"],
+    [(c: AutobahnClient, v: string) => c.closures.list(v), "roadId", "A1\ud800"],
+  ] as const) {
+    const mt = echoDetail();
+    await assert.rejects(() => call(clientWith(mt), value), (err: unknown) => {
+      assert.ok(err instanceof AutobahnValidationError, String(err));
+      assert.match((err as Error).message, new RegExp(`^Invalid ${name}: ".*\\\\u[dD][89a-fA-F][0-9a-fA-F]{2}.*" contains half of a character \\(a lone surrogate\\)\\.$`));
+      return true;
+    });
+    assert.equal(mt.calls.length, 0, value);
+  }
+});
+
+test("an identifier is sent trimmed and in composed Unicode (NFC); one with an invisible character is refused", async () => {
+  const mt = echoDetail();
+  await clientWith(mt).roadworks.get(" Cafe\u0301 ");
+  assert.equal(new URL(mt.calls[0]!.url).pathname, "/o/autobahn/details/roadworks/Caf%C3%A9");
+  for (const value of ["a\u200bb", "a\u001bb", "\u202eabc", "x\u00ad"]) {
+    await assert.rejects(() => clientWith(mt).roadworks.get(value), (err: unknown) =>
+      err instanceof AutobahnValidationError && /contains an invisible or control character \(U\+[0-9A-F]{4}\)\.$/.test((err as Error).message));
+  }
+  assert.equal(mt.calls.length, 1);
+});
+
 test("ids that merely contain dots are still encoded and sent", async () => {
   const mt = echoDetail();
   await clientWith(mt).roadworks.get("2026-1.2.3");

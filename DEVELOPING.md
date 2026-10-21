@@ -302,7 +302,14 @@ which throws `AutobahnValidationError` (extends `AutobahnError`, exported) with 
 message `Invalid <name>: <reason>`; a method that returns a promise rejects with it. The
 CLI's option and argument parsers call the same `…Problem` functions (`parseId` wraps
 `idProblem` for the `<roadId>`/`<identifier>` arguments), so an input gets the same
-outcome on both sides, and `run.ts` reports an `AutobahnValidationError` raised in an
+outcome on both sides. Every value that goes into a request passes one function for its kind:
+`tokenProblem`/`normalizeToken` for ids (trimmed and NFC; no control or format character at
+all, no lone surrogate, which `encodeURIComponent` would throw a raw `URIError` for), which
+`idProblem` and `roadIdProblem` run first. A value that holds only invisible characters or
+combining marks is blank. A refusal quotes the value with every invisible character escaped
+(`quoteValue`: `"a\u200bb"`) and cut at 500 characters. The kit's `textProblem`/`normalizeText`
+(free text) and `splitList`/`listProblem` (comma lists) are exported too; the Autobahn API
+takes neither, so no command uses them. And `run.ts` reports an `AutobahnValidationError` raised in an
 action as a usage error (an `ERROR` record of `autobahn.cli`, exit `2`, like commander's own parse errors).
 
 **Retry / backoff.** Transient `429` (rate-limited), `503` (service

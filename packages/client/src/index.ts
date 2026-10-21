@@ -34,7 +34,18 @@ export {
   credentialsIn,
   redactCredentials,
 } from "./errors.js";
-export { assertValid, baseUrlProblem, idProblem, roadIdProblem } from "./validate.js";
+export {
+  assertValid,
+  baseUrlProblem,
+  idProblem,
+  listProblem,
+  normalizeText,
+  normalizeToken,
+  roadIdProblem,
+  splitList,
+  textProblem,
+  tokenProblem,
+} from "./validate.js";
 export type { Problem } from "./validate.js";
 
 export * from "./types.js";

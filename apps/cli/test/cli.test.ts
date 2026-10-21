@@ -781,11 +781,15 @@ test("ids echoed in error messages carry no raw control, C1 or bidi characters",
   assert.equal(await run(["roadworks", "list", `A1/${RLO}x\nError: forged${ESC}[2J`], rejected.deps), 2);
   const rejectedErr = rejected.err.join("\n");
   assert.match(rejectedErr, /value 'A1\/\\u202ex\\nError: forged\\u001b\[2J' is invalid/);
-  // Accepted, then echoed by the library (an identifier the API answers about another item).
-  const unknown = makeCli(() => jsonResponse({ identifier: "x" }));
-  assert.equal(await run(["roadworks", "get", `A1${RLO}evil`], unknown.deps), 1);
-  assert.match(unknown.err.join("\n"), /asked for identifier "A1\\u202eevil", got "x"\.$/);
-  for (const err of [rejectedErr, unknown.err.join("\n")]) {
+  // An invisible character in an id is refused, shown escaped (D10).
+  const invisible = makeCli(() => jsonResponse({ identifier: "x" }));
+  assert.equal(await run(["roadworks", "get", `A1${RLO}evil`], invisible.deps), 2);
+  assert.match(invisible.err.join("\n"), /"A1\\u202eevil" contains an invisible or control character \(U\+202E\)/);
+  // An id the API sends back is echoed escaped too (an answer about another item).
+  const unknown = makeCli(() => jsonResponse({ identifier: `x${RLO}evil` }));
+  assert.equal(await run(["roadworks", "get", "A1"], unknown.deps), 1);
+  assert.match(unknown.err.join("\n"), /asked for identifier "A1", got "x\\u202eevil"\.$/);
+  for (const err of [rejectedErr, invisible.err.join("\n"), unknown.err.join("\n")]) {
     assert.doesNotMatch(err, /[\u0000-\u0008\u000b-\u001f\u007f-\u009f\u202a-\u202e]/u);
     assert.doesNotMatch(err, /^Error: forged/m);
   }

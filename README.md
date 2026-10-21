@@ -93,8 +93,10 @@ A `list` that matches no items is **not** an error — it prints `[]` and exits
 one exactly like an empty road, so when a `list` comes back empty the CLI checks
 the id against the road list: an unknown or mistyped road id exits `4`
 (`Unknown road id "a1": … (did you mean "A1"?)`) instead of printing `[]`. A road id
-with a character no road id has (`A1/`, `A1;`, `%`) is rejected before any request as a
-usage error (exit `2`). That
+with a character no road id has (`A1/`, `A1;`, `%`), and a road id or identifier with an
+invisible or control character (a zero-width space, a soft hyphen, a bidi control; shown
+escaped in the message, `"A1\u200b"`), are rejected before any request as a usage error
+(exit `2`). An identifier is sent trimmed and in composed Unicode (NFC). That
 check is a second request; if it fails, the `list` exits `1` with
 `Could not check road id "A1" against the API's road list …` and the reason. A `get`
 with an unknown or mistyped identifier exits `4` too.

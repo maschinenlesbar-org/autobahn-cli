@@ -100,9 +100,11 @@ updates: the A3 event `NLW_2026_002954` was
 from a fresh `list`; the part before `--` (or the `Ereignisnummer:` line) is the stable
 key of the event. Roadwork and closure identifiers also contain dates, but those are the
 phase dates: all 171 A3 roadwork and 25 closure ids were unchanged three hours later.
-Surrounding whitespace is trimmed before the request (no identifier has any). An
-identifier containing `/` is rejected like such a road id: `x/../<id>` would otherwise
-fetch `<id>`.
+Surrounding whitespace is trimmed before the request (no identifier has any), and the
+identifier is sent in composed Unicode (NFC). An identifier containing `/` is rejected like
+such a road id: `x/../<id>` would otherwise fetch `<id>`; so are a road id or identifier with
+a control, format or invisible character (a zero-width space, a soft hyphen, a bidi control)
+or half a character (a lone surrogate), with the character shown escaped (`"A1\u200b"`).
 
 **Service listing.** The two-step access pattern of the API: `list(roadId)`
 returns the array of items for a service along a motorway; `get(identifier)` then

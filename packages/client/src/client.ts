@@ -9,7 +9,7 @@
 
 import { quoteValue, RequestEngine, type EngineOptions } from "./engine.js";
 import { AutobahnApiError, AutobahnError, AutobahnNotFoundError, AutobahnParseError } from "./errors.js";
-import { assertValid, idProblem, roadIdProblem } from "./validate.js";
+import { assertValid, idProblem, normalizeToken, roadIdProblem } from "./validate.js";
 import type {
   RoadsResult,
   AutobahnServiceItem,
@@ -52,7 +52,7 @@ export class ServiceResource<K extends string> {
     // Trim surrounding whitespace: the upstream API itself emits a few ids with a
     // trailing space (e.g. "A60 "), and copying such an id straight back in would
     // otherwise URL-encode the space and miss the road. Validate after trimming.
-    const id = assertValid("roadId", roadId, roadIdProblem).trim();
+    const id = normalizeToken(assertValid("roadId", roadId, roadIdProblem));
     const path = `${API_ROOT}/${enc(id)}/services/${this.service}`;
     const body = await getListing(this.engine, path);
     // The API answers every road, even an empty one, with `{ "<key>": [...] }`. Any
@@ -117,15 +117,17 @@ export class ServiceResource<K extends string> {
 
   /**
    * Fetch one item's details by its identifier (an opaque string; the format varies
-   * by service). Surrounding whitespace is trimmed, as list() does for road ids: no
-   * identifier the API issues has any, so a stray space from a copy-paste would
-   * otherwise read as "not found". An identifier containing "/" is rejected like such a
-   * road id (idProblem): `"x/../<id>"` would otherwise resolve to `<id>`. A 2xx body
+   * by service). It is sent trimmed and in composed Unicode, NFC (normalizeToken), as
+   * list() does for road ids: no identifier the API issues has surrounding whitespace, so
+   * a stray space from a copy-paste would otherwise read as "not found". A blank one, one
+   * with a control, format or invisible character or half a character (a lone surrogate),
+   * and one containing "/" are rejected like such a road id (idProblem): `"x/../<id>"`
+   * would otherwise resolve to `<id>`. A 2xx body
    * that is not a JSON object, or one whose `identifier` is not the one asked for,
    * raises AutobahnParseError.
    */
   async get(identifier: string): Promise<JsonObject> {
-    const id = assertValid("identifier", identifier, idProblem).trim();
+    const id = normalizeToken(assertValid("identifier", identifier, idProblem));
     const path = `${API_ROOT}/details/${this.service}/${enc(id)}`;
     // The detail endpoint answers an unknown identifier with 200 and an empty body.
     const body = await this.engine.getJson<unknown>(path, undefined, { emptyIsNotFound: true });

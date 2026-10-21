@@ -104,9 +104,12 @@ gefunden“ (Exit `4`). Verwenden Sie eine Kennung aus einem frischen `list`; de
 Kennungen von Baustellen und Sperrungen enthalten Datumsangaben, das sind aber die Daten der
 Bauphase: Alle 171 Baustellen- und 25 Sperrungs-Kennungen der A3 waren drei Stunden später
 unverändert. Umgebende Leerzeichen werden vor der Anfrage entfernt (keine Kennung enthält
-welche).
+welche), und die Kennung wird in zusammengesetztem Unicode (NFC) gesendet.
 Eine Kennung mit `/` wird wie eine solche Autobahn-Kennung abgelehnt: `x/../<id>` würde
-sonst `<id>` abrufen.
+sonst `<id>` abrufen; ebenso eine Autobahn-Kennung oder Kennung mit einem Steuer-, Format-
+oder unsichtbaren Zeichen (ein Null-Breiten-Leerzeichen, ein weiches Trennzeichen, ein
+Bidi-Steuerzeichen) oder einem halben Zeichen (einem einzelnen Surrogat); das Zeichen wird in
+der Meldung maskiert gezeigt (`"A1\u200b"`).
 
 **Dienstliste.** Das zweistufige Zugriffsmuster der API: `list(roadId)` liefert das Array
 der Einträge eines Dienstes entlang einer Autobahn; `get(identifier)` ruft dann die
