@@ -7,9 +7,10 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { parity, rawResponse } from "./helpers.js";
 
 // ---- adapter (per repo) -------------------------------------------------------------
+/** `parity` as in P24 (map the repo's own helper to that shape if it differs); `rawResponse(body, contentType)`. */
+import { parity, rawResponse } from "./helpers.js";
 import { AutobahnClient as Client } from "@maschinenlesbar.org/autobahn-client/internal/client";
 /**
  * CLI argv for a call whose answer carries a number, and the same call in the library. A
@@ -25,6 +26,8 @@ const fromCli = (out: string): unknown => (JSON.parse(out) as Array<{ n: unknown
 const fromLib = (value: unknown): unknown => (value as Array<{ n: unknown }>)[0]?.n;
 /** The log program, as in `ERROR [<bin>.api]`. */
 const BIN = "autobahn";
+/** The exit code of a malformed answer in this repo (most repos use 1). */
+const PARSE_EXIT = 1;
 // --------------------------------------------------------------------------------------
 
 const INEXACT = [
@@ -43,7 +46,7 @@ const EXACT: Array<[string, number]> = [
 test("P25: a number the answer can't carry exactly is an error, never a changed value", async () => {
   for (const literal of INEXACT) {
     const o = await parity(argv, (t) => lib(new Client({ transport: t })), () => rawResponse(body(literal), "application/json"));
-    assert.equal(o.cli.code, 1, `${literal}: CLI exit ${o.cli.code}, out ${o.cli.out}`);
+    assert.equal(o.cli.code, PARSE_EXIT, `${literal}: CLI exit ${o.cli.code}, out ${o.cli.out}`);
     assert.equal(o.cli.out, "", literal);
     assert.match(o.cli.err, new RegExp(`^ERROR \\[${BIN}\\.api\\] .*the number ${literal.replace(/[.+]/g, "\\$&")} cannot be represented exactly`), literal);
     assert.equal(o.lib.ok, false, `${literal}: the library resolved`);
@@ -64,7 +67,7 @@ test("P25: a number a double carries is printed as the same value", async () => 
 test("P25: an empty answer is an error, never 'nothing found'", async () => {
   for (const raw of ["", "  \n\t"]) {
     const o = await parity(argv, (t) => lib(new Client({ transport: t })), () => rawResponse(raw, "application/json"));
-    assert.equal(o.cli.code, 1, JSON.stringify(raw));
+    assert.equal(o.cli.code, PARSE_EXIT, JSON.stringify(raw));
     assert.equal(o.cli.out, "", JSON.stringify(raw));
     assert.match(o.cli.err, new RegExp(`^ERROR \\[${BIN}\\.api\\] `), JSON.stringify(raw));
     assert.equal(o.lib.ok, false, JSON.stringify(raw));
