@@ -64,6 +64,7 @@ new AutobahnClient({
   maxResponseBytes: 50 << 20, // abort responses larger than 50 MiB (0 = unlimited)
   userAgent: "my-app/1.0",
   transport: customTransport, // inject your own HTTP transport
+  onWarning: (message) => console.warn(message), // an answer delivered changed (U+FFFD), see below
   bigIntegerKeys: new Set(["_version_"]),      // members whose numbers may pass 2^53: delivered as strings
 });
 ```
@@ -76,6 +77,11 @@ answers carry coordinates and ids as strings) is the one exception: its number v
 delivered as its exact literal, as written, as a JSON string (`"1858054135406919680"`, `"5"`),
 whatever its size, so its type is stable. The engine does both in one linear scan of the text
 before `JSON.parse` (`scanNumbers`, which quotes the declared values in place; no reviver).
+Text is never changed silently either: bytes that aren't valid in the answer's charset and lone
+surrogates written as JSON escapes (`\ud800`) become U+FFFD (the result is well-formed, so `jq`
+reads the CLI's output), and `onWarning` gets one message naming the count and the request; the
+CLI logs it as a `WARN` record of `autobahn.api`. One bad character never sinks a whole
+answer.
 
 Every option may be omitted or given as `undefined`, which means the same (the default),
 so `new AutobahnClient({ baseUrl: process.env.AUTOBAHN_BASE_URL })` compiles under
@@ -380,8 +386,11 @@ The client's tests are in `packages/client/test/` (`query`, `http`, `engine`, `c
   input corpus (every id that goes into a path is sent trimmed or refused, on the CLI and in the
   library alike; the API takes no free text, so its text-filter case has no inputs), P25 the
   response corpus (a number a double can't carry, or an empty listing, is an error, never a
-  changed value). P26 (`-o` integrity) does not apply: autobahn has no `-o`. Mock transports or
-  local servers only, never the live
+  changed value; a subnormal that prints changed too; the error names the request), P26 (`-o`
+  integrity) does not apply: autobahn has no `-o`, P27 big and odd answers (a large flat answer
+  and one of DEL characters print within a small heap, or are "too large" past V8's longest
+  string; a lone surrogate or invalid bytes become U+FFFD with a `WARN` record of
+  `autobahn.api`). Mock transports or local servers only, never the live
   API.
 - **`package.test.ts`** — the published package: `npm pack --dry-run` in `apps/cli` must list the library, the bin and `version.js`, and no sources, tests, maps, skills or site; the documents `prepack` copies in (README, LICENSE, the licence documents) must exist at the root and be shipped, and every dependency must be bundled. (The dry run skips `prepack`: running it during the tests would put the bundled copies in front of the workspace links. CI packs and installs the real tarball.)
 

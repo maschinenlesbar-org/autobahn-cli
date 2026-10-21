@@ -322,6 +322,10 @@ fehlerhafte Antwort — ungültiges JSON, die falsche Form, ein leerer Body, ein
 Verbindung, die Klartext-Warnung und je Wiederholung eine WARN-Zeile vor dem Warten) und `output` (ein Schreibfehler auf stdout, eine zu tief verschachtelte oder zu große Antwort). Ein Eintrag
 ist immer eine Zeile; Steuerzeichen darin werden maskiert.
 
+**Ersetzter Text.** Bytes einer Antwort, die in ihrem Zeichensatz ungültig sind, und halbe
+Zeichen (einzelne Surrogate) werden durch U+FFFD ersetzt und in einem `WARN`-Eintrag von
+`autobahn.api` mit Anzahl und Anfrage gemeldet; der Lauf gelingt trotzdem.
+
 ---
 
 > **Bibliothek & Interna.** Begriffe zum TypeScript-Client und seinen Interna –
