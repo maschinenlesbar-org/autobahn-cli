@@ -64,8 +64,18 @@ new AutobahnClient({
   maxResponseBytes: 50 << 20, // abort responses larger than 50 MiB (0 = unlimited)
   userAgent: "my-app/1.0",
   transport: customTransport, // inject your own HTTP transport
+  bigIntegerKeys: new Set(["_version_"]),      // members whose numbers may pass 2^53: delivered as strings
 });
 ```
+
+**Exact answers.** A number a double can't carry exactly (out of range, past 2^53 in any form,
+too small and turned into 0, or a subnormal that prints changed: `3e-324` became `5e-324`) is an
+`AutobahnParseError`, never a changed value. A member named in `bigIntegerKeys` (a set or
+list of non-empty member names, copied; default none, and the Autobahn API needs none: its
+answers carry coordinates and ids as strings) is the one exception: its number value is
+delivered as its exact literal, as written, as a JSON string (`"1858054135406919680"`, `"5"`),
+whatever its size, so its type is stable. The engine does both in one linear scan of the text
+before `JSON.parse` (`scanNumbers`, which quotes the declared values in place; no reviver).
 
 Every option may be omitted or given as `undefined`, which means the same (the default),
 so `new AutobahnClient({ baseUrl: process.env.AUTOBAHN_BASE_URL })` compiles under

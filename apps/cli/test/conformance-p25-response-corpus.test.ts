@@ -28,6 +28,15 @@ const fromLib = (value: unknown): unknown => (value as Array<{ n: unknown }>)[0]
 const BIN = "autobahn";
 /** The exit code of a malformed answer in this repo (most repos use 1). */
 const PARSE_EXIT = 1;
+/**
+ * The member names the repo's client declares as big integers (its `bigIntegerKeys`), usually
+ * none. `bigBody(key, literal)` is a 2xx body for the call above with that member set to `literal`
+ * where the client reads it; `bigFromCli`/`bigFromLib` read it back.
+ */
+const BIG_INTEGER_KEYS: readonly string[] = [];
+const bigBody = (key: string, literal: string): string => `{"roadworks":[{"identifier":"a1",${JSON.stringify(key)}:${literal}}]}`;
+const bigFromCli = (out: string, key: string): unknown => (JSON.parse(out) as Array<Record<string, unknown>>)[0]?.[key];
+const bigFromLib = (value: unknown, key: string): unknown => (value as Array<Record<string, unknown>>)[0]?.[key];
 // --------------------------------------------------------------------------------------
 
 const INEXACT = [
@@ -76,4 +85,21 @@ test("P25: an empty answer is an error, never 'nothing found'", async () => {
     assert.match(o.cli.err, new RegExp(`^ERROR \\[${BIN}\\.api\\] `), JSON.stringify(raw));
     assert.equal(o.lib.ok, false, JSON.stringify(raw));
   }
+});
+
+test("P25: a declared big-integer member is its exact literal as a string; an undeclared one is refused", async () => {
+  for (const key of BIG_INTEGER_KEYS) {
+    for (const literal of ["1858054135406919680", "5", "-12345678901234567890", "0"]) {
+      const o = await parity(argv, (t) => lib(new Client({ transport: t })), () => rawResponse(bigBody(key, literal), "application/json"));
+      assert.equal(o.cli.code, 0, `${key} ${literal}: ${o.cli.err}`);
+      assert.equal(bigFromCli(o.cli.out, key), literal, `${key} ${literal}`);
+      assert.equal(o.lib.ok, true, `${key} ${literal}`);
+      assert.equal(bigFromLib(o.lib.value, key), literal, `${key} ${literal}`);
+    }
+  }
+  // Nothing else is declared by accident: Solr's `_version_` (unless the repo declares it) is refused.
+  const undeclared = ["_version_", "n"].find((key) => !BIG_INTEGER_KEYS.includes(key)) ?? "n";
+  const o = await parity(argv, (t) => lib(new Client({ transport: t })), () => rawResponse(bigBody(undeclared, "1858054135406919680"), "application/json"));
+  assert.equal(o.cli.code, PARSE_EXIT, o.cli.out);
+  assert.equal(o.lib.ok, false);
 });
