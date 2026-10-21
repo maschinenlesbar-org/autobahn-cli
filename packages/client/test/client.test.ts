@@ -72,7 +72,7 @@ test("get() trims surrounding whitespace from the identifier, like list() does f
 
 test("list() items type each coordinate shape the API returns", async () => {
   // Shapes seen live on 2026-09-15: parking gives a GeoJSON Point and no point
-  // string, warnings give numbers, charging gives strings.
+  // string, warnings give numbers, charging gives strings (most sites; see below).
   const parking = await clientWith(
     constantJson({
       parking_lorry: [
@@ -93,11 +93,25 @@ test("list() items type each coordinate shape the API returns", async () => {
   assert.equal(w.lat, 49.45);
 
   const charging = await clientWith(
-    constantJson({ electric_charging_station: [{ identifier: "30388", coordinate: { lat: "54.6", long: "9.44" } }] }),
+    constantJson({ electric_charging_station: [{ identifier: "RUxF", coordinate: { lat: "54.6", long: "9.44" } }] }),
   ).chargingStations.list("A7");
   const c = charging[0]?.coordinate;
   assert.ok(c && "long" in c);
   assert.equal(Number(c.long), 9.44);
+
+  // Since October 2026 a Deutschlandnetz charging site (numeric id) sends a GeoJSON Point and
+  // no point or extent, like lorry parking: passed on as it came, both shapes typed.
+  const deutschlandnetz = await clientWith(
+    constantJson({
+      electric_charging_station: [
+        { identifier: "29963", title: "A9 | undefined | Sophienberg W", coordinate: { type: "Point", coordinates: [11.598854, 49.893506] } },
+      ],
+    }),
+  ).chargingStations.list("A9");
+  const d = deutschlandnetz[0]?.coordinate;
+  assert.ok(d && "coordinates" in d);
+  assert.deepEqual(d.coordinates, [11.598854, 49.893506]);
+  assert.equal(deutschlandnetz[0]?.point, undefined);
 });
 
 test("list() items type the warning and roadwork fields the API sends", async () => {

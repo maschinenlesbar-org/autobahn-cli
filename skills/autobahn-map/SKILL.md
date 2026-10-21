@@ -47,16 +47,18 @@ Validate road ids against `autobahn roads` first.
 For every item, emit one GeoJSON `Feature`.
 
 > **The critical quirk: the position is stored differently per service.** Seen live on
-> 2026-09-15:
+> 2026-09-15 and 2026-10-21:
 >
 > | Service | `coordinate` | `point` string | `geometry` |
 > |---|---|---|---|
 > | `roadworks`, `warnings`, `closures` | `{ lat, long }`, JSON **numbers** | `"lat,long"` | GeoJSON `LineString` of the affected stretch |
-> | `charging` | `{ lat, long }`, **strings** | `"long,lat"` | none |
+> | `charging` (base64 `identifier`, most sites) | `{ lat, long }`, **strings** | `"long,lat"` | none |
+> | `charging` (Deutschlandnetz, numeric `identifier`) | a GeoJSON **Point**: `{ "type": "Point", "coordinates": [lon, lat] }`, numbers, no `lat`/`long` keys | absent from listing items (`null` in `get` details); `extent` too | none |
 > | `parking` | a GeoJSON **Point**: `{ "type": "Point", "coordinates": [lon, lat] }`, no `lat`/`long` keys | absent from listing items (`null` in `get` details); `extent` too | none |
 >
-> **Never split the `point` string** — its order flips between services, and parking has
-> none. **Never read `coordinate.lat`/`.long` blindly either** — on parking they are
+> **Never split the `point` string** — its order flips between services, and parking and
+> Deutschlandnetz charging sites have none. **Never read `coordinate.lat`/`.long` blindly
+> either** — on parking and on Deutschlandnetz charging sites they are
 > `undefined`, and `Number(undefined)` writes `[null, null]` into the file. Handle both
 > `coordinate` shapes (note the key is `long`, not the RFC-7946 `lon`) and check the
 > result is a pair of finite numbers.
@@ -70,7 +72,7 @@ function lonLat(item) {
   const c = item.coordinate;
   if (!c) return null;
   const xy = c.type === "Point" && Array.isArray(c.coordinates)
-    ? [num(c.coordinates[0]), num(c.coordinates[1])]   // parking: already [lon, lat]
+    ? [num(c.coordinates[0]), num(c.coordinates[1])]   // parking, Deutschlandnetz charging: already [lon, lat]
     : [num(c.long), num(c.lat)];                        // other services: numbers or strings
   return xy.every(Number.isFinite) ? xy : null;
 }

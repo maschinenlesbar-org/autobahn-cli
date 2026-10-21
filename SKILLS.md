@@ -93,7 +93,9 @@ encode the non-obvious parts of this API, for example:
 - positions are **stored differently per service**: the `point` string is `lat,long` for
   roadworks/warnings/closures and `long,lat` for charging; `coordinate` is `{ lat, long }`
   (numbers, or strings on charging — note `long`, not the RFC-7946 `lon`) except on
-  parking, where it is a GeoJSON Point and `point` is `null` (see **autobahn-map**);
+  parking and on Deutschlandnetz charging sites (numeric id), where it is a GeoJSON Point
+  and `point` is absent (`null` in a `get`); those sites' `title` reads `A9 | undefined | <name>` (see
+  **autobahn-map** and **autobahn-ev-planner**);
 - `display_type` `STRONG_ELECTRIC_CHARGING_STATION` is on nearly every charging site, 50 kW
   ones included, so speed comes from the kW lines in `description[]`; charging ids are
   numeric for Deutschlandnetz sites and base64 for the rest (see **autobahn-ev-planner**).

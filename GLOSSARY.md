@@ -141,7 +141,9 @@ the API populates a different subset of fields per service type.
 
 **`title` / `subtitle`.** Short human-readable labels for the item. On lorry
 parking the upstream `title` is broken (`A8 | undefined`); the area name is in
-`subtitle`. On roadworks, warnings and closures the `subtitle` is the direction and
+`subtitle`. Deutschlandnetz charging sites (numeric `identifier`) have the same fault in
+the middle part, the direction (`A9 | undefined | Sophienberg W`, since October 2026); the
+site-name suffix (`O`/`W`) still tells the carriageway. On roadworks, warnings and closures the `subtitle` is the direction and
 usually starts with a space (`" Saarbrücken -> Trier"`); trim it before matching or
 splitting on `" -> "`. The client passes it on unchanged.
 
@@ -151,14 +153,15 @@ without a zone marker — two hours behind the same item's `Beginn: … 21:53 Uh
 
 **`point`.** A single geographic position serialised as a string. The order
 varies by service: `"lat,long"` for roadworks, warnings and closures,
-`"long,lat"` for charging. Lorry parking has none: listing items carry no `point`
+`"long,lat"` for charging. Lorry parking and the Deutschlandnetz charging sites have none: listing items carry no `point`
 key at all, and the `get` detail response has `point: null`.
 
 **`coordinate`.** A geographic point as a structured object. Its shape varies by
 service: `{ lat, long }` with JSON numbers for roadworks, warnings and closures;
-the same keys as stringified decimals for charging; and a GeoJSON Point
+the same keys as stringified decimals for most charging sites; and a GeoJSON Point
 `{ "type": "Point", "coordinates": [long, lat] }` with no `lat`/`long` keys for
-lorry parking.
+lorry parking and for the Deutschlandnetz charging sites (numeric `identifier`, seen since
+October 2026). The client passes either shape on (`Coordinate`); read both.
 
 **`geometry`.** A GeoJSON `LineString` of the affected stretch, already in
 `[long, lat]` order, on roadworks, warnings and closures.
@@ -166,8 +169,8 @@ lorry parking.
 **`extent`.** A bounding extent for the item (e.g. the span a roadworks covers): two
 positions in one string, in the same order as `point` — `"lat,long,lat,long"` for
 roadworks, warnings and closures, `"long,lat,long,lat"` for charging (a single site, so
-both positions are equal). Like `point`, it is absent from lorry-parking listings and
-`null` in their detail response.
+both positions are equal). Like `point`, it is absent from lorry-parking and
+Deutschlandnetz charging listings and `null` in their detail response.
 
 **`isBlocked`.** A string flag (`"true"`/`"false"`) indicating whether the
 segment/item is blocked. The API rarely sets it: it was `"false"` on all 306 A1

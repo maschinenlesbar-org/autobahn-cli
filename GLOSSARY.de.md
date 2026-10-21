@@ -149,7 +149,10 @@ die API befüllt je Diensttyp eine andere Teilmenge der Felder.
 
 **`title` / `subtitle`.** Kurze, menschenlesbare Bezeichnungen des Eintrags. Bei den
 Lkw-Parkplätzen ist `title` upstream fehlerhaft (`A8 | undefined`); der Name des
-Parkplatzes steht in `subtitle`. Bei Baustellen, Warnungen und Sperrungen ist `subtitle`
+Parkplatzes steht in `subtitle`. Ladestationen des Deutschlandnetzes (numerische
+`identifier`) haben denselben Fehler im mittleren Teil, der Fahrtrichtung
+(`A9 | undefined | Sophienberg W`, seit Oktober 2026); die Endung des Standortnamens
+(`O`/`W`) zeigt die Fahrbahn weiterhin. Bei Baustellen, Warnungen und Sperrungen ist `subtitle`
 die Fahrtrichtung und beginnt meist mit einem Leerzeichen (`" Saarbrücken -> Trier"`);
 vor dem Vergleichen oder Aufteilen an `" -> "` trimmen. Der Client gibt es unverändert
 weiter.
@@ -161,14 +164,16 @@ desselben Eintrags.
 
 **`point`.** Eine einzelne geografische Position, serialisiert als Zeichenkette. Die
 Reihenfolge hängt vom Dienst ab: `"lat,long"` bei Baustellen, Warnungen und Sperrungen,
-`"long,lat"` bei Ladestationen. Lkw-Parkplätze haben keine: Listeneinträge enthalten den
+`"long,lat"` bei Ladestationen. Lkw-Parkplätze und die Ladestationen des Deutschlandnetzes haben keine: Listeneinträge enthalten den
 Schlüssel `point` gar nicht, die `get`-Detailantwort hat `point: null`.
 
 **`coordinate`.** Ein geografischer Punkt als strukturiertes Objekt. Seine Form hängt vom
 Dienst ab: `{ lat, long }` mit JSON-Zahlen bei Baustellen, Warnungen und Sperrungen;
-dieselben Schlüssel als Zeichenketten codierte Dezimalzahlen bei Ladestationen; und bei
-Lkw-Parkplätzen ein GeoJSON-Point `{ "type": "Point", "coordinates": [long, lat] }` ohne
-die Schlüssel `lat`/`long`.
+dieselben Schlüssel als Zeichenketten codierte Dezimalzahlen bei den meisten Ladestationen;
+und bei Lkw-Parkplätzen sowie bei den Ladestationen des Deutschlandnetzes (numerische
+`identifier`, seit Oktober 2026) ein GeoJSON-Point `{ "type": "Point", "coordinates": [long, lat] }`
+ohne die Schlüssel `lat`/`long`. Der Client gibt beide Formen weiter (`Coordinate`); lesen Sie
+beide.
 
 **`geometry`.** Ein GeoJSON-`LineString` des betroffenen Abschnitts, bereits in der
 Reihenfolge `[long, lat]`, bei Baustellen, Warnungen und Sperrungen.
@@ -177,8 +182,8 @@ Reihenfolge `[long, lat]`, bei Baustellen, Warnungen und Sperrungen.
 Baustelle umfasst): zwei Positionen in einer Zeichenkette, in derselben Reihenfolge wie
 `point` – `"lat,long,lat,long"` bei Baustellen, Warnungen und Sperrungen,
 `"long,lat,long,lat"` bei Ladestationen (ein einzelner Standort, beide Positionen sind
-gleich). Wie `point` fehlt sie in den Listeneinträgen der Lkw-Parkplätze und ist in deren
-Detailantwort `null`.
+gleich). Wie `point` fehlt sie in den Listeneinträgen der Lkw-Parkplätze und der
+Ladestationen des Deutschlandnetzes und ist in deren Detailantwort `null`.
 
 **`isBlocked`.** Ein String-Flag (`"true"`/`"false"`), das angibt, ob der Abschnitt bzw.
 Eintrag blockiert ist. Die API setzt es selten: Im Oktober 2026 stand es bei allen 306

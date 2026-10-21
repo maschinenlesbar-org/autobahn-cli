@@ -21,8 +21,9 @@ export interface RoadsResult {
 
 /**
  * A geographic point with explicit `lat`/`long` keys (note `long`, not `lon`).
- * Roadworks, warnings and closures serialise the values as JSON numbers;
- * charging stations serialise them as decimal strings.
+ * Roadworks, warnings and closures serialise the values as JSON numbers; most
+ * charging stations serialise them as decimal strings (Deutschlandnetz sites send a
+ * {@link GeoJsonPoint} instead).
  */
 export interface LatLongCoordinate {
   lat: number | string;
@@ -37,8 +38,9 @@ export interface GeoJsonPoint {
 
 /**
  * The `coordinate` field as the API serialises it. Its shape varies by service:
- * lorry parking returns a {@link GeoJsonPoint} with no `lat`/`long` keys, the
- * other services a {@link LatLongCoordinate}.
+ * lorry parking and the Deutschlandnetz charging sites (numeric `identifier`, since
+ * October 2026) return a {@link GeoJsonPoint} with no `lat`/`long` keys, the other
+ * charging sites and the other services a {@link LatLongCoordinate}.
  */
 export type Coordinate = LatLongCoordinate | GeoJsonPoint;
 
