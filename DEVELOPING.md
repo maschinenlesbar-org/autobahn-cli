@@ -258,7 +258,10 @@ retried — with the original as `cause` — never a configuration error: a bad 
 id or identifier throws an `AutobahnValidationError` before any request),
 `AutobahnParseError` (bad JSON, or a 2xx body without the
 expected shape: `Unexpected response shape from <url>: expected …`, the full request
-URL with userinfo redacted), all extending
+URL with userinfo redacted; or with a number JSON.parse can't carry exactly — out of a
+double's range, past 2^53 in any written form, or too small and turned into 0: `Unexpected
+response from <url>: the number … cannot be represented exactly.`; below 2^53 a decimal
+fraction keeps a double's precision, as JSON means it), all extending
 `AutobahnError`. `AutobahnNotFoundError` (a road id the API does not know, or an
 identifier the detail endpoint answers with an empty body; CLI exit `4`) extends
 `AutobahnError` too — it is not an `AutobahnApiError`.
