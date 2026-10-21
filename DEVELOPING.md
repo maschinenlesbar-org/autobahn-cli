@@ -460,7 +460,10 @@ deeply" for a stack overflow, "too large" for a text past V8's longest string (2
 characters); "try --compact" is added only when the compact form of that very answer prints,
 probed, since whether compact output survives deep nesting depends on the Node version and the
 machine's stack. `holdsHugeString`, which picks the compact path, walks the answer iteratively
-without an allocation per value). Code logs through
+without an allocation per value. `escapeControlChars` writes DEL, C1 and the bidi controls as
+`\uXXXX`; it measures the escaped length first (past V8's longest string the answer is "too
+large to print (N characters once its control characters are escaped)") and builds the text in
+64 Ki chunks, so an answer of DEL characters prints within memory). Code logs through
 `logOf(deps)` and never writes diagnostics with `io.err` directly. `run()` builds the
 logger from argv before commander parses it (`logFormatFromArgv`, which skips the value of
 one of the program's own value options, as commander does (`valueOptionsOf`: a subcommand's
