@@ -46,11 +46,11 @@ Each item is a charging site. The fields that matter:
 
 | Field | Meaning |
 |---|---|
-| `title` | `A7 \| <direction or junction> \| <site name>`. The middle part is usually the next destination in the **direction of travel**, i.e. it tells which carriageway the site serves (`A7 \| Hannover \| Brunautal West` vs `A7 \| Hamburg \| Brunautal Ost`; Deutschlandnetz sites name the motorway's end points, e.g. `Reutte` / `Appenrade` on the A7). A junction (`AS Bispingen`, `AK Kassel-Mitte`) marks a site just off the motorway. Some titles have only two parts (`A7 \| Brokenlande Ost`). |
+| `title` | `A7 \| <direction or junction> \| <site name>`. The middle part is usually the next destination in the **direction of travel**, i.e. it tells which carriageway the site serves (`A7 \| Hannover \| Brunautal West` vs `A7 \| Hamburg \| Brunautal Ost`). **Deutschlandnetz sites** (numeric `identifier`) send the literal text `undefined` there (`A9 \| undefined \| Sophienberg W`, seen since October 2026; they used to name the motorway's end points): take their side from the site-name suffix (`O`/`W`, `Ost`/`West`) and never print `undefined` as a direction. A junction (`AS Bispingen`, `AK Kassel-Mitte`) marks a site just off the motorway. Some titles have only two parts (`A7 \| Brokenlande Ost`). |
 | `display_type` | `STRONG_ELECTRIC_CHARGING_STATION` or `ELECTRIC_CHARGING_STATION`. **Not a speed signal**: nearly every site carries `STRONG_*`, including sites whose best point is 43–50 kW. Judge speed from the kW lines in `description[]`. |
 | `subtitle` | `Schnellladeeinrichtung` / `Normalladeeinrichtung` (mirrors `display_type`) |
 | `description[]` | German detail in one of **two layouts** (see below) |
-| `coordinate` | `{ lat, long }`, **strings** here — `Number()` them (see quirk below) |
+| `coordinate` | **Two shapes** (see quirk below): `{ lat, long }` as **strings** on most sites — `Number()` them; on **Deutschlandnetz sites** (numeric `identifier`) a GeoJSON Point `{ "type": "Point", "coordinates": [long, lat] }` with numbers and no `lat`/`long` keys (and no `point` or `extent`) |
 | `identifier` | Deutschlandnetz sites have a plain numeric id (`30388`); all other sites a base64 id (`RUxFQ1RSSUNfQ0hBUkdJTkdfU1RBVElPTl9fMTkyMzE=`, which decodes to `ELECTRIC_CHARGING_STATION__19231`). `charging get <id>` accepts both. |
 | `isBlocked` | `"true"` would mean out of service, but the API practically never sets it (0 of 118 sites on the A1/A7/A9 in October 2026) — `"false"` does not confirm a working charger |
 
@@ -68,15 +68,29 @@ spaces (`"4 Ladepunkte "`), so an exact match on the layout below would miss the
   Count the `Ladepunkt N:` blocks for the point count and take the highest kW as the
   site's best speed. **There is no operator line** — say "operator not stated".
 
-> **Quirks.** Use `coordinate.lat` / `coordinate.long`, **not** `point`: for charging the
-> `point` string is in `long,lat` order (it varies by service), while `coordinate` has
-> explicit keys. Note `long` (not `lon`).
+> **Quirks.** Read the position from `coordinate`, **not** `point`: for charging the
+> `point` string is in `long,lat` order (it varies by service) and missing on Deutschlandnetz
+> sites. `coordinate` comes in two shapes, so read both — reading `coordinate.lat` blindly
+> gives `NaN` on every Deutschlandnetz site, exactly the fast chargers the plan leads with
+> (and a map link `?q=undefined,undefined`). Note `long` (not `lon`), and `[long, lat]` order
+> in the GeoJSON one:
+>
+> ```js
+> // [lat, long] as numbers, or null when the site has no usable position.
+> function latLong(c) {
+>   const p = c?.type === "Point" && Array.isArray(c.coordinates)
+>     ? [Number(c.coordinates[1]), Number(c.coordinates[0])]  // Deutschlandnetz: [long, lat]
+>     : [Number(c?.lat), Number(c?.long)];                    // other sites: strings
+>   return p.every(Number.isFinite) ? p : null;
+> }
+> ```
 
 ## Step 3 — Order along the corridor
 
 Sort the stations so they read in travel order, not API order:
 
-- A station's position is `coordinate.lat` / `coordinate.long`. Sort by the axis the road
+- A station's position is `latLong(coordinate)` (both shapes, see the quirk above); a site
+  without one goes at the end, unsorted, and says so. Sort by the axis the road
   runs along — **latitude** for a roughly N–S motorway (A7, A9), **longitude** for an
   E–W one (A4, A6, A8). Pick the axis with the larger coordinate spread across the
   results; that's the road's main direction.
@@ -86,7 +100,9 @@ Sort the stations so they read in travel order, not API order:
   middle part names the next destination *ahead of that site* — on the A9,
   `A9 | Nürnberg | Köschinger Forst Ost` is northbound and
   `A9 | München | Köschinger Forst West` southbound — and the site-name suffix
-  (`Ost`/`West`, `O`/`W`, `Nord`/`Süd`) usually tells a pair apart. For a one-way trip keep
+  (`Ost`/`West`, `O`/`W`, `Nord`/`Süd`) usually tells a pair apart. A Deutschlandnetz
+  site's middle part is `undefined`: its suffix is all there is; match it to the
+  direction the other sites of the same suffix serve on that road. For a one-way trip keep
   your side and list the opposite side separately, or say you did not split by side.
 - Multi-road route: order within each road, then chain the roads in travel order.
 
@@ -115,7 +131,8 @@ Rules:
 - Mark `isBlocked === "true"` stations as out of service (or omit, but say you did); since
   the flag is almost never set, don't call the others "working" — this data has no live
   availability.
-- Give a tappable map link from `coordinate` (format `?q=lat,long`).
+- Give a tappable map link from `latLong(coordinate)` (format `?q=lat,long`); a site without
+  a usable position gets none, never `?q=undefined,undefined` or `NaN`.
 - If the user wants full detail on one site, offer `autobahn charging get <identifier>`.
 - **Optional enrichment:** the Bundesnetzagentur *Ladesäulenregister* carries the same
   stations with operator, connector and power per charging point (a registry — no live

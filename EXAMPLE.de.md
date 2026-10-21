@@ -13,21 +13,24 @@ Skills: [autobahn-ev-planner](#autobahn-ev-planner) · [autobahn-map](#autobahn-
 
 ## autobahn-ev-planner
 
-Lief am 6. Oktober 2026 um 00:28 Uhr mit `autobahn` 0.5.0.
+Lief am 22. Oktober 2026 um 00:53 Uhr mit `autobahn` 0.10.0 und den noch nicht veröffentlichten Korrekturen auf `main`.
 
 > Mit dem E-Auto über die A7 von Hamburg nach Göttingen – wo gibt es unterwegs Schnelllader?
 
 ```bash
 autobahn --compact roads
 autobahn --compact charging list A7
-autobahn --compact charging get RUxFQ1RSSUNfQ0hBUkdJTkdfU1RBVElPTl9fMTE5NDg=   # Base64-ID funktioniert auch
+autobahn --compact charging get 30159   # ein Deutschlandnetz-Standort: numerische ID, GeoJSON-Koordinate
 ```
 
 Die A7 lieferte 65 Standorte, von Ellund an der dänischen Grenze bis Rottachtal im Allgäu. Der
 Skill sortierte sie nach Breitengrad und behielt die 17 zwischen Hamburg und Göttingen. Der
-mittlere Teil jedes `title` nennt die Fahrtrichtung (`Hannover`/`Göttingen`/`Kassel`/`Reutte` bei den
-West-Anlagen, `Hamburg`/`Appenrade` bei den Ost-Anlagen), deshalb zeigt er die Seite Richtung
-Süden. 16 der 17 tragen `STRONG_ELECTRIC_CHARGING_STATION`, auch reine 50-kW-Standorte – die
+mittlere Teil jedes `title` nennt die Fahrtrichtung (`Hannover`/`Göttingen`/`Kassel` bei den
+West-Anlagen, `Hamburg` bei den Ost-Anlagen), deshalb zeigt er die Seite Richtung Süden. Die
+beiden Deutschlandnetz-Standorte Wolfsgrund W und O senden dort `undefined`
+(`A7 | undefined | Wolfsgrund W`) und ihre `coordinate` als GeoJSON-Point
+(`[9.67946, 52.810659]`, Längengrad zuerst) ohne die Schlüssel `lat`/`long`; der Skill las ihre
+Position deshalb aus `coordinates` und ihre Seite aus der Endung `W`/`O`. 16 der 17 tragen `STRONG_ELECTRIC_CHARGING_STATION`, auch reine 50-kW-Standorte – die
 Ladeleistung las der Skill deshalb aus den kW-Zeilen in `description[]`, jede Zeile zuvor getrimmt
 (Wolfsgrund W sendet die Zahl der Ladepunkte als `"4 Ladepunkte "`).
 

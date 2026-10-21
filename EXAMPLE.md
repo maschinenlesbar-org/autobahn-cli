@@ -13,20 +13,23 @@ Skills: [autobahn-ev-planner](#autobahn-ev-planner) · [autobahn-map](#autobahn-
 
 ## autobahn-ev-planner
 
-Ran on 6 October 2026 at 00:28 with `autobahn` 0.5.0.
+Ran on 22 October 2026 at 00:53 with `autobahn` 0.10.0 and the unreleased fixes on `main`.
 
 > I'm driving my EV from Hamburg down to Göttingen on the A7. Where can I fast-charge on the way?
 
 ```bash
 autobahn --compact roads
 autobahn --compact charging list A7
-autobahn --compact charging get RUxFQ1RSSUNfQ0hBUkdJTkdfU1RBVElPTl9fMTE5NDg=   # base64 id works too
+autobahn --compact charging get 30159   # a Deutschlandnetz site: numeric id, GeoJSON coordinate
 ```
 
 The A7 returned 65 sites, from Ellund at the Danish border to Rottachtal in the Allgäu; the skill sorted them by latitude and kept the
 17 between Hamburg and Göttingen. The middle part of each `title` names the direction of travel
-(`Hannover`/`Göttingen`/`Kassel`/`Reutte` on the West sites, `Hamburg`/`Appenrade` on the Ost sites), so it
-listed the southbound side. 16 of the 17 carry `STRONG_ELECTRIC_CHARGING_STATION`, including plain
+(`Hannover`/`Göttingen`/`Kassel` on the West sites, `Hamburg` on the Ost sites), so it
+listed the southbound side. The two Deutschlandnetz sites, Wolfsgrund W and O, send `undefined`
+there (`A7 | undefined | Wolfsgrund W`) and their `coordinate` as a GeoJSON Point
+(`[9.67946, 52.810659]`, longitude first) with no `lat`/`long` keys, so the skill read their
+position from `coordinates` and their side from the `W`/`O` suffix. 16 of the 17 carry `STRONG_ELECTRIC_CHARGING_STATION`, including plain
 50 kW sites, so it judged speed by the kW lines in `description[]` instead, trimming each line
 first (Wolfsgrund W sends its point count as `"4 Ladepunkte "`).
 
