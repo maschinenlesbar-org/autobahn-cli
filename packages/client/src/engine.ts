@@ -48,42 +48,42 @@ export interface RawResponse {
  */
 export interface EngineOptions {
   /** Base URL of the API. Defaults to https://verkehr.autobahn.de */
-  baseUrl?: string;
+  baseUrl?: string | undefined;
   /** Swappable transport. Defaults to the built-in node http/https transport. */
-  transport?: Transport;
+  transport?: Transport | undefined;
   /** Value of the User-Agent header. */
-  userAgent?: string;
+  userAgent?: string | undefined;
   /**
    * Per-request timeout in milliseconds (0 disables; at most `MAX_TIMEOUT_MS`, 2^31 - 1 ms).
    * Defaults to 30 000. A request that times out is not retried.
    */
-  timeoutMs?: number;
+  timeoutMs?: number | undefined;
   /**
    * Number of automatic retries for transient 429/502/503/504 responses and reset
    * connections (`isTransientNetworkError`), 0..`MAX_RETRIES` (10); defaults to 2.
    * Timeouts are not retried.
    */
-  maxRetries?: number;
+  maxRetries?: number | undefined;
   /**
    * Base backoff between retries in milliseconds (default 200). Grows linearly per
    * attempt for 502/503/504 and reset connections. A 429 waits at least 1 s, doubling
    * per attempt (from this value when larger), at most 30 s. A `Retry-After` header
    * takes precedence over both. At most 30 000 (the Retry-After ceiling).
    */
-  retryDelayMs?: number;
+  retryDelayMs?: number | undefined;
   /**
    * Hard cap on response body size in bytes (defends against memory exhaustion
    * from a hostile/buggy endpoint). Defaults to 100 MiB; set to 0 for no limit.
    * At most `Number.MAX_SAFE_INTEGER`.
    */
-  maxResponseBytes?: number;
+  maxResponseBytes?: number | undefined;
   /** Injectable sleep, primarily for deterministic tests. */
-  sleep?: (ms: number) => Promise<void>;
+  sleep?: ((ms: number) => Promise<void>) | undefined;
   /**
    * Called once per retry, right before the backoff sleep, for each retried status
    * and reset connection; never when there is no retry. A throw is swallowed.
    */
-  onRetry?: (event: RetryEvent) => void;
+  onRetry?: ((event: RetryEvent) => void) | undefined;
 }
 
 /** What `EngineOptions.onRetry` is told about one retry. */
@@ -617,7 +617,7 @@ export class RequestEngine {
   async request(
     method: string,
     path: string,
-    options: { query?: QueryParams; accept: string } = { accept: "application/json" },
+    options: { query?: QueryParams | undefined; accept: string } = { accept: "application/json" },
   ): Promise<RawResponse> {
     const url = this.buildUrl(path, options.query);
     const headers: Record<string, string> = {
@@ -718,7 +718,7 @@ export class RequestEngine {
   async getJson<T>(
     path: string,
     query?: QueryParams,
-    options: { emptyIsNotFound?: boolean } = {},
+    options: { emptyIsNotFound?: boolean | undefined } = {},
   ): Promise<T> {
     const res = await this.request("GET", path, { query, accept: "application/json" });
     // The client sends no Accept-Encoding and does not decompress; a compressed body can

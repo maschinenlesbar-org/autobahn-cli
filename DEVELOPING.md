@@ -67,6 +67,10 @@ new AutobahnClient({
 });
 ```
 
+Every option may be omitted or given as `undefined`, which means the same (the default),
+so `new AutobahnClient({ baseUrl: process.env.AUTOBAHN_BASE_URL })` compiles under
+`exactOptionalPropertyTypes` too.
+
 `transport` and `sleep` must be functions when given, and an unknown option name (a
 JavaScript typo such as `timeout` for `timeoutMs`) is rejected too — both as an
 `AutobahnValidationError`. The numeric options must be integers in range — `timeoutMs` 0..2³¹−1, `maxRetries`
@@ -344,7 +348,7 @@ The client's tests are in `packages/client/test/` (`query`, `http`, `engine`, `c
 - **`io.test.ts`** — the default I/O seam: EPIPE and other stdout/stderr write errors.
 - **`log.test.ts`** — the record helpers of `apps/cli/src/cli/log.ts` on their own
   (`escapeForRecord`, `formatLogRecord`); the CLI-level checks are P23's.
-- **`types.test.ts`** — compile-time checks of exported library types (e.g. `ServiceResource`).
+- **`types.test.ts`** — compile-time checks of exported library types (e.g. `ServiceResource`), and a consumer file compiled by `tsc` with `exactOptionalPropertyTypes` that passes `undefined` for every option (it starts a process: 30 s).
 - **`conformance-p*.test.ts`** — the checks shared across the `*-cli` repos, the same files
   everywhere with only an adapter block at the top: P1 CLI redaction, P2 library
   redaction, P4/P19 configuration validation, P5 the transport contract, P6 the retry
