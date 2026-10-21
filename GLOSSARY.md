@@ -298,7 +298,7 @@ which never answer `404` to a valid request, so it means a wrong base URL.
 commander's messages, unexpected errors), `api` (the API's answers: an error status, an
 unknown road id or identifier, and a malformed answer — bad JSON, the wrong shape, an
 empty body, a number it can't carry exactly), `http` (the connection, the cleartext warning, and one WARN per retry before it waits) and `output` (a failed write
-to stdout). A record is always one line; control characters in it are escaped.
+to stdout, an answer nested too deeply to print). A record is always one line; control characters in it are escaped.
 
 ---
 

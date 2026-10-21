@@ -1,10 +1,11 @@
-// Shared helpers used across CLI command groups: option parsers, the global
-// option resolver, and the JSON result renderer.
+// Shared helpers used across CLI command groups: option parsers and the global option
+// resolver. Results are written by output.ts.
 
 import type { Command } from "commander";
 import { InvalidArgumentError } from "commander";
 import { logOf, type CliDeps } from "./io.js";
-import { cleartextProblem, DEFAULT_BASE_URL, headerValueProblem, isBidiControl, type EngineOptions } from "@maschinenlesbar.org/autobahn-client/internal/engine";
+import type { OutputOptions } from "./output.js";
+import { cleartextProblem, DEFAULT_BASE_URL, headerValueProblem, type EngineOptions } from "@maschinenlesbar.org/autobahn-client/internal/engine";
 import { baseUrlProblem, idProblem, roadIdProblem } from "@maschinenlesbar.org/autobahn-client/internal/validate";
 import type { RetryEvent } from "@maschinenlesbar.org/autobahn-client/internal/engine";
 
@@ -83,13 +84,12 @@ export function parseRoadId(value: string): string {
   return value;
 }
 
-export interface GlobalOptions {
+export interface GlobalOptions extends OutputOptions {
   baseUrl?: string;
   timeout?: number;
   userAgent?: string;
   maxRetries?: number;
   maxResponseBytes?: number;
-  compact?: boolean;
 }
 
 /** Translate resolved global CLI options into client EngineOptions. */
@@ -101,33 +101,6 @@ export function toEngineOptions(global: GlobalOptions): EngineOptions {
   if (global.maxRetries !== undefined) options.maxRetries = global.maxRetries;
   if (global.maxResponseBytes !== undefined) options.maxResponseBytes = global.maxResponseBytes;
   return options;
-}
-
-/**
- * Escape the characters JSON.stringify leaves raw although a terminal acts on them.
- * It escapes C0 (including ESC) but not DEL, the C1 range U+0080–U+009F (U+009B is
- * the 8-bit form of CSI) or the bidi formatting characters (isBidiControl), which
- * reorder the text that follows. The output is server data, so escape them; the
- * result is equivalent, valid JSON (these characters only occur inside strings).
- * Checked by char code so the source stays free of control bytes.
- */
-export function escapeControlChars(json: string): string {
-  let result = "";
-  let from = 0;
-  for (let i = 0; i < json.length; i++) {
-    const c = json.charCodeAt(i);
-    if ((c >= 0x7f && c <= 0x9f) || isBidiControl(c)) {
-      result += json.slice(from, i) + "\\u" + c.toString(16).padStart(4, "0");
-      from = i + 1;
-    }
-  }
-  return from === 0 ? json : result + json.slice(from);
-}
-
-/** Render a JSON value to stdout, pretty by default, compact with --compact. */
-export function renderJson(deps: CliDeps, global: GlobalOptions, value: unknown): void {
-  const text = escapeControlChars(global.compact ? JSON.stringify(value) : JSON.stringify(value, null, 2));
-  deps.io.out(text);
 }
 
 /**

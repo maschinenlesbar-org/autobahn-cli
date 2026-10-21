@@ -1,6 +1,7 @@
 import type { Command } from "commander";
 import type { CliDeps } from "../io.js";
-import { action, renderJson } from "../shared.js";
+import { action } from "../shared.js";
+import { renderJson } from "../output.js";
 
 export function registerRoadsCommand(program: Command, deps: CliDeps): void {
   program

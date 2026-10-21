@@ -5,6 +5,7 @@
 import { CommanderError, type Command } from "commander";
 import { buildProgram, commandPath, defaultDeps, suggestCommand } from "./program.js";
 import { logOf, type CliDeps } from "./io.js";
+import { OutputError } from "./output.js";
 import { createLogger, logFormatFromArgv, type Logger } from "./log.js";
 import {
   AutobahnApiError,
@@ -318,7 +319,8 @@ export function withRedactedOutput(deps: CliDeps, argv: readonly string[]): CliD
 
 /**
  * The log area of an `AutobahnError` that is neither an API error, a not-found nor a
- * usage error: the connection (`http`), else the API's answer (`api`). That covers a
+ * usage error: writing the result (`output`), the connection (`http`), else the API's
+ * answer (`api`). That covers a
  * malformed answer (`AutobahnParseError`: bad JSON, the wrong shape or content type, an
  * empty body, an unknown charset, a detail about another identifier) and the client's
  * own errors about an answer: a listing that answered 404 (a wrong base URL) and a
@@ -326,6 +328,7 @@ export function withRedactedOutput(deps: CliDeps, argv: readonly string[]): CliD
  * list could not be fetched at all).
  */
 function areaOf(err: AutobahnError): string {
+  if (err instanceof OutputError) return "output";
   if (err instanceof AutobahnNetworkError) return "http";
   if (err.cause instanceof AutobahnError) return areaOf(err.cause);
   return "api";

@@ -168,7 +168,9 @@ Use `--compact` for single-line JSON in pipelines and logs:
 autobahn --compact roadworks list A1
 ```
 
-`--compact` is a **global** option and works **before or after** the command.
+`--compact` is a **global** option and works **before or after** the command. An answer
+nested too deeply to pretty-print is refused with an `ERROR` record of `autobahn.output`
+(exit `1`) that suggests `--compact`, which prints it.
 
 **Exit codes** make the CLI easy to use in scripts:
 

@@ -4,7 +4,8 @@
 
 import type { Command } from "commander";
 import type { CliDeps } from "../io.js";
-import { action, parseId, parseRoadId, renderJson } from "../shared.js";
+import { action, parseId, parseRoadId } from "../shared.js";
+import { renderJson } from "../output.js";
 import type { AutobahnClient } from "@maschinenlesbar.org/autobahn-client/internal/client";
 
 type ServiceKey =
