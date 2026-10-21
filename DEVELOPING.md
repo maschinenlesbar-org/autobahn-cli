@@ -264,9 +264,11 @@ id or identifier throws an `AutobahnValidationError` before any request),
 `AutobahnParseError` (bad JSON, or a 2xx body without the
 expected shape: `Unexpected response shape from <url>: expected …`, the full request
 URL with userinfo redacted; or with a number JSON.parse can't carry exactly — out of a
-double's range, past 2^53 in any written form, or too small and turned into 0: `Unexpected
-response from <url>: the number … cannot be represented exactly.`; below 2^53 a decimal
-fraction keeps a double's precision, as JSON means it; past 2^53 the number as printed,
+double's range, past 2^53 in any written form, too small and turned into 0, or a subnormal
+(below 2.2250738585072014e-308) that does not print as written, `3e-324` becoming `5e-324`: `Unexpected
+response from <url>: the number … cannot be represented exactly.`; below 2^53 and above the
+subnormal range a decimal fraction keeps a double's precision, as JSON means it; past 2^53 and
+below the normal range the number as printed,
 `String(value)`, is compared with the number as written, so `12345678901234567890`, which
 prints as `12345678901234567000`, is refused, while `1e23` or `1.7976931348623157E308`, a
 double a server printed in its own shortest form, passes), all extending
