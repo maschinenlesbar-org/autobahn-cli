@@ -365,7 +365,7 @@ The client's tests are in `packages/client/test/` (`query`, `http`, `engine`, `c
 - **`cli.test.ts`** — end-to-end command parsing, rendering, error/exit codes and option flow-through — mocked client.
 - **`parity.test.ts`** — CLI ↔ library parity: the same input through `run()` and through the library must give the same outcome (both reject without a request with the same reason, or both send the same requests).
 - **`io.test.ts`** — the default I/O seam: EPIPE and other stdout/stderr write errors.
-- **`output.test.ts`** — the renderer: an answer too deep to pretty-print, and which `JSON.stringify` path `--compact` takes (the gap path only for a string or key of 64 Mi characters or more).
+- **`output.test.ts`** — the renderer: an answer too deep or too large to print (the cause named, "try --compact" only where `--compact` prints it, probed on the runtime), and which `JSON.stringify` path `--compact` takes (the gap path only for a string or key of 64 Mi characters or more).
 - **`log.test.ts`** — the record helpers of `apps/cli/src/cli/log.ts` on their own
   (`escapeForRecord`, `formatLogRecord`); the CLI-level checks are P23's.
 - **`types.test.ts`** — compile-time checks of exported library types (e.g. `ServiceResource`), and a consumer file compiled by `tsc` with `exactOptionalPropertyTypes` that passes `undefined` for every option (it starts a process: 30 s).
@@ -455,7 +455,12 @@ identifier, and a malformed answer — an `AutobahnParseError`: bad JSON, the wr
 content type, an empty body, a detail about another identifier — as well as a listing
 that answered 404 and a failed road-list check, which take the area of their cause:
 `areaOf` in `run.ts`), `http` (network errors, the cleartext warning) and `output` (a failed write
-to stdout, an answer nested too deeply to print: `OutputError`, exit 1). Code logs through
+to stdout, an answer it can't print: `OutputError`, exit 1, naming the cause — "nested too
+deeply" for a stack overflow, "too large" for a text past V8's longest string (2^29 − 24
+characters); "try --compact" is added only when the compact form of that very answer prints,
+probed, since whether compact output survives deep nesting depends on the Node version and the
+machine's stack. `holdsHugeString`, which picks the compact path, walks the answer iteratively
+without an allocation per value). Code logs through
 `logOf(deps)` and never writes diagnostics with `io.err` directly. `run()` builds the
 logger from argv before commander parses it (`logFormatFromArgv`, which skips the value of
 one of the program's own value options, as commander does (`valueOptionsOf`: a subcommand's

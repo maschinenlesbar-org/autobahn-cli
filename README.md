@@ -169,8 +169,9 @@ autobahn --compact roadworks list A1
 ```
 
 `--compact` is a **global** option and works **before or after** the command. An answer
-nested too deeply to pretty-print is refused with an `ERROR` record of `autobahn.output`
-(exit `1`) that suggests `--compact`, which prints it.
+nested too deeply or too large to print is refused with an `ERROR` record of `autobahn.output`
+(exit `1`) that names the cause; it suggests `--compact` only where `--compact` prints that
+answer.
 
 **Exit codes** make the CLI easy to use in scripts:
 
