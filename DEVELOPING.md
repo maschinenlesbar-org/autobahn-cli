@@ -266,7 +266,10 @@ expected shape: `Unexpected response shape from <url>: expected …`, the full r
 URL with userinfo redacted; or with a number JSON.parse can't carry exactly — out of a
 double's range, past 2^53 in any written form, or too small and turned into 0: `Unexpected
 response from <url>: the number … cannot be represented exactly.`; below 2^53 a decimal
-fraction keeps a double's precision, as JSON means it), all extending
+fraction keeps a double's precision, as JSON means it; past 2^53 the number as printed,
+`String(value)`, is compared with the number as written, so `12345678901234567890`, which
+prints as `12345678901234567000`, is refused, while `1e23` or `1.7976931348623157E308`, a
+double a server printed in its own shortest form, passes), all extending
 `AutobahnError`. `AutobahnNotFoundError` (a road id the API does not know, or an
 identifier the detail endpoint answers with an empty body; CLI exit `4`) extends
 `AutobahnError` too — it is not an `AutobahnApiError`.
