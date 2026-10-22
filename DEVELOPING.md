@@ -290,7 +290,11 @@ error about an answer names the request like a network error does: `GET <url>: �
 request URL with userinfo redacted and cut at 500 characters (`GET <url>: the answer is not
 valid JSON (expected JSON, got Content-Type "text/html").`, `GET <url>: empty response body.`,
 `GET <url>: unexpected response shape: expected …`, `GET <url>: asked for identifier "…", got
-"…".`, `GET <url>: the number … cannot be represented exactly.`). All extend
+"…".`, `GET <url>: the number … cannot be represented exactly.`, and for a body too large
+to become one string, 512 MB and more, possible only with `maxResponseBytes: 0` or
+`--max-response-bytes 0`: `GET <url>: the answer is too large to read as text (N bytes; the
+longest string is 536870888 characters).`, ERROR record of `autobahn.api`, exit 1, where an
+error status with such a body keeps its `AutobahnApiError`, without the body). All extend
 `AutobahnError`. `AutobahnNotFoundError` (a road id the API does not know, or an
 identifier the detail endpoint answers with an empty body; CLI exit `4`) extends
 `AutobahnError` too — it is not an `AutobahnApiError`.
