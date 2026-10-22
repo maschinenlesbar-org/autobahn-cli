@@ -962,3 +962,49 @@ test("a boolean that can be switched both ways may be given only once: optional 
     assert.deepEqual(seen, [expected], argv.join(" "));
   }
 });
+
+// T15 of the 2026-10-21 fix round (jobsuche-cli 28be809, ladesaeulenregister-cli 001c48d): a URL
+// with a password anywhere in an argument — a road id, an identifier, padded, after a dash,
+// inside a phrase, an option value, commander's echo — must never reach stderr, neither raw in
+// a refusal or note nor percent-encoded in the request URL of an error record.
+test("a password in a URL inside any argument is redacted on stderr, raw or percent-encoded (T15)", async () => {
+  const url = "https://bob:s3cretpw@host.example/x";
+  const argvs = [
+    ["roadworks", "list", url],
+    ["roadworks", "list", ` ${url}`],
+    ["roadworks", "list", `A1 ${url}`],
+    ["roadworks", "list", ` -${url}`],
+    ["warnings", "list", `A1\u0007${url}`],
+    ["roadworks", "get", url],
+    ["roadworks", "get", ` ${url}`],
+    ["charging", "get", `id ${url}`],
+    ["webcams", "get", ` -${url}`],
+    ["roadworks", ` ${url}`],
+    [` ${url}`],
+    [url],
+    ["help", ` ${url}`],
+    ["roadworks", "list", "A1", url],
+    ["roadworks", "list", url, "--bogus"],
+    ["--timeout", ` ${url}`, "roads"],
+    ["--max-response-bytes", url, "roads"],
+    ["--log-format", ` ${url}`, "roads"],
+    [`--timeout= ${url}`, "roads"],
+  ];
+  const answers: Array<(req: HttpRequest) => HttpResponse> = [
+    (req) => (new URL(req.url).pathname === "/o/autobahn/" ? jsonResponse({ roads: ["A1"] }) : jsonResponse({ message: `bad value ${url}` }, 404)),
+    () => jsonResponse({ message: `bad value ${url}` }, 404),
+    () => jsonResponse({}, 500),
+    () => rawResponse("busy", "text/plain", 503),
+    () => {
+      throw Object.assign(new Error("connect ECONNREFUSED"), { code: "ECONNREFUSED" });
+    },
+  ];
+  for (const argv of argvs) {
+    for (const answer of answers) {
+      const cli = makeCli(answer);
+      await run(["--max-retries", "0", ...argv], cli.deps);
+      const err = cli.err.join("\n");
+      assert.doesNotMatch(err, /s3cretpw|bob%3As3|s3cretpw%40/, `${JSON.stringify(argv)}: ${err}`);
+    }
+  }
+});
