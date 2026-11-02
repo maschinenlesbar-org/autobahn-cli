@@ -809,6 +809,18 @@ test("the CLI's redaction of stdout is linear in the answer (security audit B)",
   assert.ok(ms < 1500, `${Math.round(ms)} ms`);
 });
 
+test("the CLI's redaction of stdout hides the userinfo of a URL glued onto the one before it (security audit B2)", async () => {
+  // The linear pass read the first URL's authority up to the second `://` and searched on after
+  // it, so the second URL's userinfo reached stdout; the scheme regex it replaced redacted both.
+  const value = "https://host://u:p1@h and https://u:p2@x://v:q3@w";
+  const cli = makeCli(() => jsonResponse({ roads: [value] }));
+  const code = await run(["--base-url", "https://alice:s3cret-Pw@mirror.example", "--compact", "roads"], cli.deps);
+  assert.equal(code, 0, cli.err.join("\n"));
+  const out = cli.out.join("\n");
+  assert.ok(out.includes("https://host://***@h and https://***@x://***@w"), out);
+  for (const secret of ["u:p1", "u:p2", "v:q3"]) assert.ok(!out.includes(secret), out);
+});
+
 test("a token in --base-url is redacted from what the CLI prints, on stderr and stdout (security audit E)", async () => {
   const TOKEN = "T0kenS3cret";
   const basic = Buffer.from(`${TOKEN}:`, "utf8").toString("base64");
