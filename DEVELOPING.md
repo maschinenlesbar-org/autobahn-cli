@@ -139,7 +139,7 @@ no credential headers of its own. A base URL with userinfo
 (`https://user:password@mirror.example`) is the one exception, by design: Node's
 `http(s).request` turns it into `Authorization: Basic …` for that host, as `curl` does
 (for a mirror behind a login). It never goes elsewhere, since redirects are not
-followed, and `redactUrl`/`redactUserinfo` keep it out of every message. `--base-url` is trusted input: the CLI fetches whatever
+followed, and `redactUrl`/`redactUrlUserinfo` (errors.ts, linear in the text) keep it out of every message. `--base-url` is trusted input: the CLI fetches whatever
 host you point it at; only `http:`/`https:` URLs are accepted, and redirects
 are **not** followed — a `3xx` surfaces as an error rather than being chased to
 another host.

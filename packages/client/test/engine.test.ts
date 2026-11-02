@@ -17,6 +17,8 @@ import {
   AutobahnParseError,
   AutobahnValidationError,
   redactUrl,
+  redactUrlUserinfo,
+  TextBuilder,
   cutText,
   toWellFormed,
 } from "../src/errors.js";
@@ -1002,4 +1004,39 @@ test("an answer longer than V8's longest string is an AutobahnParseError naming 
   }
   // An error status with such a body is still the API error, without the unreadable body.
   await assert.rejects(on(valid, 500).getJson("/x"), (err: unknown) => err instanceof AutobahnApiError && err.status === 500 && err.body === "");
+});
+
+/** Milliseconds `work` takes. */
+function elapsed(work: () => unknown): number {
+  const start = performance.now();
+  work();
+  return performance.now() - start;
+}
+
+test("redactUrlUserinfo hides every URL's userinfo in one linear pass, however many URLs (security audit B)", () => {
+  // The URL regex this replaces (a scheme tried at every word start) takes seconds on this.
+  assert.ok(elapsed(() => redactUrlUserinfo("a.".repeat(30_000))) < 1000);
+  assert.equal(
+    redactUrlUserinfo("argument 'ftp://user:s3cret@h.example' is invalid; also http://a@b@c.example/x?y=u@v"),
+    "argument 'ftp://***@h.example' is invalid; also http://***@c.example/x?y=u@v",
+  );
+  assert.equal(redactUrlUserinfo("error: unknown option '--bogus' (mail@example.org)"), "error: unknown option '--bogus' (mail@example.org)");
+  assert.equal(redactUrlUserinfo("a -https://u:p@h/x and x-ftp://v@w?q, mail@example.org"), "a -https://***@h/x and x-ftp://***@w?q, mail@example.org");
+  assert.equal(redactUrlUserinfo("1://u:p@h ://u:p@h"), "1://u:p@h ://u:p@h");
+  assert.equal(redactUrlUserinfo("https://h/p?u=a@b"), "https://h/p?u=a@b");
+  for (const text of ["a".repeat(1_000_000), "a.".repeat(500_000), "://".repeat(100_000), `https://${"u".repeat(1_000_000)}`]) {
+    assert.equal(redactUrlUserinfo(text), text);
+  }
+  assert.equal(redactUrlUserinfo("https://u:p@h ".repeat(100_000)), "https://***@h ".repeat(100_000));
+});
+
+test("a TextBuilder joins its pieces in order across batches", () => {
+  const b = new TextBuilder();
+  const expected: string[] = [];
+  for (let i = 0; i < 40_000; i++) {
+    b.push(String(i), ",");
+    expected.push(String(i), ",");
+  }
+  assert.equal(b.toString(), expected.join(""));
+  assert.equal(new TextBuilder().toString(), "");
 });

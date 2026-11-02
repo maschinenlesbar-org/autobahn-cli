@@ -19,6 +19,7 @@ import {
   redactCredentials,
   redactSecrets,
   redactUrl,
+  redactUrlUserinfo,
 } from "@maschinenlesbar.org/autobahn-client/internal/errors";
 
 interface OutputSink {
@@ -56,15 +57,6 @@ function configureTree(command: Command, sink: OutputSink): void {
     outputError: (str, write) => write(escapeCommanderError(str.replace(/\n$/, ""))),
   });
   for (const child of command.commands) configureTree(child, sink);
-}
-
-/**
- * Replace the userinfo of every URL in `text` with `***`, the form `redactUrl` gives
- * (`https://user:secret@host` becomes `https://***@host`). Text-based, so it also
- * covers a URL that does not parse; the last `@` before the host ends the userinfo.
- */
-export function redactUserinfo(text: string): string {
-  return text.replace(/\b([a-z][a-z0-9+.-]*:\/\/)[^\s/?#']*@/gi, "$1***@");
 }
 
 /**
@@ -290,7 +282,7 @@ export function redactionFor(argv: readonly string[], env: Record<string, string
   // Longest first, so a secret is never left half-replaced by one of its own substrings.
   const echoedList = [...echoed].sort((a, b) => b.length - a.length);
   const passwordList = [...passwords].sort((a, b) => b.length - a.length);
-  const out = (text: string): string => redactSecrets(redactUserinfo(redactCredentials(text, list)), echoedList);
+  const out = (text: string): string => redactSecrets(redactUrlUserinfo(redactCredentials(text, list)), echoedList);
   return { out, err: (text) => redactSecrets(out(text), passwordList) };
 }
 
@@ -374,7 +366,7 @@ export async function run(argv: string[], deps: CliDeps = defaultDeps): Promise<
     if (missingCommand) log.error("cli", `missing command: \`${commandPath(sink.errFrom ?? program)} <subcommand>\``);
     for (const line of sink.out) deps.io.out(line);
     for (const raw of sink.err) {
-      const text = redactUserinfo(raw);
+      const text = redactUrlUserinfo(raw);
       if (helpToStdout) deps.io.out(text);
       else commanderRecords(log, text);
     }

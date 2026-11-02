@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { redactUserinfo, run, valueOptionsOf } from "../src/cli/run.js";
+import { run, valueOptionsOf } from "../src/cli/run.js";
 import { readFileSync } from "node:fs";
 import { buildProgram, defaultDeps } from "../src/cli/program.js";
 import { forbidRepeatedOptions } from "../src/cli/shared.js";
@@ -795,12 +795,18 @@ test("ids echoed in error messages carry no raw control, C1 or bidi characters",
   }
 });
 
-test("redactUserinfo hides the userinfo of every URL in a line and leaves other text alone", () => {
-  assert.equal(
-    redactUserinfo("argument 'ftp://user:s3cret@h.example' is invalid; also http://a@b@c.example/x?y=u@v"),
-    "argument 'ftp://***@h.example' is invalid; also http://***@c.example/x?y=u@v",
-  );
-  assert.equal(redactUserinfo("error: unknown option '--bogus' (mail@example.org)"), "error: unknown option '--bogus' (mail@example.org)");
+test("the CLI's redaction of stdout is linear in the answer (security audit B)", async () => {
+  // With a URL with userinfo in argv, every stdout text is redacted. 200 000 characters of
+  // `a.a.…` took seconds with the scheme regex /\b([a-z][a-z0-9+.-]*:\/\/)…@/gi; the linear
+  // pass takes milliseconds.
+  const value = "a.".repeat(100_000);
+  const cli = makeCli(() => jsonResponse({ roads: [value] }));
+  const start = performance.now();
+  const code = await run(["--base-url", "https://alice:s3cret-Pw@mirror.example", "--compact", "roads"], cli.deps);
+  const ms = performance.now() - start;
+  assert.equal(code, 0, cli.err.join("\n"));
+  assert.ok(cli.out.join("\n").includes(value));
+  assert.ok(ms < 1500, `${Math.round(ms)} ms`);
 });
 
 test("a rejected --base-url keeps its usage error but not its credentials", async () => {
