@@ -269,7 +269,8 @@ subprocess.
 
 **Error types.** [`errors.ts`](packages/client/src/errors.ts): `AutobahnApiError`
 (non-2xx, carries `status`/`detail`/`url`/`body`; `detail` is sanitised and cut at
-500 characters, `body` is the full text; the message also cuts the URL at 500
+500 characters — `sanitizeServerText` reads at most the first 16 384 characters of server
+text and cleans it in linear time — `body` is the full text; the message also cuts the URL at 500
 characters, `url` keeps it whole; a cut never splits a surrogate pair (`cutText`), so the
 message stays well-formed), `AutobahnNetworkError`
 (transport failure/timeout, including anything an injected transport throws, raised as

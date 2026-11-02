@@ -1040,3 +1040,47 @@ test("a TextBuilder joins its pieces in order across batches", () => {
   assert.equal(b.toString(), expected.join(""));
   assert.equal(new TextBuilder().toString(), "");
 });
+
+test("an error answer of unterminated control-string introducers is cleaned in linear time (security audit C)", async () => {
+  // 100 000 × U+009D took about 16 s with the old escape-sequence regex, whose control-string
+  // body admitted the introducers themselves; the detail was cleaned whole and cut only after.
+  for (const opener of ["\\u009d", "\\u0090", "\\u0098", "\\u009e", "\\u009f", "\\u001b]"]) {
+    const body = `{"detail":"${opener.repeat(100_000)} tail"}`;
+    const e = new RequestEngine({ maxRetries: 0, transport: makeMockTransport(() => rawResponse(body, "application/json", 500)).transport });
+    const start = performance.now();
+    await assert.rejects(e.getJson("/x"), (err: unknown) => {
+      assert.ok(err instanceof AutobahnApiError && /^HTTP 500 /.test(err.message), String(err));
+      assert.ok(!hasControlChars(err.message), `${opener}: a control character in the message`);
+      return true;
+    });
+    const ms = performance.now() - start;
+    assert.ok(ms < 1000, `${opener}: ${Math.round(ms)} ms`);
+  }
+});
+
+test("sanitizeServerText reads a bounded prefix and drops what the per-character filter dropped", () => {
+  // The filter it replaces, one character at a time: C0 but TAB to CR, DEL, C1 and Cf go.
+  const perCharacter = (text: string): string =>
+    [...text]
+      .filter((ch) => {
+        const n = ch.codePointAt(0) ?? 0;
+        return (n >= 0x09 && n <= 0x0d) || !(n <= 0x1f || (n >= 0x7f && n <= 0x9f) || /\p{Cf}/u.test(ch));
+      })
+      .join("")
+      .replace(/\s+/g, " ")
+      .trim();
+  const every = Array.from({ length: 0x3000 }, (_, i) => String.fromCharCode(i)).join("") + "\u{1f600}\u{e0001}\ud800x";
+  for (let at = 0; at < every.length; at += 512) {
+    const piece = every.slice(at, at + 512).replace(/[\u001b\u0090\u0098\u009b-\u009f]/g, "");
+    assert.equal(sanitizeServerText(piece), perCharacter(piece), `from U+${at.toString(16)}`);
+  }
+  // At most 16 384 units of the text are read, never half a surrogate pair.
+  assert.equal(sanitizeServerText("x".repeat(100_000)).length, 16_384);
+  assert.equal(sanitizeServerText(`${"x".repeat(16_383)}\u{1f600}`), "x".repeat(16_383));
+  // A control string ends at another introducer: the first is dropped by the filter, the second
+  // string as a whole.
+  const OSC8 = String.fromCharCode(0x9d);
+  const ST8 = String.fromCharCode(0x9c);
+  assert.equal(sanitizeServerText(`a${OSC8}0;x${OSC8}0;t${ST8}b`), "a0;xb");
+  assert.equal(sanitizeServerText(`a${ESC}]0;x${ESC}]0;t${BEL}b`), "a0;xb");
+});
