@@ -144,6 +144,18 @@ test("the number check skips strings and costs one pass over the text", async ()
   assert.equal((await f.getJson<number[]>("/x")).length, 200_000);
 });
 
+test("a number with a long run of zeros is refused in linear time (security audit A)", async () => {
+  // 1.<100 000 zeros>1e300 took about 15 s with the trailing-zero regex `/0+$/`; the linear
+  // check takes milliseconds. The scan runs once the answer is in, outside --timeout.
+  const body = `{"id":"a","n":1.${"0".repeat(100_000)}1e300}`;
+  const e = new RequestEngine({ transport: makeMockTransport(() => rawResponse(body, "application/json")).transport });
+  const start = performance.now();
+  await assert.rejects(e.getJson("/x"), (err: unknown) =>
+    err instanceof AutobahnParseError && /cannot be represented exactly/.test(err.message) && err.message.length < 1000);
+  const ms = performance.now() - start;
+  assert.ok(ms < 1000, `${Math.round(ms)} ms`);
+});
+
 test("a 503 is retried up to maxRetries then surfaces as AutobahnApiError", async () => {
   let calls = 0;
   const mt = makeMockTransport(() => {
