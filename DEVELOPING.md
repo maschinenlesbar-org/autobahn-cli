@@ -115,7 +115,8 @@ as a credential), except as the `--base-url` value or `AUTOBAHN_BASE_URL`, where
 forms a server echoes a userinfo back in are replaced too (`echoedCredentialForms`): the
 `Basic` value (UTF-8, as Node sends it) and the decoded `user:password` on stdout and
 stderr, the password alone (4 characters or more) on stderr only, since it may well
-occur in the data. The engine scrubs the same forms from error bodies, details and
+occur in the data. A userinfo without a password (`TOKEN@host`, `TOKEN:@host`) is a token:
+Node sends it as Basic `TOKEN:`, and the token takes the password's place in these forms. The engine scrubs the same forms from error bodies, details and
 transport text, so `err.message` and `err.body` are clean for library callers too.
 `redactUrl` falls back to the same text-based cut for a value that doesn't parse as a URL. `userAgent` follows
 `headerValueProblem` (exported too), which the CLI's `--user-agent` parser shares; a

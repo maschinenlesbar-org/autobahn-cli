@@ -479,7 +479,8 @@ export class RequestEngine {
   readonly #credentials: string[];
   /**
    * The forms a server echoes that userinfo back in (the Basic value, the decoded
-   * `user:password`, the password alone; `echoedCredentialForms`), longest first.
+   * `user:password`, the password alone, or the token of a userinfo without one;
+   * `echoedCredentialForms`), longest first.
    */
   readonly #echoed: string[];
   private readonly transport: Transport;

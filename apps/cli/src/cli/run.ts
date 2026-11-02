@@ -270,7 +270,8 @@ export function redactionFor(argv: readonly string[], env: Record<string, string
       secrets.add(escapeTerminalText(secret));
       secrets.add(JSON.stringify(secret).slice(1, -1));
       // What a server echoes back: the Basic value and the decoded user:password on
-      // stdout and stderr, the password alone (it may well occur in the data) on stderr.
+      // stdout and stderr, the password alone (it may well occur in the data) on stderr;
+      // for a userinfo without a password, the token in its place.
       const [basic, pair, password] = echoedCredentialForms(secret);
       if (basic !== undefined) echoed.add(basic);
       if (pair !== undefined) echoed.add(pair);

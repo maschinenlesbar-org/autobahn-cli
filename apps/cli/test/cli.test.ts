@@ -809,6 +809,21 @@ test("the CLI's redaction of stdout is linear in the answer (security audit B)",
   assert.ok(ms < 1500, `${Math.round(ms)} ms`);
 });
 
+test("a token in --base-url is redacted from what the CLI prints, on stderr and stdout (security audit E)", async () => {
+  const TOKEN = "T0kenS3cret";
+  const basic = Buffer.from(`${TOKEN}:`, "utf8").toString("base64");
+  const base = `https://${TOKEN}@mirror.example`;
+  // An error answer that echoes the token: stderr.
+  const failed = makeCli(() => rawResponse(JSON.stringify({ detail: `bad token ${TOKEN}` }), "application/json", 401));
+  assert.notEqual(await run(["--base-url", base, "--max-retries", "0", "roads"], failed.deps), 0);
+  assert.ok(!failed.err.join("\n").includes(TOKEN), failed.err.join("\n"));
+  // A 2xx answer that echoes the Basic value and `TOKEN:`: stdout.
+  const echoed = makeCli(() => jsonResponse({ roads: [`Basic ${basic} for ${TOKEN}:x`] }));
+  assert.equal(await run(["--base-url", base, "roads"], echoed.deps), 0, echoed.err.join("\n"));
+  const out = echoed.out.join("\n");
+  assert.ok(!out.includes(basic) && !out.includes(`${TOKEN}:`), out);
+});
+
 test("a rejected --base-url keeps its usage error but not its credentials", async () => {
   const cli = makeCli(() => jsonResponse({ roads: ["A1"] }));
   assert.equal(await run(["--base-url", "ftp://user:s3cret@h.example", "roads"], cli.deps), 2);
