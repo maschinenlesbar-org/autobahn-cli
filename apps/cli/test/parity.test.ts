@@ -89,6 +89,13 @@ test("parity: CLI and library reject a bad base URL with the same reason, and ne
     "https://user:s3cret@h.example/?q=1",
     "file:///etc",
     "https://user:s3cret@h.example/a\tb",
+    // A backslash, and the scheme not followed by exactly "//" (WHATWG skips slashes and
+    // backslashes there).
+    "https://user:s3cret@h.example\\@evil.example",
+    "http:user:s3cret@h.example",
+    "http:///user:s3cret@h.example",
+    "https:\\\\user:s3cret@h.example",
+    "http:///user:s3cret@h.example/?q=1",
   ]) {
     const { cli, lib } = await parity(
       ["--compact", "--base-url", baseUrl, "roads"],

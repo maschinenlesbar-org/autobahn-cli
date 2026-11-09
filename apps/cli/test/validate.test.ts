@@ -74,6 +74,7 @@ test("baseUrlProblem accepts http(s) URLs, with or without a path prefix or trai
     "http://127.0.0.1:8080/",
     "https://mirror.example/autobahn/",
     "https://user:pw@h.example/a b",
+    "HTTPS://H.example",
   ]) {
     assert.equal(baseUrlProblem(value), undefined, value);
   }
@@ -88,6 +89,13 @@ test("baseUrlProblem names the reason without repeating the value", () => {
     ["file:///etc", 'Unsupported scheme "file:". Expected an http(s) URL.'],
     ["https://h.example/?q=1", "A base URL cannot have a query (?) or fragment (#)."],
     ["https://h.example/#f", "A base URL cannot have a query (?) or fragment (#)."],
+    ["https://u:pw@a.example\\@b.example", 'A base URL cannot contain a backslash (\\); write "/" instead.'],
+    ["https://h.example/a\\b", 'A base URL cannot contain a backslash (\\); write "/" instead.'],
+    ["https:\\\\h.example", 'A base URL cannot contain a backslash (\\); write "/" instead.'],
+    ["http:h.example", 'Expected an absolute http(s) URL ("https://" and the host).'],
+    ["https:/h.example", 'Expected an absolute http(s) URL ("https://" and the host).'],
+    ["http:///h.example", 'Expected an absolute http(s) URL ("https://" and the host).'],
+    ["http:u:s3cret@h.example", 'Expected an absolute http(s) URL ("https://" and the host).'],
     ["https://h.example/ ", "A base URL cannot have surrounding whitespace."],
     [" https://h.example", "A base URL cannot have surrounding whitespace."],
     ["\thttp://h", "A base URL cannot have surrounding whitespace."],

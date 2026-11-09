@@ -256,9 +256,11 @@ export function redactionFor(argv: readonly string[], env: Record<string, string
   // An `--option=value` token is echoed as its value alone.
   const values = argv.map((token) => (token.startsWith("-") && token.includes("=") ? token.slice(token.indexOf("=") + 1) : token));
   // A base URL typed without its scheme is read as if it had one (anywhere else a bare
-  // `a:b@c` is no credential: a User-Agent, a road id).
+  // `a:b@c` is no credential: a User-Agent, a road id). One with a special scheme but not "//"
+  // (`http:///u:pw@h`, `https:\\u:pw@h`, `http:u:pw@h`) has one: credentialsIn reads its
+  // userinfo as WHATWG does, where a prefixed `http://` would end the authority at "http:".
   const baseUrls = [...flagValues(argv, BASE_URL_FLAGS), env["AUTOBAHN_BASE_URL"] ?? ""].map((value) =>
-    value === "" || /^[A-Za-z][A-Za-z0-9+.-]*:\/\//.test(value) ? value : `http://${value}`,
+    value === "" || /^[A-Za-z][A-Za-z0-9+.-]*:\/\//.test(value) || credentialsIn(value).length > 0 ? value : `http://${value}`,
   );
   const sources = [...values, ...baseUrls];
   const secrets = new Set<string>();

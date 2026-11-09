@@ -227,7 +227,7 @@ one wins"; a flag such as `--compact` may repeat.
 | `-h, --help` | Show help for the program or a command |
 | `--compact` | Print JSON on a single line instead of pretty-printed |
 | `--log-format <format>` | How errors, warnings and notes are written to stderr: `text` (default; log4j style, `2026-10-09T14:03:12.481Z WARN  [autobahn.http] …`) or `jsonl` (one JSON object per line: `ts`, `level`, `topic`, `msg`). stdout is not affected |
-| `--base-url <url>` | API base URL (default `https://verkehr.autobahn.de`, or the `AUTOBAHN_BASE_URL` environment variable; the flag wins); a `user:password@` in it is sent as HTTP Basic auth |
+| `--base-url <url>` | API base URL (default `https://verkehr.autobahn.de`, or the `AUTOBAHN_BASE_URL` environment variable; the flag wins); a `user:password@` in it is sent as HTTP Basic auth; a backslash in it is refused, and so is a scheme not followed by `//` and the host (`http:host`, `http:///host`) |
 | `--timeout <ms>` | Per-request timeout in ms (default `30000`; `0` disables; at most `2147483647`). A timed-out request is not retried |
 | `--user-agent <ua>` | `User-Agent` header value (default `autobahn-cli/<version> (+https://github.com/maschinenlesbar-org/autobahn-cli)`) |
 | `--max-retries <n>` | Retries for transient `429`/`502`/`503`/`504` responses and reset connections (default `2`, at most `10`; each waits a short linear backoff from 200 ms, a `429` from 1 s, doubling, or longer if the server's `Retry-After` asks (up to 30 s); at `10` the waits can add up to 3–5 min, which `--timeout` does not bound). Each retry logs one WARN record of `autobahn.http` before it waits (`HTTP 503 from host: retry 1 of 3 in 2 s`). |

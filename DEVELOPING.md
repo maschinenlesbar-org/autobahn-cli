@@ -95,9 +95,16 @@ constructor throws an `AutobahnValidationError` naming the option (a negative or
 no longer silently disables the timeout).
 
 `baseUrl` must pass `baseUrlProblem` (exported): an absolute `http:`/`https:` URL with no
-query (`?`) or fragment (`#`), no surrounding whitespace and no control characters. The
-engine appends request paths to the raw string, so `"https://h/ "` would otherwise
-request `/%20/o/autobahn/`. Anything else makes the constructor throw an
+query (`?`) or fragment (`#`), no backslash, no surrounding whitespace and no control
+characters, its scheme followed by exactly `//` and the host. `new URL()` drops or trims what
+whitespace and control characters would add, and repairs `http:host`, `http:/host` and
+`http:///host` into `http://host`, so the URL requested would not be the one typed (`Expected
+an absolute http(s) URL ("https://" and the host).`). A backslash ends an http(s) host for
+WHATWG as a `/` does, while text-based code reads on: `https://u:pw@a.example\@b.example` was
+checked (host, cleartext warning) as one host, and its credentials could reach the other. The
+engine requests the base URL as WHATWG parses it (`new URL(baseUrl).href`), the reading every
+check makes, so even a transport that reads the URL as text reaches that host (the host
+lower-cased, a default port dropped). Anything else makes the constructor throw an
 `AutobahnValidationError` (`Invalid option baseUrl: <reason>`) before any request; the
 CLI's `--base-url` parser applies the same function, and its default is
 `DEFAULT_BASE_URL`. The default `userAgent` is `DEFAULT_USER_AGENT`
@@ -106,7 +113,9 @@ exported). Only an omitted (`undefined`) `baseUrl` or `userAgent` selects the
 default; an empty string is rejected like `"  "`, as the CLI rejects `--base-url ""`.
 The reasons never repeat the value. The CLI also redacts on output: `run.ts`
 (`redactionFor`, `withRedactedOutput`) takes the exact userinfo of every URL argument and of `AUTOBAHN_BASE_URL`
-(`credentialsIn`, exported) and replaces it with `***` in everything it prints — commander's
+(`credentialsIn`, exported; its userinfo starts where WHATWG starts it, after any slashes and
+backslashes a special scheme such as `http:` skips, so a refused `http:///alice:pw@host` is
+echoed as `http:///***@host`) and replaces it with `***` in everything it prints — commander's
 usage errors, which echo rejected values, its own messages and the help's defaults — so a
 password with spaces, quotes, `#`, `?` or `/` is caught as well as an ordinary one. Only a
 value that starts with a scheme counts (a bare `a:b@c` is a User-Agent or a road id as often

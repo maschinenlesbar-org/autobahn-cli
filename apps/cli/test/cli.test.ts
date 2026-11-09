@@ -508,6 +508,14 @@ test("AUTOBAHN_BASE_URL sets the base URL; --base-url wins; a bad value is a usa
   assert.equal(bad.code, 2);
   assert.deepEqual(bad.urls, []);
   assert.match(bad.err, /^ERROR \[autobahn\.cli\] AUTOBAHN_BASE_URL: Unsupported scheme "ftp:"/);
+  // A scheme not followed by exactly "//" is refused there too, as the parser would repair it.
+  for (const value of ["http:///user:s3cret@mirror.example", "https:user:s3cret@mirror.example"]) {
+    const repaired = await runWith({ AUTOBAHN_BASE_URL: value }, ["roads"]);
+    assert.equal(repaired.code, 2, value);
+    assert.deepEqual(repaired.urls, [], value);
+    assert.match(repaired.err, /^ERROR \[autobahn\.cli\] AUTOBAHN_BASE_URL: Expected an absolute http\(s\) URL \("https:\/\/" and the host\)\./, value);
+    assert.doesNotMatch(repaired.err, /s3cret/, value);
+  }
   const help = await runWith({ AUTOBAHN_BASE_URL: "https://user:s3cret@mirror.example" }, ["--help"]);
   assert.match(help.out, /env AUTOBAHN_BASE_URL/);
   assert.doesNotMatch(help.out, /s3cret/);
