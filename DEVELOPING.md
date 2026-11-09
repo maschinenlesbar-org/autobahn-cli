@@ -429,8 +429,20 @@ The client's tests are in `packages/client/test/` (`query`, `http`, `engine`, `c
   tests are skipped, `HAS_OUTPUT_OPTION = false`: autobahn has no `-o`), P27 big and odd answers (a large flat answer
   and one of DEL characters print within a small heap, or are "too large" past V8's longest
   string; an answer in two million one-byte chunks is read within a small heap; a lone surrogate or invalid bytes become U+FFFD with a `WARN` record of
-  `autobahn.api`). Mock transports or local servers only, never the live
-  API.
+  `autobahn.api`), P28 hostile error answers (a number with a long run of
+  zeros and a run of control-string introducers cost milliseconds; a 16 MB error message and
+  6 million lone surrogates end cleanly within a small heap; a credential echoed with JSON escapes,
+  in a value the client quotes (the answered identifier) or in a redirect's Location never
+  reaches an error), P29 base-URL credentials (a userinfo without a password is a token, scrubbed
+  in every form; a backslash in the base URL refused, and a scheme not followed by exactly `//`
+  and the host, never echoing its password; requests go to the parsed host; the stdout redaction
+  is linear), P30 output links (`--force` and links in shared directories; all skipped,
+  `HAS_OUTPUT_OPTION = false`, with stand-ins for the `-o` types autobahn doesn't have), P31 the
+  release pipeline (the SBOM tool locked in `tools/sbom/`, installed without scripts, never
+  through `npx`; pack, SBOM and release separate jobs, only the release job with
+  `contents: write`, and it runs only `gh` on a tarball checked against the pack job's sha256;
+  reads `release.yml` as text, no adapter). Mock transports or local servers only, never the
+  live API.
 - **`package.test.ts`** — the published package: `npm pack --dry-run` in `apps/cli` must list the library, the bin and `version.js`, and no sources, tests, maps, skills or site; the documents `prepack` copies in (README, LICENSE, the licence documents) must exist at the root and be shipped, and every dependency must be bundled. (The dry run skips `prepack`: running it during the tests would put the bundled copies in front of the workspace links. CI packs and installs the real tarball.)
 
 ## Continuous integration
