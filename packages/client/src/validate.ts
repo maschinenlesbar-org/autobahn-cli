@@ -4,7 +4,7 @@
 // any request; the CLI's commander parsers call the same function and turn its reason
 // into a usage error, so one input gets one outcome on both sides.
 
-import { AutobahnValidationError, quoteValue } from "./errors.js";
+import { AutobahnValidationError, cutForMessage, quoteValue } from "./errors.js";
 
 /** Why `value` is invalid (for example `"Expected a non-empty value."`), or undefined when it is valid. */
 export type Problem<T = string> = (value: T) => string | undefined;
@@ -193,7 +193,9 @@ export function listProblem(items: readonly string[], itemProblem: Problem = tok
  *   `http:///host`): WHATWG skips any slashes after an http(s) scheme and repairs the URL
  *   silently, so the host requested would not be the one typed either.
  *
- * The reasons never repeat the value, so a credential in it cannot reach a message.
+ * The reasons never repeat the value, nor a part of it, so a credential in it cannot reach a
+ * message: a scheme is named (`Unsupported scheme "ftp:"`) only when the value spells one
+ * (`<scheme>://`), since a scheme-less `user:password@host` parses with the user name as its scheme.
  * The engine enforces it (as `Invalid option baseUrl: <reason>`), and the CLI's
  * `--base-url` parser calls it.
  */
@@ -205,7 +207,11 @@ export function baseUrlProblem(value: string): string | undefined {
     return "Expected an absolute http(s) URL.";
   }
   if (url.protocol !== "http:" && url.protocol !== "https:") {
-    return `Unsupported scheme "${url.protocol}". Expected an http(s) URL.`;
+    // `user:password@host` without a scheme parses as a URL whose scheme is the user name
+    // ("tok3nsecret:"), lower-cased, which the CLI's exact-string redaction can't match: name a
+    // scheme only when the value spells one, `<scheme>://`.
+    if (!/^[A-Za-z][A-Za-z0-9+.-]*:\/\//.test(value)) return "Expected an absolute http(s) URL.";
+    return `Unsupported scheme "${cutForMessage(url.protocol)}". Expected an http(s) URL.`;
   }
   if (/[?#]/.test(value)) return "A base URL cannot have a query (?) or fragment (#).";
   // WHATWG reads a "\" in an http(s) URL as "/", so it ends the host: in

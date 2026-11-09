@@ -111,7 +111,10 @@ CLI's `--base-url` parser applies the same function, and its default is
 (`autobahn-cli/<version> (+https://github.com/maschinenlesbar-org/autobahn-cli)`, both
 exported). Only an omitted (`undefined`) `baseUrl` or `userAgent` selects the
 default; an empty string is rejected like `"  "`, as the CLI rejects `--base-url ""`.
-The reasons never repeat the value. The CLI also redacts on output: `run.ts`
+The reasons never repeat the value, nor a part of it: a scheme is named (`Unsupported scheme
+"ftp:"`) only when the value spells one (`<scheme>://`), since a scheme-less
+`user:password@host` parses as a URL whose scheme is the user name; it reads "Expected an
+absolute http(s) URL." instead. The CLI also redacts on output: `run.ts`
 (`redactionFor`, `withRedactedOutput`) takes the exact userinfo of every URL argument and of `AUTOBAHN_BASE_URL`
 (`credentialsIn`, exported; its userinfo starts where WHATWG starts it, after any slashes and
 backslashes a special scheme such as `http:` skips, so a refused `http:///alice:pw@host` is

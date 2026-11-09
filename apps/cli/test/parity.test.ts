@@ -96,6 +96,9 @@ test("parity: CLI and library reject a bad base URL with the same reason, and ne
     "http:///user:s3cret@h.example",
     "https:\\\\user:s3cret@h.example",
     "http:///user:s3cret@h.example/?q=1",
+    // Typed without its scheme: it parses with the user name (a token) as the scheme.
+    "T0kenS3cret:@h.example",
+    "user:s3cret@h.example",
   ]) {
     const { cli, lib } = await parity(
       ["--compact", "--base-url", baseUrl, "roads"],

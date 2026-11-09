@@ -1305,6 +1305,23 @@ test("credentialsIn skips the slashes and backslashes WHATWG skips after a speci
   assert.equal(new URL("foo:///u:p@h.example").password, "");
 });
 
+test("a base URL without a scheme never echoes its user name, not even as the scheme", () => {
+  // `tok3nSECRET:pw@host` parses as a URL whose scheme is "tok3nsecret:": quoting that scheme put
+  // the user name (a token, as in `<token>:x-oauth-basic@host`) into the message.
+  for (const baseUrl of ["tok3nSECRET:pw@127.0.0.1:18080", "tok3nSECRET:x-oauth-basic@h.test", "tok3nSECRET@h.test:1", "T0kenS3cret:@h.example"]) {
+    assert.throws(
+      () => new RequestEngine({ baseUrl }),
+      (err: unknown) =>
+        err instanceof AutobahnValidationError &&
+        !/tok3n|t0ken/i.test(err.message) &&
+        err.message === "Invalid option baseUrl: Expected an absolute http(s) URL.",
+      baseUrl,
+    );
+  }
+  // A scheme the value spells is still named.
+  assert.throws(() => new RequestEngine({ baseUrl: "ftp://h.test" }), /Unsupported scheme "ftp:"/);
+});
+
 // These tests start a process with a small heap: 30 s instead of the suite's 5 s.
 const STARTS_A_PROCESS = { timeout: 30_000 };
 
