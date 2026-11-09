@@ -1,4 +1,5 @@
 import { test } from "node:test";
+import { execFileSync } from "node:child_process";
 import assert from "node:assert/strict";
 import { TextDecoder } from "node:util";
 import {
@@ -1138,4 +1139,33 @@ test("a token-only userinfo is scrubbed from library errors in every echoed form
       });
     }
   }
+});
+
+// These tests start a process with a small heap: 30 s instead of the suite's 5 s.
+const STARTS_A_PROCESS = { timeout: 30_000 };
+
+test("scanNumbers quotes millions of declared members within a small heap", STARTS_A_PROCESS, () => {
+  // One `+=` per quoted member made a rope node each: 3 million of them exhausted a 128 MB heap.
+  const engine = new URL("../src/engine.js", import.meta.url).href;
+  const n = 3_000_000;
+  const script =
+    `const { scanNumbers } = await import(${JSON.stringify(engine)});` +
+    `const json = "[" + '{"k":1},'.repeat(${n - 1}) + '{"k":1}]';` +
+    `process.stdout.write(String(scanNumbers(json, new Set(["k"])).json.length));`;
+  const out = execFileSync(process.execPath, ["--max-old-space-size=128", "--input-type=module", "-e", script], { encoding: "utf8" });
+  assert.equal(out, String(n * 10 + 1));
+});
+
+test("an answer of millions of lone surrogate escapes is repaired within a small heap", STARTS_A_PROCESS, () => {
+  // One `+=` per repair made a rope node each: 6 million of them exhausted a 128 MB heap.
+  const engine = new URL("../src/engine.js", import.meta.url).href;
+  const n = 6_000_000;
+  const script =
+    `const { RequestEngine } = await import(${JSON.stringify(engine)});` +
+    `const body = Buffer.from('{"x":"' + "\\\\ud800".repeat(${n}) + '"}');` +
+    `const e = new RequestEngine({ transport: async () => ({ status: 200, headers: { "content-type": "application/json" }, body }), onWarning: () => {} });` +
+    `const got = await e.getJson("/x");` +
+    `process.stdout.write(String(got.x.length));`;
+  const out = execFileSync(process.execPath, ["--max-old-space-size=128", "--input-type=module", "-e", script], { encoding: "utf8" });
+  assert.equal(out, String(n));
 });
