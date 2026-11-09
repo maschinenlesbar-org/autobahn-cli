@@ -359,7 +359,10 @@ seconds, ms under 1 s). Tests: `test/retry-log.test.ts`.
 **`maxResponseBytes`.** A hard cap on response body size (default 100 MiB;
 `0` disables) that defends against memory exhaustion from a hostile or buggy
 endpoint. The default transport aborts as soon as the cap is passed; the engine also
-checks the body any transport returns, so the cap holds for custom transports too.
+checks the body any transport returns, so the cap holds for custom transports too. The
+default transport joins small chunks as they arrive (at most 1024 kept unjoined, or 64 KiB), so
+the memory an answer holds follows its bytes, not the number of chunks a server sends it in: two
+million one-byte chunks used to exhaust a 256 MB heap.
 
 **Custom transports.** A transport may return the body as a Buffer, any `ArrayBuffer`
 view (fetch's `Uint8Array`, from any realm) or an `ArrayBuffer`, and the headers as a plain
@@ -422,7 +425,7 @@ The client's tests are in `packages/client/test/` (`query`, `http`, `engine`, `c
   integrity (stdout redirected to a file and cut short is an `ERROR` record, exit 1; its `-o`
   tests are skipped, `HAS_OUTPUT_OPTION = false`: autobahn has no `-o`), P27 big and odd answers (a large flat answer
   and one of DEL characters print within a small heap, or are "too large" past V8's longest
-  string; a lone surrogate or invalid bytes become U+FFFD with a `WARN` record of
+  string; an answer in two million one-byte chunks is read within a small heap; a lone surrogate or invalid bytes become U+FFFD with a `WARN` record of
   `autobahn.api`). Mock transports or local servers only, never the live
   API.
 - **`package.test.ts`** — the published package: `npm pack --dry-run` in `apps/cli` must list the library, the bin and `version.js`, and no sources, tests, maps, skills or site; the documents `prepack` copies in (README, LICENSE, the licence documents) must exist at the root and be shipped, and every dependency must be bundled. (The dry run skips `prepack`: running it during the tests would put the bundled copies in front of the workspace links. CI packs and installs the real tarball.)
