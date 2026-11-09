@@ -150,7 +150,9 @@ no credential headers of its own. A base URL with userinfo
 followed, and `redactUrl`/`redactUrlUserinfo` (errors.ts, linear in the text) keep it out of every message. `--base-url` is trusted input: the CLI fetches whatever
 host you point it at; only `http:`/`https:` URLs are accepted, and redirects
 are **not** followed — a `3xx` surfaces as an error rather than being chased to
-another host.
+another host. The error names the target (`redirectTarget`): the `Location` with the base
+URL's credentials scrubbed as sent, before resolving it against the request URL would
+percent-encode what is left of them in a new spelling, then its own userinfo redacted.
 
 A plain-`http:` base URL gets a warning, not a refusal: `cleartextProblem(baseUrl, secrets)`
 (engine, exported) returns one sentence naming the host (`url.host`, never the userinfo)

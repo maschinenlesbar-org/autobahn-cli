@@ -1213,6 +1213,32 @@ test("an echo of the request URL as sent is scrubbed, a short password too", asy
   }
 });
 
+test("a credential of the base URL in a redirect's Location is scrubbed before it is resolved", async () => {
+  // Resolving percent-encodes what is left (`'` as `%27` in a query), so the scrub comes first;
+  // the percent-encoded forms cover a server that encoded the credential itself.
+  const pw = "p'ss-W0rd";
+  const basic = Buffer.from(`alice:${pw}`, "utf8").toString("base64");
+  for (const location of [
+    `https://elsewhere.example/login?user=alice&pw=${encodeURIComponent(pw)}`,
+    `https://elsewhere.example/login?pw=${pw}`,
+    `https://elsewhere.example/${encodeURIComponent(`alice:${pw}`)}/x`,
+    `https://elsewhere.example/auth?basic=${basic}`,
+    `/relative/${pw}`,
+  ]) {
+    const e = new RequestEngine({
+      baseUrl: `https://alice:${encodeURIComponent(pw)}@mirror.example`,
+      maxRetries: 0,
+      transport: async () => ({ status: 302, headers: { location }, body: Buffer.alloc(0) }),
+    });
+    const err = await e.getJson("/x").catch((caught: unknown) => caught);
+    assert.ok(err instanceof AutobahnApiError && err.location !== undefined, String(err));
+    for (const text of [err.message, err.location ?? ""]) {
+      const decoded = text.replace(/(?:%[0-9a-fA-F]{2})+/g, (run) => decodeURIComponent(run));
+      assert.ok(!decoded.includes(pw) && !decoded.includes(basic), `${location}: ${text}`);
+    }
+  }
+});
+
 // These tests start a process with a small heap: 30 s instead of the suite's 5 s.
 const STARTS_A_PROCESS = { timeout: 30_000 };
 
