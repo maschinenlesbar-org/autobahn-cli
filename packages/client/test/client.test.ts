@@ -341,6 +341,26 @@ test("get() rejects an answer about another item instead of returning it as the 
   assert.deepEqual(echoed, { identifier: "abc", title: "t" });
 });
 
+test("a credential of the base URL in a value the client quotes from an answer is scrubbed", async () => {
+  // The identifier a 2xx detail answered with, and the did-you-mean road id from the road list,
+  // are server values: one that echoes the base URL's password (here behind a JSON escape, which
+  // the scrub of the body as sent can't see) is scrubbed before the message quotes it.
+  const pw = "S3cret-Pw";
+  const baseUrl = `https://alice:${pw}@mirror.example`;
+  const identifier = makeMockTransport(() => rawResponse('{"identifier":"x S3cret\\u002dPw"}', "application/json"));
+  await assert.rejects(
+    () => new AutobahnClient({ baseUrl, transport: identifier.transport }).roadworks.get("abc"),
+    (err: unknown) => err instanceof AutobahnParseError && !err.message.includes(pw) && /got "x \*\*\*"/.test(err.message),
+  );
+  const suggested = makeMockTransport((req) =>
+    new URL(req.url).pathname === "/o/autobahn/" ? jsonResponse({ roads: [pw] }) : jsonResponse({ warning: [] }),
+  );
+  await assert.rejects(
+    () => new AutobahnClient({ baseUrl, transport: suggested.transport }).warnings.list("s3cret pw"),
+    (err: unknown) => err instanceof AutobahnNotFoundError && !err.message.includes(pw) && /did you mean "\*\*\*"/.test(err.message),
+  );
+});
+
 test("error messages cut a very long URL or road id at 500 characters; err.url keeps it whole", async () => {
   const long = "A".repeat(20_000);
   const tooLong = makeMockTransport(() => jsonResponse({ message: "header too large" }, 431));

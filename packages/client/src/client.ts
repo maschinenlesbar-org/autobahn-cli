@@ -111,7 +111,7 @@ export class ServiceResource<K extends string> {
     const suggestion = known.find((road) => roadKey(road) === key);
     throw new AutobahnNotFoundError(
       `Unknown road id ${quoteValue(id)}: not in the API's road list` +
-        (suggestion === undefined ? "." : ` (did you mean ${quoteValue(suggestion)}?).`),
+        (suggestion === undefined ? "." : ` (did you mean ${this.engine.quoteServerValue(suggestion)}?).`),
     );
   }
 
@@ -139,7 +139,7 @@ export class ServiceResource<K extends string> {
     // trailing space elsewhere ("A60 " in the road list), which is no other item.
     const answered = body["identifier"];
     if (typeof answered !== "string" || answered.trim() !== id) {
-      const got = describeIdentifier(body["identifier"]);
+      const got = describeIdentifier(body["identifier"], (value) => this.engine.quoteServerValue(value));
       throw new AutobahnParseError(
         `GET ${this.engine.describeUrl(path)}: asked for identifier ${quoteValue(id)}, got ${got}.`,
       );
@@ -228,13 +228,14 @@ async function getListing(engine: RequestEngine, path: string): Promise<unknown>
 
 /**
  * How an identifier mismatch message shows the identifier the API answered with: quoted
- * when a string, `none` when the field is missing, a number or boolean with its type
+ * when a string (with `quote`, the engine's quoteServerValue, which scrubs the base URL's
+ * credentials first), `none` when the field is missing, a number or boolean with its type
  * (`123 (a number)`), otherwise its kind — so the message does not point at a missing
  * field when the value is merely of the wrong type.
  */
-function describeIdentifier(value: unknown): string {
+function describeIdentifier(value: unknown, quote: (value: string) => string): string {
   if (value === undefined) return "none";
-  if (typeof value === "string") return quoteValue(value);
+  if (typeof value === "string") return quote(value);
   if (typeof value === "number" || typeof value === "boolean") return `${String(value)} (a ${typeof value})`;
   if (value === null) return "null";
   return Array.isArray(value) ? "an array" : "an object";

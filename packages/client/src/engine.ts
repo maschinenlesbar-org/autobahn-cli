@@ -231,6 +231,19 @@ export function isTransientNetworkError(err: unknown): boolean {
   return err instanceof AutobahnNetworkError && hasTransientCode(err.cause);
 }
 
+/**
+ * `form` and its spelling in a URL (`encodeURIComponent`): a server that puts a credential into
+ * a URL, a redirect's Location, percent-encodes it. A form that has no such spelling (a lone
+ * surrogate) is kept as it is.
+ */
+function urlSpellings(form: string): string[] {
+  try {
+    return [form, encodeURIComponent(form)];
+  } catch {
+    return [form];
+  }
+}
+
 /** sanitizeServerText, then cut at MAX_DETAIL_LENGTH characters (never inside a surrogate pair). */
 function cleanDetail(text: string): string {
   const clean = sanitizeServerText(text);
@@ -481,7 +494,8 @@ export class RequestEngine {
   /**
    * The forms a server echoes that userinfo back in (the Basic value, the decoded
    * `user:password`, the password alone, or the token of a userinfo without one;
-   * `echoedCredentialForms`), longest first.
+   * `echoedCredentialForms`), each also percent-encoded as in a URL (a redirect's Location),
+   * longest first.
    */
   readonly #echoed: string[];
   private readonly transport: Transport;
@@ -508,7 +522,9 @@ export class RequestEngine {
     // default transport re-checks the scheme per hop; a custom transport may not.
     const baseUrl = assertValid("option baseUrl", options.baseUrl ?? DEFAULT_BASE_URL, baseUrlProblem);
     this.#baseUrl = baseUrl.replace(/\/+$/, "");
-    this.#credentials = credentialsIn(baseUrl).flatMap((raw) => {
+    // The userinfo as typed and as sent (WHATWG percent-encodes some of its characters).
+    const userinfos = [...new Set([...credentialsIn(baseUrl), ...credentialsIn(new URL(baseUrl).href)])];
+    this.#credentials = userinfos.flatMap((raw) => {
       try {
         return [raw, decodeURIComponent(raw)];
       } catch {
@@ -516,7 +532,7 @@ export class RequestEngine {
       }
     });
     // Longest first, so a password never leaves half of the user:password around it.
-    this.#echoed = credentialsIn(baseUrl).flatMap(echoedCredentialForms).sort((a, b) => b.length - a.length);
+    this.#echoed = [...new Set(userinfos.flatMap(echoedCredentialForms).flatMap(urlSpellings))].sort((a, b) => b.length - a.length);
     this.transport = functionOption("transport", options.transport, nodeHttpTransport);
     // Checked here, not first by Node at request time (as an AutobahnNetworkError).
     this.userAgent = assertValid("option userAgent", options.userAgent ?? DEFAULT_USER_AGENT, headerValueProblem);
@@ -569,6 +585,42 @@ export class RequestEngine {
    */
   private scrub(text: string): string {
     return this.#credentials.length === 0 ? text : redactSecrets(redactCredentials(text, this.#credentials), this.#echoed);
+  }
+
+  /**
+   * An error body, already scrubbed as sent, as `AutobahnApiError.body` keeps it: when it is
+   * JSON with an escape in it, checked decoded too. An escape (`\"`, `\u00e4`) hides an echoed
+   * credential from the scrub of the text as sent, while a caller who parses the body sees it. Such
+   * a body is kept as the decoded JSON written again (`JSON.stringify`, one spelling per character)
+   * with the credential scrubbed in that spelling. A body that doesn't parse is text nobody
+   * decodes, and stays as sent; one too deeply nested to write again is left out.
+   */
+  private scrubBody(scrubbed: string): string {
+    if (this.#echoed.length === 0 || !scrubbed.includes("\\")) return scrubbed;
+    let decoded: unknown;
+    try {
+      decoded = JSON.parse(scrubbed);
+    } catch {
+      return scrubbed;
+    }
+    let rewritten: string;
+    try {
+      rewritten = JSON.stringify(decoded);
+    } catch {
+      return "";
+    }
+    const spelled = this.#echoed.map((form) => JSON.stringify(form).slice(1, -1));
+    return spelled.some((form) => rewritten.includes(form)) ? redactSecrets(rewritten, spelled) : scrubbed;
+  }
+
+  /**
+   * A value from an answer quoted for an error message (`quoteValue`), the base URL's credentials
+   * scrubbed first, before the cut: a 2xx answer (an identifier that doesn't match, a did-you-mean
+   * road id from the road list) can echo them as well as an error body. API code quotes server
+   * values with this.
+   */
+  quoteServerValue(value: string): string {
+    return quoteValue(this.scrub(value));
   }
 
   /**
@@ -832,7 +884,8 @@ export class RequestEngine {
     locationHeader?: string,
     retries = 0,
   ): AutobahnApiError {
-    // A body too large to be a string (maxResponseBytes lifted) is left out: the status is the error.
+    // The body is kept on the error (`body`) and may echo the request URL: scrub it. One too
+    // large to be a string (maxResponseBytes lifted) is left out: the status is the error.
     let raw = "";
     try {
       raw = body.toString("utf8");
@@ -848,14 +901,14 @@ export class RequestEngine {
     } catch {
       // Non-JSON error body; leave detail undefined.
     }
-    // `detail` came from the response body; strip control characters so a hostile
-    // endpoint cannot inject terminal escape sequences via the stderr error message,
-    // and cap its length.
-    if (detail !== undefined) detail = cleanDetail(detail);
+    // `detail` came from the response body, decoded: scrubbed again (a JSON escape hid the
+    // credential from the scrub above), then stripped of control characters so a hostile
+    // endpoint cannot inject terminal escape sequences via the stderr error message, and capped.
+    if (detail !== undefined) detail = cleanDetail(this.scrub(detail));
     // Redirects are not followed; name the target so the user can fix --base-url.
     const location =
       (isRedirectStatus(status) || status === 300) && locationHeader ? redirectTarget(url, locationHeader) : undefined;
-    return new AutobahnApiError({ status, url, method, body: text, detail, location, retries });
+    return new AutobahnApiError({ status, url, method, body: this.scrubBody(text), detail, location, retries });
   }
 }
 

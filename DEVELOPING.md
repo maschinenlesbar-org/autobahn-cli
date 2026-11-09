@@ -116,8 +116,15 @@ forms a server echoes a userinfo back in are replaced too (`echoedCredentialForm
 `Basic` value (UTF-8, as Node sends it) and the decoded `user:password` on stdout and
 stderr, the password alone (4 characters or more) on stderr only, since it may well
 occur in the data. A userinfo without a password (`TOKEN@host`, `TOKEN:@host`) is a token:
-Node sends it as Basic `TOKEN:`, and the token takes the password's place in these forms. The engine scrubs the same forms from error bodies, details and
-transport text, so `err.message` and `err.body` are clean for library callers too.
+Node sends it as Basic `TOKEN:`, and the token takes the password's place in these forms. The engine scrubs
+the same forms, and each also percent-encoded as in a URL, from error bodies, details and
+transport text, and the userinfo as typed and as WHATWG sends it. Server text is scrubbed
+decoded too: an error `detail` after `JSON.parse`, since a JSON escape (`\"`, `\u00e4`) hides a
+credential from the scrub of the body as sent; a value the client quotes from a 2xx answer (the
+identifier a detail answered with, the did-you-mean road id) with `engine.quoteServerValue`
+(scrubbed before the cut); and `err.body`, which stays the body as sent unless a credential
+hides behind an escape in it: then it is the decoded JSON written again (`JSON.stringify`) and
+scrubbed. So `err.message`, `err.detail` and `err.body` are clean for library callers too.
 `redactUrl` falls back to the same text-based cut for a value that doesn't parse as a URL. `userAgent` follows
 `headerValueProblem` (exported too), which the CLI's `--user-agent` parser shares; a
 value it rejects throws `AutobahnValidationError` (`Invalid option userAgent: <reason>`).
