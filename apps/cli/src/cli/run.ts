@@ -20,6 +20,7 @@ import {
   redactSecrets,
   redactUrl,
   redactUrlUserinfo,
+  typedUrlCredentials,
 } from "@maschinenlesbar.org/autobahn-client/internal/errors";
 
 interface OutputSink {
@@ -259,15 +260,15 @@ export function redactionFor(argv: readonly string[], env: Record<string, string
   // `a:b@c` is no credential: a User-Agent, a road id). One with a special scheme but not "//"
   // (`http:///u:pw@h`, `https:\\u:pw@h`, `http:u:pw@h`) has one: credentialsIn reads its
   // userinfo as WHATWG does, where a prefixed `http://` would end the authority at "http:".
-  const baseUrls = [...flagValues(argv, BASE_URL_FLAGS), env["AUTOBAHN_BASE_URL"] ?? ""].map((value) =>
-    value === "" || /^[A-Za-z][A-Za-z0-9+.-]*:\/\//.test(value) || credentialsIn(value).length > 0 ? value : `http://${value}`,
-  );
-  const sources = [...values, ...baseUrls];
+  // Read as a URL however its scheme is typed: missing, special without "//", or mistyped
+  // (`http//u:pw@h`, the colon left out): typedUrlCredentials.
+  const baseUrls = [...flagValues(argv, BASE_URL_FLAGS), env["AUTOBAHN_BASE_URL"] ?? ""];
+  const sources = [...values.map(credentialsIn), ...baseUrls.map(typedUrlCredentials)];
   const secrets = new Set<string>();
   const echoed = new Set<string>();
   const passwords = new Set<string>();
-  for (const source of sources) {
-    for (const secret of credentialsIn(source)) {
+  for (const found of sources) {
+    for (const secret of found) {
       secrets.add(secret);
       secrets.add(escapeTerminalText(secret));
       secrets.add(JSON.stringify(secret).slice(1, -1));

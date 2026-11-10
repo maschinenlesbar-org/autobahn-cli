@@ -116,7 +116,9 @@ The reasons never repeat the value, nor a part of it: a scheme is named (`Unsupp
 `user:password@host` parses as a URL whose scheme is the user name; it reads "Expected an
 absolute http(s) URL." instead. The CLI also redacts on output: `run.ts`
 (`redactionFor`, `withRedactedOutput`) takes the exact userinfo of every URL argument and of `AUTOBAHN_BASE_URL`
-(`credentialsIn`, exported; its userinfo starts where WHATWG starts it, after any slashes and
+(`credentialsIn`, exported; a base URL is read as a URL however its scheme is typed,
+`typedUrlCredentials`: missing, `alice:pw@host`, or mistyped, `http//alice:pw@host` with the
+colon left out, whose userinfo is everything between the first slashes and the last `@`; its userinfo starts where WHATWG starts it, after any slashes and
 backslashes a special scheme such as `http:` skips, so a refused `http:///alice:pw@host` is
 echoed as `http:///***@host`) and replaces it with `***` in everything it prints — commander's
 usage errors, which echo rejected values, its own messages and the help's defaults — so a
