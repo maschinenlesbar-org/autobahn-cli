@@ -46,7 +46,7 @@ jobs:
   npm:
     name: Publish ${{ matrix.package }} to npm
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -130,27 +130,49 @@ jobs:
       - name: Publish to npm (Trusted Publishing, provenance)
         run: |
           ours="sha512-$(openssl dgst -sha512 -binary "$TARBALL" | base64 -w 0)"
-          theirs="$(npm view "$PACKAGE@$VERSION" dist.integrity 2>/dev/null || true)"
-          if [ -n "$theirs" ]; then
-            if [ "$theirs" = "$ours" ]; then
-              echo "::notice::$PACKAGE@$VERSION is already on npm with these bytes; nothing to do."
-              exit 0
-            fi
+          # The version's own document, fetched past the registry's cache: `npm view` reads the
+          # package document, which a CDN serves stale for minutes after a publish.
+          version_doc() {
+            curl -sf -H 'Cache-Control: no-cache' \
+              "https://registry.npmjs.org/$PACKAGE/$VERSION?nocache=$(date +%s%N)" || true
+          }
+          # 0: the version is on npm with these files; 1: with other files; 2: not (yet) visible.
+          on_npm() {
+            doc="$(version_doc)"
+            theirs="$(printf '%s' "$doc" | jq -r '.dist.integrity // empty' 2>/dev/null || true)"
+            [ -z "$theirs" ] && return 2
+            [ "$theirs" = "$ours" ] && return 0
             # A version published outside this workflow (a package's first one) may hold the same
             # files in an archive npm made anew: compare the files before calling it a conflict.
             published="$RUNNER_TEMP/published"
-            mkdir -p "$published/npm" "$published/release"
-            curl -sSfL -o "$published/npm.tgz" "$(npm view "$PACKAGE@$VERSION" dist.tarball)"
+            rm -rf "$published" && mkdir -p "$published/npm" "$published/release"
+            curl -sSfL -o "$published/npm.tgz" "$(printf '%s' "$doc" | jq -r '.dist.tarball')"
             tar -xzf "$published/npm.tgz" -C "$published/npm"
             tar -xzf "$TARBALL" -C "$published/release"
-            if diff -r "$published/npm" "$published/release" > /dev/null; then
-              echo "::notice::$PACKAGE@$VERSION is already on npm with the same files (in another archive); nothing to do."
-              exit 0
-            fi
+            diff -r "$published/npm" "$published/release" > /dev/null && return 0
             echo "::error::$PACKAGE@$VERSION is on npm with other files ($theirs)."
-            exit 1
-          fi
-          npm publish "$TARBALL" --provenance --access public
+            return 1
+          }
+          state=0; on_npm || state=$?
+          [ "$state" -eq 0 ] && { echo "::notice::$PACKAGE@$VERSION is already on npm with these files; nothing to do."; exit 0; }
+          [ "$state" -eq 1 ] && exit 1
+          log="$RUNNER_TEMP/npm-publish.log"
+          rc=0; npm publish "$TARBALL" --provenance --access public > "$log" 2>&1 || rc=$?
+          cat "$log"
+          [ "$rc" -eq 0 ] && exit 0
+          # npm refuses a version that already exists, also while the registry doesn't show it yet
+          # (a package's first version, published by hand minutes before this run). Then wait
+          # until it shows, up to 15 minutes, and compare the files; otherwise look for 2 minutes.
+          tries=6
+          grep -qiE 'EPUBLISHCONFLICT|previously published|cannot publish over' "$log" && tries=45
+          for _ in $(seq "$tries"); do
+            sleep 20
+            state=0; on_npm || state=$?
+            [ "$state" -eq 0 ] && { echo "::notice::$PACKAGE@$VERSION is on npm with these files (published before this run); nothing to do."; exit 0; }
+            [ "$state" -eq 1 ] && exit 1
+          done
+          echo "::error::npm publish of $PACKAGE@$VERSION failed, and the version isn't on npm."
+          exit 1
 
   images:
     name: Push the images to the GitHub Container Registry
