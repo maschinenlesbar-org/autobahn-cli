@@ -4,6 +4,8 @@
 import type { Command } from "commander";
 import { InvalidArgumentError } from "commander";
 import { logOf, type CliDeps } from "./io.js";
+import { pidsProblem, responseCapFor } from "./limits.js";
+import { AutobahnError } from "@maschinenlesbar.org/autobahn-client/internal/errors";
 import type { OutputOptions } from "./output.js";
 import { cleartextProblem, DEFAULT_BASE_URL, headerValueProblem, type EngineOptions } from "@maschinenlesbar.org/autobahn-client/internal/engine";
 import { baseUrlProblem, idProblem, roadIdProblem } from "@maschinenlesbar.org/autobahn-client/internal/validate";
@@ -143,6 +145,9 @@ export function retryMessage(event: RetryEvent): string {
  * Commander invokes actions as (arg1, ..., argN, options, command); we slice off
  * the trailing options object and command instance to recover the positionals.
  */
+/** The container can't run the CLI as it is limited (limits.ts): an ERROR record of the cli area and exit 1. */
+export class EnvironmentError extends AutobahnError {}
+
 export function action(
   deps: CliDeps,
   fn: (ctx: ActionContext, positionals: string[]) => Promise<void>,
@@ -153,6 +158,15 @@ export function action(
     const global = command.optsWithGlobals() as GlobalOptions;
     warnOnCleartext(deps, global);
     const options = toEngineOptions(global);
+    // In a container: under a pids limit Node can't work with, refuse before any request; under a
+    // memory limit the 100 MiB default can't be held, so cap by the memory instead (an oversized
+    // answer is then the cap's error, not an OOM kill). An explicit --max-response-bytes wins.
+    const limits = deps.limits?.() ?? {};
+    const problem = pidsProblem(limits);
+    if (problem !== undefined) throw new EnvironmentError(problem);
+    const given = command.getOptionValueSourceWithGlobals("maxResponseBytes");
+    const memory = given === undefined || given === "default" ? limits.memoryBytes : undefined;
+    if (memory !== undefined) options.maxResponseBytes = responseCapFor(memory);
     options.onRetry = (event) => logOf(deps).warn("http", retryMessage(event));
     // An answer delivered changed (invalid text replaced with U+FFFD) is never silent.
     options.onWarning = (message) => logOf(deps).warn("api", message);

@@ -6,6 +6,7 @@ import type { EventEmitter } from "node:events";
 import { Command, Help, InvalidArgumentError, Option } from "commander";
 import type { CliDeps } from "./io.js";
 import { defaultIO } from "./io.js";
+import { readContainerLimits } from "./limits.js";
 import { AutobahnClient } from "@maschinenlesbar.org/autobahn-client/internal/client";
 import { MAX_TIMEOUT_MS } from "@maschinenlesbar.org/autobahn-client/internal/http";
 import { DEFAULT_BASE_URL, MAX_RETRIES } from "@maschinenlesbar.org/autobahn-client/internal/engine";
@@ -22,6 +23,8 @@ export { VERSION } from "./version.js";
 export const defaultDeps: CliDeps = {
   io: defaultIO,
   env: process.env,
+  // In a container: the memory and pids limits (cgroup), for action()'s checks.
+  limits: () => readContainerLimits(),
   // The CLI's User-Agent (name, version, URL) unless --user-agent gives one.
   createClient: (options) => new AutobahnClient({ userAgent: USER_AGENT, ...options }),
 };

@@ -6,7 +6,8 @@ import { CommanderError, type Command } from "commander";
 import { buildProgram, commandPath, defaultDeps, suggestCommand } from "./program.js";
 import { logOf, type CliDeps } from "./io.js";
 import { OutputError } from "./output.js";
-import { createLogger, logFormatFromArgv, type Logger } from "./log.js";
+import { createLogger, LOG_PROGRAM, logFormatFromArgv, type Logger } from "./log.js";
+import { EnvironmentError } from "./shared.js";
 import {
   AutobahnApiError,
   AutobahnError,
@@ -325,6 +326,7 @@ export function withRedactedOutput(deps: CliDeps, argv: readonly string[]): CliD
  */
 function areaOf(err: AutobahnError): string {
   if (err instanceof OutputError) return "output";
+  if (err instanceof EnvironmentError) return "cli";
   if (err instanceof AutobahnNetworkError) return "http";
   if (err.cause instanceof AutobahnError) return areaOf(err.cause);
   return "api";
@@ -345,6 +347,10 @@ export function processLogger(argv: readonly string[], env: Record<string, strin
 }
 
 export async function run(argv: string[], deps: CliDeps = defaultDeps): Promise<number> {
+  // In the container image the entrypoint is the program, so `docker run <image> roads`; people
+  // copy the npm form and type `docker run <image> autobahn roads`. A leading program name is
+  // dropped, so both work (no command is named like the program).
+  if (argv[0] === LOG_PROGRAM) argv = argv.slice(1);
   // The log replaces the secrets of the run in every message, in either format.
   deps = withRedactedOutput(deps, argv);
   const log = logOf(deps);
