@@ -49,3 +49,4 @@ export {
 export type { Problem } from "./validate.js";
 
 export * from "./types.js";
+export * from "./operations.js";

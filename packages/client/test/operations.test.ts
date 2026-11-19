@@ -1,0 +1,97 @@
+// The use cases of the skills against a mock of the API, with the skills' traps as cases.
+
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { AutobahnClient, AutobahnNotFoundError, checkRoad, findChargingStations, latLong } from "../src/index.js";
+import { jsonResponse, makeMockTransport } from "./helpers.js";
+
+/** The API over `roads`: the road list and each road's service listings. */
+function client(roads: Record<string, Record<string, unknown[]>>): AutobahnClient {
+  const transport = makeMockTransport((request) => {
+    const path = new URL(request.url).pathname;
+    if (path === "/o/autobahn/") return jsonResponse({ roads: Object.keys(roads) });
+    const m = path.match(/^\/o\/autobahn\/([^/]+)\/services\/([^/]+)$/);
+    if (m === null) return jsonResponse({ error: "not found" }, 404);
+    return jsonResponse({ [m[2] as string]: roads[decodeURIComponent(m[1] as string)]?.[m[2] as string] ?? [] });
+  });
+  return new AutobahnClient({ transport: transport.transport });
+}
+
+const item = (identifier: string, extra: Record<string, unknown>) => ({ identifier, title: `A1 | ${identifier}`, isBlocked: "false", future: false, description: [], ...extra });
+
+test("checkRoad classifies by display_type: a real-time closure in the warnings listing counts as a closure", async () => {
+  const answer = await checkRoad(
+    client({ A1: { warning: [item("inrix-closed", { display_type: "CLOSURE", description: ["Fahrbahn gesperrt"] })], closure: [], roadworks: [] } }),
+    { roadId: "A1" },
+  );
+  assert.deepEqual(answer.counts, { warnings: 0, closures: 1, rampClosures: 0, roadworks: 0, planned: 0 });
+  assert.deepEqual(answer.blocking.map((i) => i.identifier), ["inrix-closed"]);
+});
+
+test("checkRoad: a ramp closure says Vollsperrung and still never blocks the road", async () => {
+  const answer = await checkRoad(client({ A1: { closure: [item("ramp", { display_type: "CLOSURE_ENTRY_EXIT", description: ["Vollsperrung der Auffahrt"] })] } }), { roadId: "A1" });
+  assert.equal(answer.counts.rampClosures, 1);
+  assert.deepEqual(answer.blocking, []);
+});
+
+test("checkRoad: isBlocked true blocks; a planned item never does; a plain lane closure doesn't", async () => {
+  const answer = await checkRoad(
+    client({
+      A1: {
+        roadworks: [
+          item("blocked", { display_type: "ROADWORKS", isBlocked: "true" }),
+          item("later", { display_type: "ROADWORKS", future: true, description: ["Vollsperrung"] }),
+          item("lane", { display_type: "ROADWORKS", description: ["Fahrstreifen verengt"] }),
+        ],
+      },
+    }),
+    { roadId: "A1" },
+  );
+  assert.deepEqual(answer.blocking.map((i) => i.identifier), ["blocked"]);
+  assert.equal(answer.counts.planned, 1);
+});
+
+test("checkRoad: delays rank as numbers, not strings; an accident is a hazard whatever its delay", async () => {
+  const answer = await checkRoad(
+    client({
+      A1: {
+        warning: [
+          item("five", { display_type: "WARNING", delayTimeValue: "5" }),
+          item("thirtyseven", { display_type: "WARNING", delayTimeValue: "37" }),
+          item("crash", { display_type: "WARNING", description: ["Unfall"] }),
+          item("none", { display_type: "WARNING", delayTimeValue: null }),
+        ],
+      },
+    }),
+    { roadId: "A1" },
+  );
+  assert.deepEqual(answer.worstDelays.map((i) => i.identifier), ["thirtyseven", "five"]);
+  assert.deepEqual(answer.hazards.map((i) => i.identifier), ["crash"]);
+});
+
+test("checkRoad: an unknown road is the client's not-found with a did-you-mean, never an all-clear", async () => {
+  await assert.rejects(checkRoad(client({ A1: {} }), { roadId: "a1" }), (err: unknown) => err instanceof AutobahnNotFoundError && /did you mean "A1"/.test(err.message));
+});
+
+test("latLong reads both coordinate shapes and refuses what isn't a number", () => {
+  assert.deepEqual(latLong({ lat: "52.5", long: "13.4" }), [52.5, 13.4]);
+  assert.deepEqual(latLong({ type: "Point", coordinates: [13.4, 52.5] }), [52.5, 13.4]);
+  assert.equal(latLong({ lat: "x", long: "13.4" }), undefined);
+  assert.equal(latLong(undefined), undefined);
+});
+
+test("findChargingStations orders west to east on an east-west road; trailing spaces in lines don't hide points", async () => {
+  const answer = await findChargingStations(
+    client({
+      A4: {
+        electric_charging_station: [
+          item("east", { title: "A4 | Dresden | Ost", coordinate: { lat: "51.0", long: "13.0" }, description: ["4 Ladepunkte ", "150 kW"] }),
+          item("west", { title: "A4 | Aachen | West", coordinate: { lat: "50.8", long: "6.1" }, description: ["Ladepunkt 1: ", "50 kW"] }),
+        ],
+      },
+    }),
+    { roadId: "A4" },
+  );
+  assert.equal(answer.orderedBy, "longitude");
+  assert.deepEqual(answer.stations.map((s) => [s.identifier, s.points, s.maxKw]), [["west", 1, 50], ["east", 4, 150]]);
+});
