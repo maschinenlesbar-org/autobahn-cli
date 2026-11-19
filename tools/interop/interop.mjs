@@ -7,7 +7,7 @@
 //
 //   npm ci --ignore-scripts --prefix tools/interop && node tools/interop/interop.mjs
 //
-// interop.json (per repository): `answers` (path -> the JSON the mock sends), `tools` (how many
+// interop.json (per repository): `answers` (path -> the JSON the mock sends, or { "$raw": text, "$type": content type }), `tools` (how many
 // the server lists) and `calls`: each { name, arguments } and either `expect` (dotted paths into
 // structuredContent and the value each must have) or `"error": true` (a tool error).
 
@@ -22,9 +22,11 @@ const bin = fileURLToPath(new URL("../../apps/mcp/dist/src/mcp/index.js", import
 const config = JSON.parse(readFileSync(new URL("interop.json", import.meta.url), "utf8"));
 
 const upstream = http.createServer((req, res) => {
+  // An answer is JSON, or { "$raw": text, "$type": content type } for an API that isn't JSON (XML, CSV).
   const body = config.answers[new URL(req.url, "http://x").pathname];
-  res.writeHead(body === undefined ? 404 : 200, { "content-type": "application/json" });
-  res.end(JSON.stringify(body ?? { error: "no such path" }));
+  const raw = body !== null && typeof body === "object" && typeof body.$raw === "string";
+  res.writeHead(body === undefined ? 404 : 200, { "content-type": raw ? body.$type : "application/json" });
+  res.end(raw ? body.$raw : JSON.stringify(body ?? { error: "no such path" }));
 });
 await new Promise((resolve) => upstream.listen(0, "127.0.0.1", resolve));
 const baseUrl = `http://127.0.0.1:${upstream.address().port}`;

@@ -32,14 +32,16 @@ const docker = (dockerArgs, options = {}) => run("docker", dockerArgs, { env, ..
 const ok = (label) => process.stdout.write(`ok ${label}\n`);
 const check = (label, condition, detail) => (condition ? ok(label) : fail(`${label}: ${detail}`));
 
-// The mock answers each path in config.answers on port 8080 and never answers on port 8081.
+// The mock answers each path in config.answers on port 8080 (JSON, or { "$raw": text, "$type":
+// content type } for an API that isn't JSON) and never answers on port 8081.
 const MOCK = `
 const http = require("node:http");
 const answers = JSON.parse(process.env.MOCK_ANSWERS);
 http.createServer((req, res) => {
   const body = answers[new URL(req.url, "http://mock").pathname];
-  res.writeHead(body === undefined ? 404 : 200, { "content-type": "application/json" });
-  res.end(JSON.stringify(body ?? { error: "no such path" }));
+  const raw = body !== null && typeof body === "object" && typeof body.$raw === "string";
+  res.writeHead(body === undefined ? 404 : 200, { "content-type": raw ? body.$type : "application/json" });
+  res.end(raw ? body.$raw : JSON.stringify(body ?? { error: "no such path" }));
 }).listen(8080);
 http.createServer((req) => console.log("waiting " + req.url)).listen(8081, () => console.log("ready"));
 `;
