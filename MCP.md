@@ -1,0 +1,120 @@
+# autobahn-mcp
+
+An [MCP](https://modelcontextprotocol.io/) server for the live traffic data of the German
+motorways from [Die Autobahn GmbH des Bundes](https://autobahn.api.bund.dev/): warnings,
+closures, roadworks, EV charging sites, lorry parking and webcams, per motorway, as tools for AI
+agents. Read-only, no API key.
+
+It is the MCP side of [autobahn-cli](https://github.com/maschinenlesbar-org/autobahn-cli),
+built on the same typed client, and released with it.
+
+## Install
+
+```bash
+npm i -g @maschinenlesbar.org/autobahn-mcp
+```
+
+This installs the **`autobahn-mcp`** command (Node.js 22.12+). Or run the container
+image, for linux/amd64 and linux/arm64, which needs no Node.js:
+
+```bash
+docker run -i --rm ghcr.io/maschinenlesbar-org/autobahn-mcp:latest
+```
+
+## Connect a client
+
+The server speaks MCP on stdio by default.
+
+**Claude Code**
+
+```bash
+claude mcp add autobahn -- autobahn-mcp
+# or with the image:
+claude mcp add autobahn -- docker run -i --rm ghcr.io/maschinenlesbar-org/autobahn-mcp:latest
+```
+
+**Claude Desktop** (`claude_desktop_config.json`)
+
+```json
+{ "mcpServers": { "autobahn": { "command": "autobahn-mcp" } } }
+```
+
+**VS Code** (`.vscode/mcp.json`)
+
+```json
+{ "servers": { "autobahn": { "type": "stdio", "command": "autobahn-mcp" } } }
+```
+
+**Over HTTP** (Streamable HTTP, one endpoint `POST /mcp`):
+
+```bash
+autobahn-mcp --transport http            # http://127.0.0.1:3000/mcp
+claude mcp add --transport http autobahn http://127.0.0.1:3000/mcp
+```
+
+In a container, publish the port on loopback only:
+`docker run --rm -p 127.0.0.1:3000:3000 ghcr.io/maschinenlesbar-org/autobahn-mcp:latest --transport http --host 0.0.0.0 --allowed-hosts localhost,127.0.0.1`.
+
+For scripts and shared configs, pin a release and its digest from the
+[release notes](https://github.com/maschinenlesbar-org/autobahn-cli/releases) instead of
+`latest`: `…/autobahn-mcp:<version>@sha256:<digest>`. Check an image's provenance with
+`gh attestation verify oci://ghcr.io/maschinenlesbar-org/autobahn-mcp:<version> --repo maschinenlesbar-org/autobahn-cli`.
+
+## Tools
+
+| Tool | What it answers |
+|---|---|
+| `checkRoad` | Is a motorway clear: counts, the items that block it, hazard warnings, the longest delays. Ramp closures are counted apart and never mean the road is shut. |
+| `findChargingStations` | Charging sites along a motorway in road order, with power, points, connectors and direction; optionally a minimum kW. |
+| `listRoads` | The motorway ids (A1 … A99). |
+| `listServiceItems` | One service's items along a motorway (roadworks, webcams, lorry parking, warnings, closures, charging), a page at a time. |
+| `getServiceItem` | One item with all its fields. |
+
+Every tool only reads. An answer is JSON (`structuredContent` and the same as text), with the
+`source` it came from and the data licence. A failure is a tool error that says what to change.
+
+## Options
+
+```
+--transport <stdio|http>   stdio (default), or Streamable HTTP on POST /mcp
+--host <address>           HTTP: the address to listen on (default 127.0.0.1)
+--port <n>                 HTTP: the port (default 3000)
+--allowed-hosts <list>     HTTP: Host header names to answer (default localhost,127.0.0.1,[::1])
+--allowed-origins <list>   HTTP: browser origins allowed to call, exactly (https://app.example.org); none by default
+--base-url <url>           API base URL (default https://verkehr.autobahn.de)
+--timeout <ms>             per upstream request (default 30000)
+--call-timeout <ms>        per tool call, retries included (default 45000)
+--max-result-chars <n>     cap on one tool result's JSON (default 25000)
+--max-pages <n>            pages a tool reads per list and call (default 10)
+--user-agent <ua>          User-Agent header value
+--log-format <text|jsonl>  the log records on stderr (default text)
+```
+
+## What it does and doesn't do
+
+- **Read-only.** No tool changes anything, here or upstream.
+- **No authentication** on HTTP. It listens on loopback by default; it checks the `Host` header
+  and, from a browser, the `Origin` (only the origins given with `--allowed-origins`, matched
+  exactly) against DNS rebinding and other web pages. Exposed beyond localhost (it logs a warning then), it
+  belongs behind a proxy that authenticates.
+- **Gentle with the upstream.** One server process sends at most 2 requests at a time and 120 a
+  minute to the API, pauses on HTTP 429, and stops a tool call after its deadline.
+- **Results are data.** Text from the API is cleaned (control, bidi and zero-width characters
+  removed), but it is still other people's text: a model can be told things in it. The server
+  can't act on that (it has no tool that writes), but other tools in the same session could.
+- **Stops cleanly.** On `docker stop` (SIGTERM) or Ctrl-C the HTTP server takes no new
+  connection and lets calls in flight answer for up to 5 s, then exits 143 (130); a second signal
+  ends it at once. On stdio it ends at once, and when stdin ends.
+- **In a container** it needs at least 12 processes and threads (`--pids-limit`) and about
+  256 MB of memory.
+- **Logs** go to stderr, one record per line; stdout carries only the protocol.
+- **Never installs anything.**
+
+## Licence
+
+Code: AGPL-3.0-or-later or commercial
+([LICENSING.md](https://github.com/maschinenlesbar-org/autobahn-cli/blob/main/LICENSING.md)).
+Data: Die Autobahn GmbH des Bundes declares no licence on the API; the Datenlizenz Deutschland –
+Namensnennung 2.0 of its other open data applies by analogy, so name the source
+([DATA_LICENSE.md](https://github.com/maschinenlesbar-org/autobahn-cli/blob/main/DATA_LICENSE.md)).
+Every result carries this note in its `licence` field.

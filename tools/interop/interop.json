@@ -1,0 +1,15 @@
+{
+  "comment": "What tools/interop/interop.mjs needs that is particular to this repo: the mock upstream's answer per path (under --base-url http://127.0.0.1:<port>), how many tools the server lists, and the calls to make with what each must answer.",
+  "answers": {
+    "/o/autobahn/": { "roads": ["A1", "A7"] },
+    "/o/autobahn/A1/services/warning": { "warning": [{ "identifier": "w1", "title": "A1 | Köln - Dortmund", "display_type": "WARNING", "isBlocked": "false", "future": false, "delayTimeValue": "12", "description": ["Stau"] }] },
+    "/o/autobahn/A1/services/closure": { "closure": [{ "identifier": "c1", "title": "A1 | AS Köln-Nord", "display_type": "CLOSURE_ENTRY_EXIT", "isBlocked": "false", "future": false, "description": ["Vollsperrung der Ausfahrt"] }] },
+    "/o/autobahn/A1/services/roadworks": { "roadworks": [] }
+  },
+  "tools": 5,
+  "calls": [
+    { "name": "checkRoad", "arguments": { "roadId": "A1" }, "expect": { "status": "ok", "counts.rampClosures": 1, "worstDelays.0.delayMinutes": 12 } },
+    { "name": "listRoads", "arguments": {}, "expect": { "total": 2 } },
+    { "name": "checkRoad", "arguments": { "roadId": "" }, "error": true }
+  ]
+}
