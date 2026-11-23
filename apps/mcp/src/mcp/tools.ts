@@ -80,7 +80,7 @@ export const TOOLS: readonly ToolDefinition[] = [
     title: "Check a motorway for disruptions",
     description: [
       'Is a German motorway clear right now? Warnings, closures and roadworks of one Autobahn, classified. Use it for "ist die A3 frei?", "Stau auf der A1?", "Sperrungen auf der A7", "is the A8 clear?", "any problems on the A9 before I drive?".',
-      "Answers counts, the items that say the road is shut (a full closure, a closed carriageway; read each one's time window in its description before saying it is shut now: a long roadworks phase often names a closure on later days), hazard warnings (accident, wrong-way driver, objects on the road) and the longest delays. Ramp closures (CLOSURE_ENTRY_EXIT) close only a junction's on- or off-ramp: they are counted apart and never mean the road is shut. planned: false is not proof that an item is active: its time window is in its description. One motorway per call; for a route, call it for each road.",
+      "Answers counts, the items that shut the road (every carriageway closure that isn't planned, whatever its description says, and roadworks that say the road is shut; read each one's time window in its description before saying it is shut now: a long roadworks phase often names a closure on later days), hazard warnings (accident, wrong-way driver, objects on the road) and the longest delays. Ramp closures (CLOSURE_ENTRY_EXIT) close only a junction's on- or off-ramp: they are counted apart and never mean the road is shut. planned: false is not proof that an item is active: its time window is in its description. One motorway per call; for a route, call it for each road.",
       RULES,
     ].join("\n\n"),
     inputSchema: input({ roadId }, ["roadId"]),

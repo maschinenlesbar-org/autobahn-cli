@@ -62,9 +62,11 @@ export interface RoadCheck {
     planned: number;
   };
   /**
-   * Not planned, and the item says the road is shut or blocked: a full closure (`Vollsperrung`),
-   * a closed carriageway, `isBlocked`. Its window may still lie ahead (a long roadworks phase
-   * often names a closure on later days): the description says when.
+   * Not planned, and the road is shut or blocked: every carriageway closure (`CLOSURE`, whatever
+   * words its description uses: real ones name the cause, "Ersatzneubau …", or say "Sperrung"),
+   * an item the API marks `isBlocked`, and a roadworks item whose description says the road is
+   * shut (`Vollsperrung`). Its window may still lie ahead (a long roadworks phase often names a
+   * closure on later days): the description says when.
    */
   blocking: CheckedItem[];
   /** Warnings about an accident, a wrong-way driver or a hazard, whatever their delay. */
@@ -98,8 +100,9 @@ function checked(service: CheckedItem["service"], item: AutobahnServiceItem): Ch
 /**
  * The disruption picture of one motorway: its warnings, closures and roadworks, classified by
  * what the item is (`display_type`), not by the listing it came from (the warnings listing also
- * carries real-time closures). Ramp closures are counted apart and never make the road read as
- * shut; `isBlocked` is almost never set, so blocking is also read from the description.
+ * carries real-time closures). A carriageway closure (`CLOSURE`) not planned is blocking; ramp
+ * closures are counted apart and never make the road read as shut; `isBlocked` is almost never
+ * set, so a roadworks item's blocking is also read from its description.
  */
 export async function checkRoad(client: AutobahnClient, input: { roadId: string }): Promise<RoadCheck> {
   const warnings = await client.warnings.list(input.roadId);
@@ -115,8 +118,8 @@ export async function checkRoad(client: AutobahnClient, input: { roadId: string 
   const isRamp = (item: CheckedItem): boolean => item.displayType === "CLOSURE_ENTRY_EXIT";
   const blocking = all.filter((item, i) => {
     if (item.planned || isRamp(item)) return false;
-    if (raw[i]?.isBlocked === "true") return true;
-    return (isClosure(item) || item.service === "roadworks") && BLOCKING.test(item.description);
+    if (raw[i]?.isBlocked === "true" || isClosure(item)) return true;
+    return item.service === "roadworks" && BLOCKING.test(item.description);
   });
   const hazards = all.filter((item) => item.service === "warnings" && !isClosure(item) && HAZARD.test(item.description) && !blocking.includes(item));
   const worstDelays = all

@@ -95,3 +95,21 @@ test("findChargingStations orders west to east on an east-west road; trailing sp
   assert.equal(answer.orderedBy, "longitude");
   assert.deepEqual(answer.stations.map((s) => [s.identifier, s.points, s.maxKw]), [["west", 1, 50], ["east", 4, 150]]);
 });
+
+test("checkRoad: every carriageway closure (CLOSURE) not planned is blocking, whatever words its description uses", async () => {
+  // Real closure descriptions name the cause or say "Sperrung", rarely "gesperrt" (the A1 at the
+  // Kamener Kreuz, November 2026): the type is what says the carriageway is closed.
+  const answer = await checkRoad(
+    client({
+      A1: {
+        closure: [
+          item("bridge", { display_type: "CLOSURE", description: ["Zeitraum dieser Bauphase:", "A1 - Ersatzneubau BW B1 über A1"] }),
+          item("sperrung", { display_type: "CLOSURE", description: ["A1 Sperrung Richtungsfahrbahn wegen GST Löstertalbrücke"] }),
+          item("later", { display_type: "CLOSURE", future: true, description: ["Brückenneubau"] }),
+        ],
+      },
+    }),
+    { roadId: "A1" },
+  );
+  assert.deepEqual(answer.blocking.map((i) => i.identifier), ["bridge", "sperrung"]);
+});

@@ -147,10 +147,10 @@ them there.
 
 Then rank the **active** items, most severe first:
 
-1. **Closures** that are genuinely shutting the road — `display_type === "CLOSURE"` with
-   `isBlocked === "true"` **or** a `description[]` that says full closure (`Vollsperrung`) /
-   no through traffic. A plain active `CLOSURE` entry without those is partial/lane-level —
-   treat as mid severity.
+1. **Closures** that are shutting the road — every active `display_type === "CLOSURE"`: it
+   is a closed carriageway, whatever words its `description[]` uses. Real ones rarely say
+   `Vollsperrung` or `gesperrt`; they name the cause (`Ersatzneubau BW B1 über A1`,
+   `Brückenersatzneubau`) or say `Sperrung` (the A1 at the Kamener Kreuz, November 2026).
    **Ramp closures** (`display_type === "CLOSURE_ENTRY_EXIT"`) close a junction's on- or
    off-ramp, not the motorway — 48 of the 54 A1 closures in October 2026. Count them
    separately, list one only when it is at a junction the user named, and never let them
