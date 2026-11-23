@@ -113,3 +113,30 @@ test("checkRoad: every carriageway closure (CLOSURE) not planned is blocking, wh
   );
   assert.deepEqual(answer.blocking.map((i) => i.identifier), ["bridge", "sperrung"]);
 });
+
+test("checkRoad: roadworks block only when they say the road is shut, not a lane, a car park, a rest area or a negation", async () => {
+  const works = (id: string, ...description: string[]) => item(id, { display_type: "ROADWORKS", description });
+  const answer = await checkRoad(
+    client({
+      A1: {
+        roadworks: [
+          works("lane", "rechter Fahrstreifen gesperrt"),
+          works("lane-of-carriageway", "rechter Fahrstreifen der Richtungsfahrbahn Bremen gesperrt"),
+          works("negated", "Die Fahrbahn ist nicht gesperrt"),
+          works("no-full", "keine Vollsperrung"),
+          works("car-park", "Parkplatz Waldblick gesperrt"),
+          // A live A1 roadworks: a speed and width limit, the project's last line names a closed rest area.
+          works("rest-area", "Länge: 0.3 km | Max. 100 km/h | Maximale Durchfahrtsbreite: 10.35 m", "A1 - Ersatzneubau BW K147 - Rastanlage Ahrensfeld West vom 20.11.26 12h bis 23.11.26 5h gesperrt"),
+          works("full", "Vollsperrung zwischen AS Bramsche und AS Neuenkirchen"),
+          works("carriageway", "Richtungsfahrbahn Dortmund gesperrt"),
+          works("closed-carriageway", "Die Fahrbahn in Richtung Köln ist gesperrt."),
+          works("sperrung", "Sperrung der Richtungsfahrbahn"),
+          works("all-lanes", "alle Fahrstreifen gesperrt"),
+          works("no-through", "keine Durchfahrt"),
+        ],
+      },
+    }),
+    { roadId: "A1" },
+  );
+  assert.deepEqual(answer.blocking.map((i) => i.identifier), ["full", "carriageway", "closed-carriageway", "sperrung", "all-lanes", "no-through"]);
+});

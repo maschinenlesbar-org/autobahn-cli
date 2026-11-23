@@ -168,7 +168,8 @@ Then rank the **active** items, most severe first:
    them by that text after the delayed warnings instead of dropping them as "no delay".
 3. **Roadworks** — background unless they're blocking (`isBlocked === "true"`, or a
    `description[]` that says `Vollsperrung` / the carriageway is closed); those few rank
-   with closures.
+   with closures. A closed lane (`Fahrstreifen`), car park or rest area, or a `nicht
+   gesperrt`, doesn't shut the road: a long project's last line often names such a closure.
 
 Drop obvious duplicates (a closure and a warning describing the same spot — match on
 near-identical `extent`/`point` and direction). Exclude anything already past its window.

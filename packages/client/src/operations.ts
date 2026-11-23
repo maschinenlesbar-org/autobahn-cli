@@ -65,7 +65,7 @@ export interface RoadCheck {
    * Not planned, and the road is shut or blocked: every carriageway closure (`CLOSURE`, whatever
    * words its description uses: real ones name the cause, "Ersatzneubau …", or say "Sperrung"),
    * an item the API marks `isBlocked`, and a roadworks item whose description says the road is
-   * shut (`Vollsperrung`). Its window may still lie ahead (a long roadworks phase often names a
+   * shut (`Vollsperrung`, the carriageway closed; not a lane, a car park or a rest area). Its window may still lie ahead (a long roadworks phase often names a
    * closure on later days): the description says when.
    */
   blocking: CheckedItem[];
@@ -77,7 +77,21 @@ export interface RoadCheck {
   notes: string[];
 }
 
-const BLOCKING = /vollsperrung|gesperrt|keine durchfahrt/i;
+/**
+ * Whether a roadworks description says the road is shut: a line with a full closure, no through
+ * traffic, all lanes or the carriageway (`Fahrbahn`, `Richtungsfahrbahn`) closed. Not a lane
+ * (`Fahrstreifen`), a car park or a rest area, and not a negation ("nicht gesperrt", "keine
+ * Vollsperrung"): a long project's last line often names a closure of something else.
+ */
+function saysRoadIsShut(description: string): boolean {
+  return description.split("\n").some((line) => {
+    if (/\bnicht\s+(?:voll)?gesperrt|\bkeine\s+(?:voll)?sperrung/i.test(line)) return false;
+    if (/vollsperrung|keine durchfahrt|alle fahrstreifen\b[^.;]*\bgesperrt/i.test(line)) return true;
+    if (/fahrstreifen|\bspur/i.test(line)) return false;
+    return /\b(?:richtungs)?fahrbahn(?:en)?\b[^.;]*\bgesperrt|\bgesperrten?\b[^.;]*\b(?:richtungs)?fahrbahn\b|\bsperrung\s+der\s+(?:richtungs)?fahrbahn\b/i.test(line);
+  });
+}
+
 const HAZARD = /unfall|falschfahrer|geisterfahrer|gefahr|gegenst[äa]nde auf der fahrbahn/i;
 const TRAFFIC_RANK: Record<string, number> = { QUEUING_TRAFFIC: 3, SLOW_TRAFFIC: 2, UNSPECIFIED_ABNORMAL_TRAFFIC: 1 };
 
@@ -119,7 +133,7 @@ export async function checkRoad(client: AutobahnClient, input: { roadId: string 
   const blocking = all.filter((item, i) => {
     if (item.planned || isRamp(item)) return false;
     if (raw[i]?.isBlocked === "true" || isClosure(item)) return true;
-    return item.service === "roadworks" && BLOCKING.test(item.description);
+    return item.service === "roadworks" && saysRoadIsShut(item.description);
   });
   const hazards = all.filter((item) => item.service === "warnings" && !isClosure(item) && HAZARD.test(item.description) && !blocking.includes(item));
   const worstDelays = all
