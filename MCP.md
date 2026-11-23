@@ -71,7 +71,9 @@ For scripts and shared configs, pin a release and its digest from the
 | `getServiceItem` | One item with all its fields. |
 
 Every tool only reads. An answer is JSON (`structuredContent` and the same as text), with the
-`source` it came from and the data licence. A failure is a tool error that says what to change.
+`source` it came from and the data licence. A text over 2000 characters is cut and ends in
+`…[cut, N characters in all]`, and the answer says `truncated`. A failure is a tool error that
+says what to change.
 
 ## Options
 
