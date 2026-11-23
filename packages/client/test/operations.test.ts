@@ -140,3 +140,11 @@ test("checkRoad: roadworks block only when they say the road is shut, not a lane
   );
   assert.deepEqual(answer.blocking.map((i) => i.identifier), ["full", "carriageway", "closed-carriageway", "sperrung", "all-lanes", "no-through"]);
 });
+
+test("checkRoad: an item in both the warnings and the closures listing is counted and listed once", async () => {
+  const dup = item("dup1", { display_type: "CLOSURE", description: ["Vollsperrung"] });
+  const answer = await checkRoad(client({ A1: { warning: [dup], closure: [dup, item("other", { display_type: "CLOSURE" })] } }), { roadId: "A1" });
+  assert.equal(answer.counts.closures, 2);
+  assert.equal(answer.counts.warnings, 0);
+  assert.deepEqual(answer.blocking.map((i) => i.identifier), ["dup1", "other"]);
+});

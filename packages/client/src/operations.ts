@@ -53,7 +53,7 @@ export interface RoadCheck {
   roadId: string;
   counts: {
     warnings: number;
-    /** Carriageway closures (`CLOSURE`), from the closures and the warnings listings. */
+    /** Carriageway closures (`CLOSURE`), from the closures and the warnings listings, each once. */
     closures: number;
     /** Closures of a junction's on- or off-ramp only (`CLOSURE_ENTRY_EXIT`): not the road. */
     rampClosures: number;
@@ -122,12 +122,18 @@ export async function checkRoad(client: AutobahnClient, input: { roadId: string 
   const warnings = await client.warnings.list(input.roadId);
   const closures = await client.closures.list(input.roadId);
   const roadworks = await client.roadworks.list(input.roadId);
-  const all = [
-    ...warnings.map((item) => checked("warnings", item)),
-    ...closures.map((item) => checked("closures", item)),
-    ...roadworks.map((item) => checked("roadworks", item)),
-  ];
-  const raw = [...warnings, ...closures, ...roadworks];
+  // An item in two listings (a real-time closure in the warnings and the closures listing) is one
+  // item: the first kept, so it is counted and listed once.
+  const seen = new Set<string>();
+  const from = (service: CheckedItem["service"], items: AutobahnServiceItem[]) => items.map((item) => [service, item] as const);
+  const listed = [...from("warnings", warnings), ...from("closures", closures), ...from("roadworks", roadworks)].filter(([, item]) => {
+    const id = item.identifier ?? "";
+    if (seen.has(id)) return false;
+    seen.add(id);
+    return true;
+  });
+  const all = listed.map(([service, item]) => checked(service, item));
+  const raw = listed.map(([, item]) => item);
   const isClosure = (item: CheckedItem): boolean => item.displayType === "CLOSURE";
   const isRamp = (item: CheckedItem): boolean => item.displayType === "CLOSURE_ENTRY_EXIT";
   const blocking = all.filter((item, i) => {
@@ -146,7 +152,7 @@ export async function checkRoad(client: AutobahnClient, input: { roadId: string 
       warnings: all.filter((item) => item.service === "warnings" && !isClosure(item)).length,
       closures: all.filter(isClosure).length,
       rampClosures: all.filter(isRamp).length,
-      roadworks: roadworks.length,
+      roadworks: all.filter((item) => item.service === "roadworks").length,
       planned: all.filter((item) => item.planned).length,
     },
     blocking,
