@@ -6,6 +6,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { listTools } from "../src/mcp/server.js";
+import { SIZE_HINT, TOOLS } from "../src/mcp/tools.js";
 import { connect } from "./harness.js";
 import { autobahn, warning } from "./helpers.js";
 
@@ -151,4 +152,37 @@ test("getServiceItem: an unknown identifier's error says where to take one from"
   assert.match(text, /from a fresh listServiceItems answer of the same service/);
   assert.match(text, /warning identifiers are re-issued/);
   await connection.close();
+});
+
+/** Every option a hint names is named with the tools that take it: "a smaller limit (listServiceItems)". */
+function assertOptionsNamedWithTheirTools(text: string): void {
+  const schemas = new Map(TOOLS.map((tool) => [tool.name, Object.keys((tool.inputSchema as { properties: Record<string, unknown> }).properties)]));
+  const options = new Set([...schemas.values()].flat());
+  const pairs = [...text.matchAll(/(\w+(?: or \w+)*) \((\w+(?:, \w+)*)\)/g)];
+  const named = new Set<string>();
+  for (const [, words, tools] of pairs) {
+    for (const option of (words as string).split(" or ").filter((word) => options.has(word))) {
+      named.add(option);
+      for (const tool of (tools as string).split(", ")) assert.ok(schemas.get(tool)?.includes(option), `${tool} takes no ${option}: ${text}`);
+    }
+  }
+  for (const option of options) assert.ok(!new RegExp(`\\b${option}\\b`).test(text) || named.has(option), `${option} named without its tools: ${text}`);
+}
+
+test("the deadline's advice fits every tool: it names the slow or rate-limited API, and no page size that wouldn't help", async () => {
+  const hanging = { transport: (): Promise<never> => new Promise<never>(() => {}) };
+  const connection = await connect({ transport: hanging, config: { callTimeoutMs: 30 } });
+  const text = (await connection.call("listRoads", {})).content[0]?.text ?? "";
+  await connection.close();
+  assert.match(text, /took longer than .* and was stopped/);
+  assert.match(text, /rate limit/);
+  assert.match(text, /try again in a minute/);
+  assert.doesNotMatch(text, /one motorway at a time|a smaller page \(limit\)/);
+  assertOptionsNamedWithTheirTools(text);
+});
+
+test("the size hint says a page doesn't shrink what is read, and names each option with its tools", () => {
+  assert.match(SIZE_HINT, /reads the road's whole listing/);
+  assert.doesNotMatch(SIZE_HINT, /one motorway at a time/);
+  assertOptionsNamedWithTheirTools(SIZE_HINT);
 });
