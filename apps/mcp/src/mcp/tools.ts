@@ -153,6 +153,7 @@ export const TOOLS: readonly ToolDefinition[] = [
       const next = offset + items.length;
       const base = { roadId: str(args, "roadId").trim(), service: name, total: all.length, items };
       if (all.length === 0) return { status: "empty", ...base, reason: `No ${name} are listed on ${base.roadId} right now.` };
+      if (items.length === 0) return { status: "empty", ...base, reason: `offset ${offset} is past the end: ${base.roadId} lists ${all.length} ${name} (offsets 0 to ${all.length - 1}).` };
       return { status: "ok", ...base, ...(next < all.length ? { nextOffset: next } : {}) };
     },
   },

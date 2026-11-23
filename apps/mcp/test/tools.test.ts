@@ -103,3 +103,16 @@ test("listServiceItems: a known road without items is empty with a reason", asyn
   assert.match(String(result.structuredContent?.["reason"]), /No webcams are listed on A7/);
   await connection.close();
 });
+
+test("listServiceItems: an offset at or past the end is empty with a reason, not ok with no items", async () => {
+  const connection = await connect({ transport: world });
+  for (const offset of [3, 100_000]) {
+    const result = await connection.call("listServiceItems", { service: "warnings", roadId: "A1", offset });
+    assert.equal(result.structuredContent?.["status"], "empty", result.content[0]?.text);
+    assert.equal(result.structuredContent?.["total"], 3);
+    assert.deepEqual(result.structuredContent?.["items"], []);
+    assert.match(String(result.structuredContent?.["reason"]), new RegExp(`offset ${offset} is past the end: A1 lists 3 warnings \\(offsets 0 to 2\\)`));
+    assert.equal(result.structuredContent?.["nextOffset"], undefined);
+  }
+  await connection.close();
+});
