@@ -46,9 +46,11 @@ export class ServiceResource<K extends string> {
    * or dash, or a leading zero)
    * instead of returning []. That check is a second request (with its own timeout and
    * retries); if it fails, list() throws an AutobahnError naming the check, with the
-   * original error as `cause`.
+   * original error as `cause`. `options.knownRoads` replaces the road-list lookup: a caller
+   * listing several services of one road passes one shared lookup, so the road list is
+   * fetched once, not once per empty listing (checkRoad does).
    */
-  async list(roadId: string): Promise<AutobahnServiceItem[]> {
+  async list(roadId: string, options: { knownRoads?: () => Promise<string[]> } = {}): Promise<AutobahnServiceItem[]> {
     // Trim surrounding whitespace: the upstream API itself emits a few ids with a
     // trailing space (e.g. "A60 "), and copying such an id straight back in would
     // otherwise URL-encode the space and miss the road. Validate after trimming.
@@ -78,17 +80,17 @@ export class ServiceResource<K extends string> {
       }
       return withoutMistypedDisplayFields(item as Record<string, unknown>);
     });
-    if (checked.length === 0) await this.assertKnownRoad(id);
+    if (checked.length === 0) await this.assertKnownRoad(id, options.knownRoads ?? this.knownRoads);
     return checked as AutobahnServiceItem[];
   }
 
-  private async assertKnownRoad(id: string): Promise<void> {
+  private async assertKnownRoad(id: string, knownRoads: () => Promise<string[]>): Promise<void> {
     // The listing itself succeeded, so a failure here is about the check, not the
     // service the caller asked for: say so, instead of a bare error naming the road
     // list endpoint. AutobahnError (CLI exit 1); the original error is the cause.
     let known: string[];
     try {
-      known = await this.knownRoads();
+      known = await knownRoads();
     } catch (cause) {
       const reason = cause instanceof Error ? cause.message : String(cause);
       throw new AutobahnError(

@@ -164,3 +164,20 @@ test("checkRoad: an item in both the warnings and the closures listing is counte
   assert.equal(answer.counts.warnings, 0);
   assert.deepEqual(answer.blocking.map((i) => i.identifier), ["dup1", "other"]);
 });
+
+test("checkRoad on a clear road reads the road list once, not once per empty listing", async () => {
+  const transport = makeMockTransport((request) => {
+    const path = new URL(request.url).pathname;
+    if (path === "/o/autobahn/") return jsonResponse({ roads: ["A1", "A60"] });
+    const service = path.split("/").pop() as string;
+    return jsonResponse({ [service]: [] });
+  });
+  const answer = await checkRoad(new AutobahnClient({ transport: transport.transport }), { roadId: "A60" });
+  assert.equal(answer.counts.warnings + answer.counts.closures + answer.counts.roadworks, 0);
+  assert.deepEqual(transport.calls.map((call) => new URL(call.url).pathname), [
+    "/o/autobahn/A60/services/warning",
+    "/o/autobahn/",
+    "/o/autobahn/A60/services/closure",
+    "/o/autobahn/A60/services/roadworks",
+  ]);
+});

@@ -151,7 +151,9 @@ value it rejects throws `AutobahnValidationError` (`Invalid option userAgent: <r
 in the API's order (the API lists both `"A60"` and `"A60 "`; `list()` trims its road id,
 so both name the same road). The API answers an unknown road id with an
 empty listing, so `list()` checks an empty result against `roads()` (one extra
-request) and throws `AutobahnNotFoundError` for an id that is not in it.
+request) and throws `AutobahnNotFoundError` for an id that is not in it. A caller listing
+several services of one road passes one lookup, `list(roadId, { knownRoads })`, so the road
+list is fetched once: `checkRoad` does, and a clear road costs it four requests, not six.
 
 ## Authentication internals
 

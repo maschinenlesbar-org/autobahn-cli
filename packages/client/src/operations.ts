@@ -119,9 +119,13 @@ function checked(service: CheckedItem["service"], item: AutobahnServiceItem): Ch
  * set, so a roadworks item's blocking is also read from its description.
  */
 export async function checkRoad(client: AutobahnClient, input: { roadId: string }): Promise<RoadCheck> {
-  const warnings = await client.warnings.list(input.roadId);
-  const closures = await client.closures.list(input.roadId);
-  const roadworks = await client.roadworks.list(input.roadId);
+  // An empty listing is checked against the road list: one lookup for the three listings, so a
+  // clear road costs four requests, not six.
+  let roads: Promise<string[]> | undefined;
+  const options = { knownRoads: () => (roads ??= client.roads()) };
+  const warnings = await client.warnings.list(input.roadId, options);
+  const closures = await client.closures.list(input.roadId, options);
+  const roadworks = await client.roadworks.list(input.roadId, options);
   // An item in two listings (a real-time closure in the warnings and the closures listing) is one
   // item: the first kept, so it is counted and listed once.
   const seen = new Set<string>();
