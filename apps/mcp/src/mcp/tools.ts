@@ -6,7 +6,7 @@
 // two rules every tool repeats. With the instructions, the licence and the hints the kit's
 // server.ts puts into its messages: everything about the server particular to the Autobahn API.
 
-import { AutobahnValidationError, checkRoad, findChargingStations, SERVICE_NAMES, serviceResource, servicesOfType, type ServiceName } from "@maschinenlesbar.org/autobahn-client";
+import { AutobahnNotFoundError, AutobahnValidationError, checkRoad, findChargingStations, SERVICE_NAMES, serviceResource, servicesOfType, type ServiceName } from "@maschinenlesbar.org/autobahn-client";
 import { normalizeToken } from "@maschinenlesbar.org/autobahn-client/internal/validate";
 import type { JsonSchema, ToolDefinition } from "./server.js";
 
@@ -173,7 +173,16 @@ export const TOOLS: readonly ToolDefinition[] = [
     source: (args) => `o/autobahn/details/${LISTING[str(args, "service") as ServiceName] ?? ""}/${sent(str(args, "identifier"))}`,
     async run(args, context) {
       const name = str(args, "service") as ServiceName;
-      const item = await serviceResource(context.client, name).get(str(args, "identifier"));
+      const item = await serviceResource(context.client, name)
+        .get(str(args, "identifier"))
+        .catch((err: unknown) => {
+          // The client's text says what the API answered; a model also needs what to do instead.
+          if (!(err instanceof AutobahnNotFoundError)) throw err;
+          throw new AutobahnNotFoundError(
+            `${err.message.replace(/\.$/, "")}. The API doesn't know this identifier: take one from a fresh listServiceItems answer of the same service. Items end, and warning identifiers are re-issued as the data updates.`,
+            { cause: err },
+          );
+        });
       // The API answers an identifier under any service: an item of another type would be labelled
       // with the service asked (a roadworks reported as a closure).
       const type = item["display_type"];

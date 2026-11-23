@@ -141,3 +141,14 @@ test("getServiceItem: source is the URL the request went to, the identifier as s
   assert.match(String(result.structuredContent?.["source"]), /\/o\/autobahn\/details\/roadworks\/%C3%84-1$/);
   await connection.close();
 });
+
+test("getServiceItem: an unknown identifier's error says where to take one from", async () => {
+  const connection = await connect({ transport: world });
+  const result = await connection.call("getServiceItem", { service: "roadworks", identifier: "gone-1" });
+  assert.equal(result.isError, true);
+  const text = result.content[0]?.text ?? "";
+  assert.match(text, /^Not found: .*details\/roadworks\/gone-1/);
+  assert.match(text, /from a fresh listServiceItems answer of the same service/);
+  assert.match(text, /warning identifiers are re-issued/);
+  await connection.close();
+});
