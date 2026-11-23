@@ -6,7 +6,7 @@
 // two rules every tool repeats. With the instructions, the licence and the hints the kit's
 // server.ts puts into its messages: everything about the server particular to the Autobahn API.
 
-import { checkRoad, findChargingStations, SERVICE_NAMES, serviceResource, type ServiceName } from "@maschinenlesbar.org/autobahn-client";
+import { AutobahnValidationError, checkRoad, findChargingStations, SERVICE_NAMES, serviceResource, servicesOfType, type ServiceName } from "@maschinenlesbar.org/autobahn-client";
 import type { JsonSchema, ToolDefinition } from "./server.js";
 
 /** The service, as results and messages name it. */
@@ -162,7 +162,7 @@ export const TOOLS: readonly ToolDefinition[] = [
     title: "Get one item's full detail",
     description: [
       "One item of a service by its identifier, with all its fields (the full description, geometry, for a webcam its image links). Use it when an answer names an identifier and the user wants everything about it.",
-      "The service must be the one the identifier came from.",
+      "The service must be the one the identifier came from: an item of another type is an error that names its service (the warnings listing also carries closures).",
       RULES,
     ].join("\n\n"),
     inputSchema: input({ service, identifier: { type: "string", minLength: 1, maxLength: 500, description: "The item's identifier, as a listing gave it." } }, ["service", "identifier"]),
@@ -170,7 +170,15 @@ export const TOOLS: readonly ToolDefinition[] = [
     source: (args) => `o/autobahn/details/${LISTING[str(args, "service") as ServiceName] ?? ""}/${encodeURIComponent(str(args, "identifier").trim())}`,
     async run(args, context) {
       const name = str(args, "service") as ServiceName;
-      return { status: "ok", service: name, item: await serviceResource(context.client, name).get(str(args, "identifier")) };
+      const item = await serviceResource(context.client, name).get(str(args, "identifier"));
+      // The API answers an identifier under any service: an item of another type would be labelled
+      // with the service asked (a roadworks reported as a closure).
+      const type = item["display_type"];
+      const services = servicesOfType(type);
+      if (services !== undefined && !services.includes(name)) {
+        throw new AutobahnValidationError(`This identifier is a ${String(type)} item, which the ${services.join(" or ")} listing carries, not ${name}: ask again with service "${services[0]}".`);
+      }
+      return { status: "ok", service: name, item };
     },
   },
 ];

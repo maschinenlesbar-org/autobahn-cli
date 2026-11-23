@@ -116,3 +116,18 @@ test("listServiceItems: an offset at or past the end is empty with a reason, not
   }
   await connection.close();
 });
+
+test("getServiceItem: an identifier asked under another service than its item's type is an error naming the right one", async () => {
+  const connection = await connect({ transport: world });
+  // The API's details path ignores the service: it answers the roadworks item under "closures".
+  const wrong = await connection.call("getServiceItem", { service: "closures", identifier: "r1" });
+  assert.equal(wrong.isError, true);
+  assert.match(wrong.content[0]?.text ?? "", /a ROADWORKS item.*not closures.*service "roadworks"/);
+  // The warnings listing also carries real-time closures: a closure asked as a warning is fine.
+  const closure = await connection.call("getServiceItem", { service: "warnings", identifier: "c-full" });
+  assert.equal(closure.structuredContent?.["status"], "ok", closure.content[0]?.text);
+  // A type not known to belong to a service (none here) isn't checked.
+  const untyped = await connection.call("getServiceItem", { service: "charging", identifier: "RUxF" });
+  assert.equal(untyped.structuredContent?.["status"], "ok", untyped.content[0]?.text);
+  await connection.close();
+});

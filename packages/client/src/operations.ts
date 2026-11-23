@@ -31,6 +31,31 @@ export function serviceResource(client: AutobahnClient, service: ServiceName) {
   }
 }
 
+/**
+ * The services whose listings carry an item of each type (`display_type`), for the types seen
+ * live: the warnings listing also carries real-time closures. A webcam's type, and any type not
+ * seen, is not here.
+ */
+const SERVICES_OF_TYPE: Record<string, readonly ServiceName[]> = {
+  ROADWORKS: ["roadworks"],
+  SHORT_TERM_ROADWORKS: ["roadworks"],
+  WARNING: ["warnings"],
+  CLOSURE: ["closures", "warnings"],
+  CLOSURE_ENTRY_EXIT: ["closures", "warnings"],
+  PARKING: ["parking"],
+  ELECTRIC_CHARGING_STATION: ["charging"],
+  STRONG_ELECTRIC_CHARGING_STATION: ["charging"],
+};
+
+/**
+ * The services whose listings carry an item of this `display_type`, or undefined for a type
+ * not known (nothing to check). The detail endpoint answers an identifier under any service,
+ * so a caller that must know the item belongs to the service asked compares with this.
+ */
+export function servicesOfType(displayType: unknown): readonly ServiceName[] | undefined {
+  return typeof displayType === "string" && Object.hasOwn(SERVICES_OF_TYPE, displayType) ? SERVICES_OF_TYPE[displayType] : undefined;
+}
+
 /** One item of a road check, cut to what a briefing needs. */
 export interface CheckedItem {
   service: "warnings" | "closures" | "roadworks";

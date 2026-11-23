@@ -16,7 +16,8 @@ const SEGMENT = ["roadworks", "webcam", "parking_lorry", "warning", "closure", "
 /**
  * The Autobahn API over `roads`: `/o/autobahn/` lists the road ids, a service listing of a known
  * road answers its items (none when not given), `/o/autobahn/details/<service>/<id>` the item
- * (an empty body for an unknown one, as the API does), anything else 404.
+ * under whatever service it is listed (an empty body for an unknown one, as the API does),
+ * anything else 404.
  */
 export function autobahn(roads: Record<string, Partial<Record<string, Item[]>>>): MockTransport {
   return makeMockTransport((request) => {
@@ -30,9 +31,10 @@ export function autobahn(roads: Record<string, Partial<Record<string, Item[]>>>)
     }
     const detail = path.match(/^\/o\/autobahn\/details\/([^/]+)\/([^/]+)$/);
     if (detail !== null) {
-      const [, service, id] = detail as unknown as [string, string, string];
+      // Like the API: the service segment is ignored, an identifier is found under any service.
+      const [, , id] = detail as unknown as [string, string, string];
       const found = Object.values(roads)
-        .flatMap((byService) => byService[service] ?? [])
+        .flatMap((byService) => Object.values(byService).flatMap((items) => items ?? []))
         .find((item) => item.identifier === decodeURIComponent(id));
       return found === undefined ? { status: 200, headers: { "content-type": "application/json" }, body: Buffer.alloc(0) } : jsonResponse(found);
     }

@@ -68,7 +68,7 @@ For scripts and shared configs, pin a release and its digest from the
 | `findChargingStations` | Charging sites along a motorway in road order, with power, points, connectors and direction; optionally a minimum kW. |
 | `listRoads` | The motorway ids (A1 … A99). |
 | `listServiceItems` | One service's items along a motorway (roadworks, webcams, lorry parking, warnings, closures, charging), a page at a time. |
-| `getServiceItem` | One item with all its fields. |
+| `getServiceItem` | One item with all its fields. An identifier asked under a service whose listings don't carry its type (a roadworks asked as a closure) is an error naming the right service; the API itself would answer it under any. |
 
 Every tool only reads. An answer is JSON (`structuredContent` and the same as text), with the
 `source` it came from (whole, never cut like the data) and the data licence. A text over 2000
