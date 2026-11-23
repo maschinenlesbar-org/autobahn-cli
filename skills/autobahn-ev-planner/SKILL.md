@@ -77,10 +77,12 @@ spaces (`"4 Ladepunkte "`), so an exact match on the layout below would miss the
 >
 > ```js
 > // [lat, long] as numbers, or null when the site has no usable position.
+> // A blank or null value is no position: Number("") and Number(null) would give 0.
+> const num = (v) => (typeof v === "number" ? v : typeof v === "string" && v.trim() !== "" ? Number(v) : NaN);
 > function latLong(c) {
 >   const p = c?.type === "Point" && Array.isArray(c.coordinates)
->     ? [Number(c.coordinates[1]), Number(c.coordinates[0])]  // Deutschlandnetz: [long, lat]
->     : [Number(c?.lat), Number(c?.long)];                    // other sites: strings
+>     ? [num(c.coordinates[1]), num(c.coordinates[0])]  // Deutschlandnetz: [long, lat]
+>     : [num(c?.lat), num(c?.long)];                    // other sites: strings
 >   return p.every(Number.isFinite) ? p : null;
 > }
 > ```

@@ -199,13 +199,22 @@ export interface ChargingStations {
   withoutPosition: number;
 }
 
-/** [lat, long] as numbers from either coordinate shape (strings, or a GeoJSON Point), or undefined. */
+/** A coordinate value as a number: a number, or a string that isn't blank; anything else (`""`, null) NaN, never 0. */
+function coordinateNumber(value: unknown): number {
+  if (typeof value === "number") return value;
+  return typeof value === "string" && value.trim() !== "" ? Number(value) : Number.NaN;
+}
+
+/**
+ * [lat, long] as numbers from either coordinate shape (strings, or a GeoJSON Point), or undefined
+ * when either is missing, blank, null or not a number (a blank one is no position, not 0).
+ */
 export function latLong(coordinate: Coordinate | undefined): [number, number] | undefined {
   if (coordinate === undefined || coordinate === null) return undefined;
   const pair: [number, number] =
     "type" in coordinate && coordinate.type === "Point" && Array.isArray(coordinate.coordinates)
-      ? [Number(coordinate.coordinates[1]), Number(coordinate.coordinates[0])]
-      : [Number((coordinate as { lat?: unknown }).lat), Number((coordinate as { long?: unknown }).long)];
+      ? [coordinateNumber(coordinate.coordinates[1]), coordinateNumber(coordinate.coordinates[0])]
+      : [coordinateNumber((coordinate as { lat?: unknown }).lat), coordinateNumber((coordinate as { long?: unknown }).long)];
   return pair.every(Number.isFinite) ? pair : undefined;
 }
 

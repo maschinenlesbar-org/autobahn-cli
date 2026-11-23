@@ -80,6 +80,22 @@ test("latLong reads both coordinate shapes and refuses what isn't a number", () 
   assert.equal(latLong(undefined), undefined);
 });
 
+test("latLong: a blank or null coordinate is no position, not 0", () => {
+  assert.equal(latLong({ lat: "", long: "" }), undefined);
+  assert.equal(latLong({ lat: " ", long: "13.4" }), undefined);
+  assert.equal(latLong({ lat: null, long: null } as never), undefined);
+  assert.equal(latLong({ type: "Point", coordinates: [null, null] } as never), undefined);
+  assert.deepEqual(latLong({ lat: "0", long: "0" }), [0, 0]);
+});
+
+test("findChargingStations: a site with blank coordinates comes last and doesn't change the road's axis", async () => {
+  const site = (id: string, long: string) => item(id, { title: `A2 | x | ${id}`, coordinate: { lat: long === "" ? "" : "52.3", long } });
+  const answer = await findChargingStations(client({ A2: { electric_charging_station: [site("blank", ""), site("e", "13"), site("w", "7"), site("m", "9")] } }), { roadId: "A2" });
+  assert.equal(answer.orderedBy, "longitude");
+  assert.equal(answer.withoutPosition, 1);
+  assert.deepEqual(answer.stations.map((s) => s.identifier), ["w", "m", "e", "blank"]);
+});
+
 test("findChargingStations orders west to east on an east-west road; trailing spaces in lines don't hide points", async () => {
   const answer = await findChargingStations(
     client({
