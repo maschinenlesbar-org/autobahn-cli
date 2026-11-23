@@ -131,3 +131,13 @@ test("getServiceItem: an identifier asked under another service than its item's 
   assert.equal(untyped.structuredContent?.["status"], "ok", untyped.content[0]?.text);
   await connection.close();
 });
+
+test("getServiceItem: source is the URL the request went to, the identifier as sent (trimmed, NFC)", async () => {
+  const umlaut = autobahn({ A1: { roadworks: [{ identifier: "Ä-1", title: "A1 | x", display_type: "ROADWORKS" }] } });
+  const connection = await connect({ transport: umlaut });
+  const result = await connection.call("getServiceItem", { service: "roadworks", identifier: " Ä-1 " });
+  assert.equal(result.structuredContent?.["status"], "ok", result.content[0]?.text);
+  assert.equal(new URL(umlaut.last().url).pathname, "/o/autobahn/details/roadworks/%C3%84-1");
+  assert.match(String(result.structuredContent?.["source"]), /\/o\/autobahn\/details\/roadworks\/%C3%84-1$/);
+  await connection.close();
+});

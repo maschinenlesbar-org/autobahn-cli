@@ -7,6 +7,7 @@
 // server.ts puts into its messages: everything about the server particular to the Autobahn API.
 
 import { AutobahnValidationError, checkRoad, findChargingStations, SERVICE_NAMES, serviceResource, servicesOfType, type ServiceName } from "@maschinenlesbar.org/autobahn-client";
+import { normalizeToken } from "@maschinenlesbar.org/autobahn-client/internal/validate";
 import type { JsonSchema, ToolDefinition } from "./server.js";
 
 /** The service, as results and messages name it. */
@@ -72,7 +73,9 @@ const LISTING: Record<ServiceName, string> = {
   closures: "closure",
   charging: "electric_charging_station",
 };
-const road = (args: Record<string, unknown>): string => encodeURIComponent(str(args, "roadId").trim());
+/** A road id or identifier for `source` as the client sends it: trimmed, in NFC, percent-encoded. */
+const sent = (value: string): string => encodeURIComponent(normalizeToken(value));
+const road = (args: Record<string, unknown>): string => sent(str(args, "roadId"));
 
 export const TOOLS: readonly ToolDefinition[] = [
   {
@@ -167,7 +170,7 @@ export const TOOLS: readonly ToolDefinition[] = [
     ].join("\n\n"),
     inputSchema: input({ service, identifier: { type: "string", minLength: 1, maxLength: 500, description: "The item's identifier, as a listing gave it." } }, ["service", "identifier"]),
     outputSchema: output({ service: str_, item: obj }),
-    source: (args) => `o/autobahn/details/${LISTING[str(args, "service") as ServiceName] ?? ""}/${encodeURIComponent(str(args, "identifier").trim())}`,
+    source: (args) => `o/autobahn/details/${LISTING[str(args, "service") as ServiceName] ?? ""}/${sent(str(args, "identifier"))}`,
     async run(args, context) {
       const name = str(args, "service") as ServiceName;
       const item = await serviceResource(context.client, name).get(str(args, "identifier"));
