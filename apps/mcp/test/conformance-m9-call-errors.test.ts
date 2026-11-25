@@ -6,7 +6,8 @@
 //   narrow it; a cancelled call says so. At the deadline the call's signal aborts, and a tool that
 //   answers with what it has read so far (a part, said so in its answer) gets that answer out.
 // - A bug is a fixed text for the caller and an ERROR record of `<program>.server` with the details.
-// - An answer over the server's size cap says what to ask instead, not a CLI option.
+// - An upstream answer over the client's read limit (16 MiB) says so, and that narrower options
+//   don't help (they shape the result, not what the source sends); never a CLI option.
 // - A retry's record names the wait the retry really has: the limiter's pause after a 429 too.
 // Shared across the repos with an MCP server; only the adapter differs.
 
@@ -27,6 +28,8 @@ const CALL = { name: "listRoads", arguments: {} };
 
 // A client for a test (harness.ts: with the repository's test login, where its client needs one).
 const { newClient } = await import("./harness.js");
+// The result cap's advice (imported here, below the adapter block, which a repo keeps as it is).
+const { SIZE_HINT } = await import("../src/mcp/tools.js");
 
 const tool = TOOLS.find((t) => t.name === CALL.name) as ToolDefinition;
 // An upstream that never answers, but ends a request when its signal aborts, as the real
@@ -143,14 +146,16 @@ test("a long tool error keeps its start, what failed, and its end, where the rea
   assert.equal((await callTool(short, {}, new AbortController().signal, e)).content[0]?.text, `GET x failed ${reason}`);
 });
 
-test("an answer over the server's size cap is a tool error that says what to ask instead, not a CLI option", async () => {
+test("an upstream answer over the read limit is a tool error that says narrower options don't help, not a CLI option", async () => {
   const huge = makeMockTransport(() => ({ status: 200, headers: { "content-type": "application/json" }, body: Buffer.alloc(17 * 1024 * 1024, 0x20) }));
   const connection = await connect({ transport: huge });
   const result = await connection.call(CALL.name, CALL.arguments);
   assert.equal(result.isError, true);
   const text = result.content[0]?.text ?? "";
   assert.doesNotMatch(text, /--max-response-bytes|on the CLI/);
-  assert.match(text, /is larger than this server accepts \(16 MiB\)\. \S/);
+  assert.match(text, /is larger than this server accepts \(16 MiB\): the source's answer is over the read limit/);
+  assert.match(text, new RegExp(`narrower options of ${CALL.name} don't help`));
+  assert.ok(!text.includes(SIZE_HINT), "the result cap's advice (limit, offset) can't make the source's answer smaller");
   await connection.close();
 });
 
