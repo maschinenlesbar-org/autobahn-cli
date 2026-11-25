@@ -382,8 +382,11 @@ socket-inactivity timeout *and* an overall wall-clock deadline armed at request
 start. The deadline stops a slow-drip endpoint that resets the inactivity timer
 forever (one byte at a time) from holding the CLI open under the size cap. The engine
 enforces the deadline itself, for every transport: the transport gets an `AbortSignal`
-(`HttpRequest.signal`) that fires at the deadline, and the call rejects then whether the
-transport stops or not, so a `fetch` or `node:http` transport can't hang a caller.
+(`HttpRequest.signal`) that fires at the deadline, with the timeout error as its reason, and the
+call rejects then whether the transport stops or not, so a `fetch` or `node:http` transport can't
+hang a caller. The built-in transport stops with that reason; for a signal some other caller
+aborted (the MCP server's tool call: its deadline, a cancellation) it says "Request aborted by its
+caller before it finished", never a timeout it didn't have.
 
 **Empty-body not-found.** The detail endpoint answers an unknown identifier with
 HTTP 200 and an empty body rather than a true `404`. For `get` (the engine's
